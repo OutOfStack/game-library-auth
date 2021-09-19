@@ -2,7 +2,12 @@
     {{template "partials/header" .}}
     <body>
         <h3>Login</h3>
-        <form action="/login" method="POST">
+        <form action="/login?returnUrl={{ .ReturnUrl}}" method="POST">
+            {{if .Error}}
+                <div>
+                    Errors: {{ .Error}}
+                </div>
+            {{end}}
             <div>
                 <label for="username">Username:</label>
                 <input type="text" id="username" name="username" required>
@@ -10,7 +15,7 @@
 
             <div>
                 <label for="pass">Password:</label>
-                <input type="password" id="pass" name="password" minlength="8" required>
+                <input type="password" id="pass" name="password" required>
             </div>
 
             <div>

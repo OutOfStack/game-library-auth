@@ -11,12 +11,17 @@ import (
 )
 
 type User struct {
-	Login    string
+	Username string
 	Password string
 }
 
+type ViewData struct {
+	ReturnUrl string
+	Error     string
+}
+
 func (u *User) String() string {
-	return fmt.Sprintf("Login: %s, Password: %s", u.Login, strings.Repeat("*", len(u.Password)))
+	return fmt.Sprintf("Login: %s, Password: %s", u.Username, strings.Repeat("*", len(u.Password)))
 }
 
 func main() {
@@ -25,33 +30,50 @@ func main() {
 		Views:   html.New("./views", ".html"),
 	})
 
-	app.Get("/", loginViewHandler)
-	app.Get("/loggedin", loginSuccessViewHandler)
+	app.Get("/", func(c *fiber.Ctx) error {
+		c.Redirect("/login")
+		return nil
+	})
+	app.Get("/login", loginViewHandler)
 	app.Post("/login", loginHandler)
 
 	log.Fatal(app.Listen(":3000"))
 }
 
 func loginViewHandler(c *fiber.Ctx) error {
-	c.Render("login", nil)
-	return nil
-}
-
-func loginSuccessViewHandler(c *fiber.Ctx) error {
-	c.Render("loginSuccess", nil)
+	returnUrl := c.Query("returnUrl")
+	viewData := &ViewData{
+		ReturnUrl: returnUrl,
+	}
+	if returnUrl == "" {
+		viewData.Error = "no returnUrl param provided"
+	}
+	c.Render("login", viewData)
 	return nil
 }
 
 func loginHandler(c *fiber.Ctx) error {
-	fmt.Println("login handler")
-	login := c.Context().FormValue("login")
+	username := c.Context().FormValue("username")
 	password := c.Context().FormValue("password")
+
+	returnUrl := c.Query("returnUrl")
+
+	if returnUrl == "" {
+		viewData := &ViewData{
+			Error: "no returnUrl param provided",
+		}
+
+		c.Render("login", viewData)
+		return nil
+	}
+
 	u := &User{
-		Login:    string(login),
+		Username: string(username),
 		Password: string(password),
 	}
 	fmt.Println(u.String())
+	fmt.Printf("returnUrl: %s\n", returnUrl)
 
-	c.Redirect("loggedin", http.StatusFound)
+	c.Redirect(returnUrl, http.StatusFound)
 	return nil
 }
