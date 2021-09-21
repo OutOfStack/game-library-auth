@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	cfg "github.com/OutOfStack/game-library-auth/pkg/config"
+	"github.com/OutOfStack/game-library-auth/pkg/database"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html"
 )
@@ -24,7 +26,22 @@ func (u *User) String() string {
 	return fmt.Sprintf("Login: %s, Password: %s", u.Username, strings.Repeat("*", len(u.Password)))
 }
 
+type config struct {
+	DB struct {
+		Host       string `mapstructure:"DB_HOST"`
+		Name       string `mapstructure:"DB_NAME"`
+		User       string `mapstructure:"DB_USER"`
+		Password   string `mapstructure:"DB_PASSWORD"`
+		RequireSSL bool   `mapstructure:"DB_REQUIRESSL"`
+	} `mapstructure:",squash"`
+}
+
 func main() {
+
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+
 	app := fiber.New(fiber.Config{
 		AppName: "game-library-auth",
 		Views:   html.New("./views", ".html"),
@@ -38,6 +55,28 @@ func main() {
 	app.Post("/login", loginHandler)
 
 	log.Fatal(app.Listen(":3000"))
+}
+
+func run() error {
+	config := &config{}
+	if err := cfg.LoadConfig(".", "app", "env", config); err != nil {
+		log.Fatalf("error parsing config: %v", err)
+	}
+
+	db, err := database.Open(database.Config{
+		Host:       config.DB.Host,
+		Name:       config.DB.Name,
+		User:       config.DB.User,
+		Password:   config.DB.Password,
+		RequireSSL: config.DB.RequireSSL,
+	})
+
+	if err != nil {
+		return fmt.Errorf("opening db: %w", err)
+	}
+	defer db.Close()
+
+	return nil
 }
 
 func loginViewHandler(c *fiber.Ctx) error {
