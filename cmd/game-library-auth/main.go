@@ -9,7 +9,6 @@ import (
 	cfg "github.com/OutOfStack/game-library-auth/pkg/config"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/template/html"
 )
 
 // SignIn describes login user.
@@ -18,10 +17,9 @@ type SignIn struct {
 	Password string `json:"password"`
 }
 
-// SignInViewData represents data displayed on Login page.
-type SignInViewData struct {
-	ReturnUrl string
-	Error     string
+// ErrResp describes error response.
+type ErrResp struct {
+	Error string `json:"error"`
 }
 
 func (s *SignIn) String() string {
@@ -46,17 +44,11 @@ func main() {
 
 	app := fiber.New(fiber.Config{
 		AppName: "game-library-auth",
-		Views:   html.New("./web/views", ".html"),
 	})
 
-	app.Get("/", func(c *fiber.Ctx) error {
-		c.Redirect("/login")
-		return nil
-	})
-	app.Get("/login", loginViewHandler)
-	app.Post("/login", loginHandler)
+	app.Post("/signin", signInHandler)
 
-	log.Fatal(app.Listen(":3000"))
+	log.Fatal(app.Listen(":8081"))
 }
 
 func run() error {
@@ -81,40 +73,18 @@ func run() error {
 	return nil
 }
 
-func loginViewHandler(c *fiber.Ctx) error {
-	returnUrl := c.Query("returnUrl")
-	viewData := &SignInViewData{
-		ReturnUrl: returnUrl,
-	}
-	if returnUrl == "" {
-		viewData.Error = "no returnUrl param provided"
-	}
-	c.Render("login", viewData)
-	return nil
-}
-
-func loginHandler(c *fiber.Ctx) error {
-	username := c.Context().FormValue("username")
-	password := c.Context().FormValue("password")
-
-	returnUrl := c.Query("returnUrl")
-
-	if returnUrl == "" {
-		viewData := &SignInViewData{
-			Error: "no returnUrl param provided",
+func signInHandler(c *fiber.Ctx) error {
+	var signIn SignIn
+	if err := c.BodyParser(&signIn); err != nil {
+		fmt.Printf("error parsing data: %v\n", err)
+		if err := c.Status(http.StatusBadRequest).JSON(ErrResp{"Error parsing data"}); err != nil {
+			return fmt.Errorf("error serializing data: %w", err)
 		}
-
-		c.Render("login", viewData)
 		return nil
 	}
 
-	u := &SignIn{
-		Username: string(username),
-		Password: string(password),
-	}
-	fmt.Println(u.String())
-	fmt.Printf("returnUrl: %s\n", returnUrl)
+	resp := signIn.String()
+	fmt.Println(resp)
 
-	c.Redirect(returnUrl, http.StatusFound)
-	return nil
+	return c.JSON(resp)
 }
