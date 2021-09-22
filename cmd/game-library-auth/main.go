@@ -12,18 +12,20 @@ import (
 	"github.com/gofiber/template/html"
 )
 
-type User struct {
-	Username string
-	Password string
+// SignIn describes login user.
+type SignIn struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
-type ViewData struct {
+// SignInViewData represents data displayed on Login page.
+type SignInViewData struct {
 	ReturnUrl string
 	Error     string
 }
 
-func (u *User) String() string {
-	return fmt.Sprintf("Login: %s, Password: %s", u.Username, strings.Repeat("*", len(u.Password)))
+func (s *SignIn) String() string {
+	return fmt.Sprintf("Username: %s, Password: %s", s.Username, strings.Repeat("*", len(s.Password)))
 }
 
 type config struct {
@@ -44,7 +46,7 @@ func main() {
 
 	app := fiber.New(fiber.Config{
 		AppName: "game-library-auth",
-		Views:   html.New("./views", ".html"),
+		Views:   html.New("./web/views", ".html"),
 	})
 
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -81,7 +83,7 @@ func run() error {
 
 func loginViewHandler(c *fiber.Ctx) error {
 	returnUrl := c.Query("returnUrl")
-	viewData := &ViewData{
+	viewData := &SignInViewData{
 		ReturnUrl: returnUrl,
 	}
 	if returnUrl == "" {
@@ -98,7 +100,7 @@ func loginHandler(c *fiber.Ctx) error {
 	returnUrl := c.Query("returnUrl")
 
 	if returnUrl == "" {
-		viewData := &ViewData{
+		viewData := &SignInViewData{
 			Error: "no returnUrl param provided",
 		}
 
@@ -106,7 +108,7 @@ func loginHandler(c *fiber.Ctx) error {
 		return nil
 	}
 
-	u := &User{
+	u := &SignIn{
 		Username: string(username),
 		Password: string(password),
 	}
