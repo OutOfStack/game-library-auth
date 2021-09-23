@@ -49,17 +49,22 @@ func main() {
 	case "migrate":
 		n, err := migrate.Exec(db.DB, "postgres", migrations, migrate.Up)
 		if err != nil {
-			log.Fatalf("Error applying migrations: %v. Applied %d migrations", err, n)
+			log.Fatalf("Error applying migrations: %v.\nApplied %d migrations", err, n)
 		}
-		log.Printf("Migration complete. Applied %d migrations", n)
+		fmt.Printf("Migration complete. Applied %d migrations\n", n)
 		return
 	case "rollback":
-		if _, err := migrate.ExecMax(db.DB, "postgres", migrations, migrate.Down, 1); err != nil {
+		n, err := migrate.ExecMax(db.DB, "postgres", migrations, migrate.Down, 1)
+		if err != nil {
 			log.Fatalf("Error rolling back last migration: %v", err)
 		}
-		log.Print("Migration rollback complete")
+		if n == 0 {
+			fmt.Println("There is no applied migrations to rollback")
+		} else {
+			fmt.Println("Migration rollback complete")
+		}
 		return
 	default:
-		log.Print("Unknown command")
+		fmt.Println("Unknown command")
 	}
 }
