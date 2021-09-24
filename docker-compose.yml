@@ -7,6 +7,8 @@ services:
     image: postgres:13-alpine
     ports:
       - 5432:5432
-    restart: on-failure:5
+    restart: always
     environment:
+    - POSTGRES_USER=postgres
     - POSTGRES_PASSWORD=temp_pwd
+    - POSTGRES_DB=auth

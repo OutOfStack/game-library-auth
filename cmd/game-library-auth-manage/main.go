@@ -44,6 +44,7 @@ func main() {
 	migrations := &migrate.FileMigrationSource{
 		Dir: "migrations",
 	}
+
 	flag.Parse()
 	switch flag.Arg(0) {
 	case "migrate":
