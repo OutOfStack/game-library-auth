@@ -1,59 +1,45 @@
 package main
 
 import (
+	_ "expvar"
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
+	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
+	"github.com/OutOfStack/game-library-auth/internal/appconf"
+	"github.com/OutOfStack/game-library-auth/internal/data/user"
 	cfg "github.com/OutOfStack/game-library-auth/pkg/config"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/pprof"
 )
-
-// SignIn describes login user.
-type SignIn struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
 
 // ErrResp describes error response.
 type ErrResp struct {
 	Error string `json:"error"`
 }
 
-func (s *SignIn) String() string {
-	return fmt.Sprintf("Username: %s, Password: %s", s.Username, strings.Repeat("*", len(s.Password)))
-}
-
 type config struct {
-	DB struct {
-		Host       string `mapstructure:"DB_HOST"`
-		Name       string `mapstructure:"DB_NAME"`
-		User       string `mapstructure:"DB_USER"`
-		Password   string `mapstructure:"DB_PASSWORD"`
-		RequireSSL bool   `mapstructure:"DB_REQUIRESSL"`
-	} `mapstructure:",squash"`
+	DB  appconf.DB  `mapstructure:",squash"`
+	Web appconf.Web `mapstructure:",squash"`
 }
 
 func main() {
-
 	if err := run(); err != nil {
 		log.Fatal(err)
 	}
-
-	app := fiber.New(fiber.Config{
-		AppName: "game-library-auth",
-	})
-
-	app.Post("/signin", signInHandler)
-
-	log.Fatal(app.Listen(":8081"))
 }
 
 func run() error {
+	log := log.New(os.Stdout, "AUTH : ", log.LstdFlags)
+
 	config := &config{}
-	if err := cfg.LoadConfig(".", "app", "env", config); err != nil {
+	if err := cfg.Load(".", "app", "env", config); err != nil {
 		log.Fatalf("error parsing config: %v", err)
 	}
 
@@ -70,11 +56,51 @@ func run() error {
 	}
 	defer db.Close()
 
+	// start debug service
+	go func() {
+		app := fiber.New(fiber.Config{
+			AppName: "pprof-debug",
+		})
+		app.Use(pprof.New())
+		err := app.Listen(config.Web.DebugAddress)
+		log.Printf("Debug service stopped %v\n", err)
+	}()
+
+	// start auth service
+	app := fiber.New(fiber.Config{
+		AppName:      "game-library-auth",
+		ReadTimeout:  config.Web.ReadTimeout * time.Second,
+		WriteTimeout: config.Web.WriteTimeout * time.Second,
+	})
+
+	app.Post("/signin", signInHandler)
+
+	serverErrors := make(chan error, 1)
+
+	go func() {
+		serverErrors <- app.Listen(config.Web.Address)
+	}()
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case err := <-serverErrors:
+		return fmt.Errorf("listening and serving: %w", err)
+	case <-shutdown:
+		log.Println("Start shutdown")
+
+		err := app.Shutdown()
+		if err != nil {
+			log.Printf("Shutdown did not complete: %v", err)
+		}
+	}
+
 	return nil
 }
 
 func signInHandler(c *fiber.Ctx) error {
-	var signIn SignIn
+	var signIn user.SignIn
 	if err := c.BodyParser(&signIn); err != nil {
 		fmt.Printf("error parsing data: %v\n", err)
 		if err := c.Status(http.StatusBadRequest).JSON(ErrResp{"Error parsing data"}); err != nil {
@@ -83,7 +109,7 @@ func signInHandler(c *fiber.Ctx) error {
 		return nil
 	}
 
-	resp := signIn.String()
+	resp := "OK"
 	fmt.Println(resp)
 
 	return c.JSON(resp)

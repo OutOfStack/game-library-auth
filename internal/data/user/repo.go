@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,24 +15,29 @@ import (
 var (
 	// ErrNotFound is used when requested entity is not found
 	ErrNotFound = errors.New("not found")
+
+	// ErrAlreadyExists is used when requested entity is already exist
+	ErrAlreadyExists = errors.New("already exists")
 )
 
 // Repo manages API for user access
 type Repo struct {
-	log *log.Logger
-	db  *sqlx.DB
+	db *sqlx.DB
 }
 
 // New constructs a Repo
-func New(log *log.Logger, db *sqlx.DB) Repo {
+func NewRepo(db *sqlx.DB) Repo {
 	return Repo{
-		log: log,
-		db:  db,
+		db: db,
 	}
 }
 
 // Create inserts a new user into a the database
 func (r Repo) Create(ctx context.Context, nu NewUser, now time.Time) (Info, error) {
+	if usr, _ := r.GetByUsername(ctx, nu.Username); usr.Username == nu.Username {
+		return Info{}, ErrAlreadyExists
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(nu.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return Info{}, fmt.Errorf("generation password hash: %w", err)
@@ -61,7 +65,7 @@ func (r Repo) Create(ctx context.Context, nu NewUser, now time.Time) (Info, erro
 }
 
 func (r Repo) GetByID(ctx context.Context, userID uuid.UUID) (Info, error) {
-	const q = `SELECT id, username, password_hash, role_id, date_created, date_updated FROM users
+	const q = `SELECT id, username, role_id, date_created, date_updated FROM users
 		WHERE id = $1`
 
 	var usr Info
@@ -73,4 +77,49 @@ func (r Repo) GetByID(ctx context.Context, userID uuid.UUID) (Info, error) {
 	}
 
 	return usr, nil
+}
+
+func (r Repo) GetByUsername(ctx context.Context, username string) (Info, error) {
+	const q = `SELECT id, username, role_id, date_created, date_updated FROM users
+		WHERE username = $1`
+
+	var usr Info
+	if err := r.db.GetContext(ctx, &usr, q, username); err != nil {
+		if err == sql.ErrNoRows {
+			return Info{}, ErrNotFound
+		}
+		return Info{}, fmt.Errorf("selecting user %v: %w", username, err)
+	}
+
+	return usr, nil
+}
+
+func (r Repo) GetRoleByID(ctx context.Context, roleID uuid.UUID) (Role, error) {
+	const q = `SELECT id, name, description, date_created, date_updated FROM roles
+		WHERE id = $1`
+
+	var role Role
+	if err := r.db.GetContext(ctx, &role, q, roleID); err != nil {
+		if err == sql.ErrNoRows {
+			return Role{}, ErrNotFound
+		}
+		return Role{}, fmt.Errorf("selecting role %v: %w", roleID, err)
+	}
+
+	return role, nil
+}
+
+func (r Repo) GetRoleByName(ctx context.Context, roleName string) (Role, error) {
+	const q = `SELECT id, name, description, date_created, date_updated FROM roles
+		WHERE name = $1`
+
+	var role Role
+	if err := r.db.GetContext(ctx, &role, q, roleName); err != nil {
+		if err == sql.ErrNoRows {
+			return Role{}, ErrNotFound
+		}
+		return Role{}, fmt.Errorf("selecting role %v: %w", roleName, err)
+	}
+
+	return role, nil
 }

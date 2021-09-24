@@ -5,25 +5,20 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	cfg "github.com/OutOfStack/game-library-auth/pkg/config"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	migrate "github.com/rubenv/sql-migrate"
 )
 
 type config struct {
-	DB struct {
-		Host       string `mapstructure:"DB_HOST"`
-		Name       string `mapstructure:"DB_NAME"`
-		User       string `mapstructure:"DB_USER"`
-		Password   string `mapstructure:"DB_PASSWORD"`
-		RequireSSL bool   `mapstructure:"DB_REQUIRESSL"`
-	} `mapstructure:",squash"`
+	DB appconf.DB `mapstructure:",squash"`
 }
 
 func main() {
 
 	config := &config{}
-	if err := cfg.LoadConfig(".", "app", "env", config); err != nil {
+	if err := cfg.Load(".", "app", "env", config); err != nil {
 		log.Fatalf("error parsing config: %v", err)
 	}
 
