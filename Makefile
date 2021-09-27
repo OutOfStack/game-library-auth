@@ -17,3 +17,6 @@ migrate:
 # rollback last migration
 rollback:
 	go run ./cmd/game-library-auth-manage/. rollback
+
+seed:
+	go run ./cmd/game-library-auth-manage/. seed

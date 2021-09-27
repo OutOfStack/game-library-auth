@@ -48,7 +48,6 @@ func main() {
 			log.Fatalf("Error applying migrations: %v.\nApplied %d migrations", err, n)
 		}
 		fmt.Printf("Migration complete. Applied %d migrations\n", n)
-		return
 	case "rollback":
 		n, err := migrate.ExecMax(db.DB, "postgres", migrations, migrate.Down, 1)
 		if err != nil {
@@ -59,7 +58,11 @@ func main() {
 		} else {
 			fmt.Println("Migration rollback complete")
 		}
-		return
+	case "seed":
+		if err := database.Seed(db); err != nil {
+			log.Fatalf("Error applying seeds: %v", err)
+		}
+		log.Print("Seed data successfully inserted")
 	default:
 		fmt.Println("Unknown command")
 	}
