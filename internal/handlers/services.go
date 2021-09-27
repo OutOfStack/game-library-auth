@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"log"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/gofiber/fiber/v2"
@@ -10,7 +13,7 @@ import (
 )
 
 // AuthService creates and configures auth app
-func AuthService(conf *appconf.Web) *fiber.App {
+func AuthService(conf *appconf.Web, db *sqlx.DB, log *log.Logger) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName:      "game-library-auth",
 		ReadTimeout:  conf.ReadTimeout * time.Second,
@@ -21,13 +24,13 @@ func AuthService(conf *appconf.Web) *fiber.App {
 	app.Use(logger.New())
 
 	// register routes
-	RegisterRoutes(app)
+	RegisterRoutes(app, db, log)
 
 	return app
 }
 
 // DebugService creates and configures debug app
-func DebugService(conf *appconf.Web) *fiber.App {
+func DebugService() *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName: "pprof-debug",
 	})

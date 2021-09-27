@@ -5,19 +5,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var (
 	// ErrNotFound is used when requested entity is not found
 	ErrNotFound = errors.New("not found")
-
-	// ErrAlreadyExists is used when requested entity is already exist
-	ErrAlreadyExists = errors.New("already exists")
 )
 
 // Repo manages API for user access
@@ -25,38 +20,20 @@ type Repo struct {
 	db *sqlx.DB
 }
 
-// New constructs a Repo
+// NewRepo constructs a Repo
 func NewRepo(db *sqlx.DB) Repo {
 	return Repo{
 		db: db,
 	}
 }
 
-// Create inserts a new user into a the database
-func (r Repo) Create(ctx context.Context, nu NewUser, now time.Time) (Info, error) {
-	if usr, _ := r.GetByUsername(ctx, nu.Username); usr.Username == nu.Username {
-		return Info{}, ErrAlreadyExists
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(nu.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return Info{}, fmt.Errorf("generation password hash: %w", err)
-	}
-
-	usr := Info{
-		ID:           uuid.New(),
-		Username:     nu.Username,
-		PasswordHash: hash,
-		RoleID:       nu.RoleID,
-		DateCreated:  now.UTC(),
-		DateUpdated:  now.UTC(),
-	}
-
+// Create inserts a new user into the database
+func (r Repo) Create(ctx context.Context, usr Info) (Info, error) {
 	const q = `INSERT INTO users
 		(id, username, password_hash, role_id, date_created, date_updated)
 		VALUES ($1, $2, $3, $4, $5, $6)`
 
-	_, err = r.db.ExecContext(ctx, q, usr.ID, usr.Username, usr.PasswordHash, usr.RoleID, usr.DateCreated, usr.DateUpdated)
+	_, err := r.db.ExecContext(ctx, q, usr.ID, usr.Username, usr.PasswordHash, usr.RoleID, usr.DateCreated, usr.DateUpdated)
 	if err != nil {
 		return Info{}, fmt.Errorf("inserting user: %w", err)
 	}
@@ -80,7 +57,7 @@ func (r Repo) GetByID(ctx context.Context, userID uuid.UUID) (Info, error) {
 }
 
 func (r Repo) GetByUsername(ctx context.Context, username string) (Info, error) {
-	const q = `SELECT id, username, role_id, date_created, date_updated FROM users
+	const q = `SELECT id, username, password_hash, role_id, date_created, date_updated FROM users
 		WHERE username = $1`
 
 	var usr Info

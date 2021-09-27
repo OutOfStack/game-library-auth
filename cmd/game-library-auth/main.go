@@ -26,11 +26,11 @@ func main() {
 }
 
 func run() error {
-	log := log.New(os.Stdout, "AUTH : ", log.LstdFlags)
+	logger := log.New(os.Stdout, "AUTH : ", log.LstdFlags)
 
 	config := &config{}
 	if err := cfg.Load(".", "app", "env", config); err != nil {
-		log.Fatalf("error parsing config: %v", err)
+		logger.Fatalf("error parsing config: %v", err)
 	}
 
 	// connect to database
@@ -48,13 +48,13 @@ func run() error {
 	defer db.Close()
 
 	// start debug service
-	debugApp := handlers.DebugService(&config.Web)
+	debugApp := handlers.DebugService()
 	go func() {
 		err := server.Start(debugApp, config.Web.DebugAddress)
-		log.Printf("Debug service stopped %v\n", err)
+		logger.Printf("Debug service stopped %v\n", err)
 	}()
 
 	// start auth service
-	app := handlers.AuthService(&config.Web)
+	app := handlers.AuthService(&config.Web, db, logger)
 	return server.StartWithGracefulShutdown(app, config.Web.Address)
 }
