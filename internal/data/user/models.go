@@ -30,7 +30,7 @@ type GetUser struct {
 type SignUp struct {
 	Username        string `json:"username" validate:"required"`
 	Password        string `json:"password" validate:"required,min=8"`
-	ConfirmPassword string `json:"confirm_password" validate:"eqfield=Password,min=8"`
+	ConfirmPassword string `json:"confirm_password" validate:"eqfield=Password"`
 }
 
 // NewUser represents data for user creation
