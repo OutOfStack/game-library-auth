@@ -25,7 +25,7 @@ type TokenAPI struct {
 	Log  *log.Logger
 }
 
-func (ta TokenAPI) verifyJWT(c *fiber.Ctx) error {
+func (ta TokenAPI) verifyToken(c *fiber.Ctx) error {
 	var verifyToken VerifyToken
 	if err := c.BodyParser(&verifyToken); err != nil {
 		ta.Log.Printf("error parsing data: %v\n", err)
@@ -47,7 +47,7 @@ func (ta TokenAPI) verifyJWT(c *fiber.Ctx) error {
 
 	_, err := ta.Auth.ValidateToken(tokenStr)
 	if err != nil {
-		ta.Log.Printf("token validation failed: %w", err)
+		ta.Log.Printf("token validation failed: %v", err)
 		return c.JSON(VerifyTokenResp{
 			Valid: false,
 		})

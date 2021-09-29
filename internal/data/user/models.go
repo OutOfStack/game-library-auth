@@ -26,24 +26,11 @@ type GetUser struct {
 	DateUpdated string    `json:"date_updated"`
 }
 
-// SignUp represents data for user sign up
-type SignUp struct {
-	Username        string `json:"username" validate:"required"`
-	Password        string `json:"password" validate:"required,min=8"`
-	ConfirmPassword string `json:"confirm_password" validate:"eqfield=Password"`
-}
-
 // NewUser represents data for user creation
 type NewUser struct {
 	Username string
 	Password string
 	RoleID   uuid.UUID
-}
-
-// SignIn represents data for user sign in
-type SignIn struct {
-	Username string `json:"username" validate:"required"`
-	Password string `json:"password" validate:"required"`
 }
 
 // Role represents a user role

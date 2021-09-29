@@ -32,9 +32,22 @@ type AuthAPI struct {
 	Log      *log.Logger
 }
 
+// SignUp represents data for user sign up
+type SignUp struct {
+	Username        string `json:"username" validate:"required"`
+	Password        string `json:"password" validate:"required,min=8"`
+	ConfirmPassword string `json:"confirm_password" validate:"eqfield=Password"`
+}
+
+// SignIn represents data for user sign in
+type SignIn struct {
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
 // Handler for sign in endpoint
 func (aa *AuthAPI) signInHandler(c *fiber.Ctx) error {
-	var signIn user.SignIn
+	var signIn SignIn
 	if err := c.BodyParser(&signIn); err != nil {
 		aa.Log.Printf("error parsing data: %v\n", err)
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
@@ -89,7 +102,7 @@ func (aa *AuthAPI) signInHandler(c *fiber.Ctx) error {
 	// generate jwt
 	tokenStr, err := aa.Auth.GenerateToken(claims)
 	if err != nil {
-		aa.Log.Printf("generating jwt: %w", err)
+		aa.Log.Printf("generating jwt: %v", err)
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})
@@ -102,7 +115,7 @@ func (aa *AuthAPI) signInHandler(c *fiber.Ctx) error {
 
 // Handler for sign up handler
 func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
-	var signUp user.SignUp
+	var signUp SignUp
 	if err := c.BodyParser(&signUp); err != nil {
 		aa.Log.Printf("error parsing data: %v\n", err)
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{

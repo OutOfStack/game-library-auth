@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/rsa"
 	"fmt"
+	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -46,7 +47,7 @@ func (a *Auth) GenerateToken(claims jwt.Claims) (string, error) {
 
 	tokenStr, err := token.SignedString(a.privateKey)
 	if err != nil {
-		return "", fmt.Errorf("signing crypto: %w", err)
+		return "", fmt.Errorf("signing token: %w", err)
 	}
 
 	return tokenStr, nil
@@ -54,14 +55,19 @@ func (a *Auth) GenerateToken(claims jwt.Claims) (string, error) {
 
 // ValidateToken validates token and returns claims from it
 func (a *Auth) ValidateToken(tokenStr string) (jwt.Claims, error) {
-	var claims jwt.MapClaims
-	token, err := a.parser.ParseWithClaims(tokenStr, claims, a.keyFunc)
+	var claims jwt.RegisteredClaims
+	token, err := a.parser.ParseWithClaims(tokenStr, &claims, a.keyFunc)
 	if err != nil {
 		return jwt.MapClaims{}, fmt.Errorf("parsing token: %w", err)
 	}
 
 	if !token.Valid {
 		return jwt.MapClaims{}, fmt.Errorf("invalid token")
+	}
+
+	active := claims.VerifyExpiresAt(time.Now(), true)
+	if !active {
+		return jwt.MapClaims{}, fmt.Errorf("token expired")
 	}
 
 	return claims, nil

@@ -28,5 +28,5 @@ func RegisterRoutes(app *fiber.App, authConf *appconf.Auth, db *sqlx.DB, auth *a
 	app.Post("/signin", authAPI.signInHandler)
 	app.Post("/signup", authAPI.signUpHandler)
 
-	app.Post("/token/verify", tokenAPI.verifyJWT)
+	app.Post("/token/verify", tokenAPI.verifyToken)
 }
