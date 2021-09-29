@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/OutOfStack/game-library-auth/internal/appconf"
+	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/data/user"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/OutOfStack/game-library-auth/pkg/types"
@@ -22,7 +24,10 @@ const (
 	authErrorMsg       string = "Incorrect username or password"
 )
 
+// AuthAPI describes dependencies for auth endpoints
 type AuthAPI struct {
+	Auth     *auth.Auth
+	AuthConf *appconf.Auth
 	UserRepo user.Repo
 	Log      *log.Logger
 }
@@ -69,7 +74,30 @@ func (aa *AuthAPI) signInHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(web.TokenResp{Token: "This is going to be be token"})
+	// get user's role
+	role, err := aa.UserRepo.GetRoleByID(c.Context(), usr.RoleID)
+	if err != nil {
+		aa.Log.Printf("Error fetching role %v: %v\n", usr.RoleID, err)
+		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+			Error: internalErrorMsg,
+		})
+	}
+
+	// create claims
+	claims := auth.CreateClaims(aa.AuthConf.Issuer, usr.ID, role.Name)
+
+	// generate jwt
+	tokenStr, err := aa.Auth.GenerateToken(claims)
+	if err != nil {
+		aa.Log.Printf("generating jwt: %w", err)
+		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+			Error: internalErrorMsg,
+		})
+	}
+
+	return c.JSON(web.TokenResp{
+		AccessToken: tokenStr,
+	})
 }
 
 // Handler for sign up handler
@@ -110,7 +138,7 @@ func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	// get default role id
 	defaultRole, err := aa.UserRepo.GetRoleByName(c.Context(), defaultRoleName)
 	if err != nil {
-		aa.Log.Printf("Error fetching default role: %v\n", err)
+		aa.Log.Printf("Error fetching role %s: %v\n", defaultRoleName, err)
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})

@@ -16,3 +16,8 @@ type Web struct {
 	ReadTimeout  time.Duration `mapstructure:"APP_READTIMEOUT"`
 	WriteTimeout time.Duration `mapstructure:"APP_WRITETIMEOUT"`
 }
+
+type Auth struct {
+	PrivateKeyFile string `mapstructure:"AUTH_PRIVATEKEYFILE"`
+	Issuer         string `mapstructure:"AUTH_ISSUER"`
+}

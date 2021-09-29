@@ -15,8 +15,9 @@ import (
 )
 
 type config struct {
-	DB  appconf.DB  `mapstructure:",squash"`
-	Web appconf.Web `mapstructure:",squash"`
+	DB   appconf.DB   `mapstructure:",squash"`
+	Web  appconf.Web  `mapstructure:",squash"`
+	Auth appconf.Auth `mapstructure:",squash"`
 }
 
 func main() {
@@ -55,6 +56,9 @@ func run() error {
 	}()
 
 	// start auth service
-	app := handlers.AuthService(&config.Web, db, logger)
+	app, err := handlers.AuthService(&config.Web, &config.Auth, db, logger)
+	if err != nil {
+		return fmt.Errorf("starting auth service: %w", err)
+	}
 	return server.StartWithGracefulShutdown(app, config.Web.Address)
 }

@@ -20,3 +20,6 @@ rollback:
 
 seed:
 	go run ./cmd/game-library-auth-manage/. seed
+
+keygen:
+	go run ./cmd/game-library-auth-manage/. keygen
