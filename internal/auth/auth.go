@@ -8,6 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+// Auth represents dependencies for auth methods
 type Auth struct {
 	algorithm  string
 	privateKey *rsa.PrivateKey

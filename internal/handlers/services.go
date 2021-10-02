@@ -26,7 +26,7 @@ func AuthService(conf *appconf.Web, authConf *appconf.Auth, db *sqlx.DB, log *lo
 	if err != nil {
 		return nil, fmt.Errorf("reading private key file: %w", err)
 	}
-	a, err := auth.New("RS256", privateKey)
+	a, err := auth.New(authConf.SigningAlgorithm, privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("initializing token service instance: %w", err)
 	}

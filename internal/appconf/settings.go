@@ -18,6 +18,7 @@ type Web struct {
 }
 
 type Auth struct {
-	PrivateKeyFile string `mapstructure:"AUTH_PRIVATEKEYFILE"`
-	Issuer         string `mapstructure:"AUTH_ISSUER"`
+	PrivateKeyFile   string `mapstructure:"AUTH_PRIVATEKEYFILE"`
+	SigningAlgorithm string `mapstructure:"AUTH_SIGNINGALG"`
+	Issuer           string `mapstructure:"AUTH_ISSUER"`
 }
