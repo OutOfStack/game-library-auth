@@ -1,4 +1,8 @@
-### Build and run
+### Database
+dockerrunpg:
+	docker-compose up -d db
+
+### Auth service
 build:
 	mkdir -p bin
 	go build -o bin/game-library-auth cmd/game-library-auth/main.go
@@ -6,10 +10,13 @@ build:
 run:
 	go run ./cmd/game-library-auth/.
 
-### Database
-dockerrunpg:
-	docker-compose up -d db
+dockerbuildauth:
+	docker build -f Dockerfile.web -t game-library-auth:latest .
 
+dockerrunauth:
+	docker compose up -d auth
+
+### Manage service
 # apply all migrations
 migrate:
 	go run ./cmd/game-library-auth-manage/. migrate
@@ -23,3 +30,9 @@ seed:
 
 keygen:
 	go run ./cmd/game-library-auth-manage/. keygen
+
+dockerbuildmng:
+	docker build -f Dockerfile.mng -t game-library-auth-mng:latest .
+
+dockerrunmng-m:
+	docker compose run --rm mng migrate

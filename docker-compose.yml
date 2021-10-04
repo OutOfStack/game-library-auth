@@ -6,9 +6,32 @@ services:
     container_name: auth_db
     image: postgres:13-alpine
     ports:
-      - 5432:5432
+      - "5433:5432"
     restart: always
     environment:
-    - POSTGRES_USER=postgres
-    - POSTGRES_PASSWORD=temp_pwd
-    - POSTGRES_DB=auth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: temp_pwd
+      POSTGRES_DB: auth
+
+  auth:
+    container_name: game-library-auth
+    image: game-library-auth:latest
+    ports:
+      - "8001:8000"
+      - "6061:6060"
+    environment:
+      DB_HOST: db
+      DB_PASSWORD: temp_pwd
+      APP_ADDRESS: 0.0.0.0:8000
+      DEBUG_ADDRESS: 0.0.0.0:6060
+    depends_on:
+      - db
+
+  mng:
+    container_name: game-library-auth-mng
+    image: game-library-auth-mng:latest
+    environment:
+      DB_HOST: db
+      DB_PASSWORD: temp_pwd
+    depends_on:
+      - db

@@ -34,12 +34,15 @@ func main() {
 	switch flag.Arg(0) {
 	case "migrate":
 		db := connectDB(config.DB)
+		defer db.Close()
 		applyMigrations(db, migrations)
 	case "rollback":
 		db := connectDB(config.DB)
+		defer db.Close()
 		rollbackMigration(db, migrations)
 	case "seed":
 		db := connectDB(config.DB)
+		defer db.Close()
 		seed(db)
 	case "keygen":
 		keygen()
@@ -64,7 +67,6 @@ func connectDB(conf appconf.DB) *sqlx.DB {
 		log.Fatal(err)
 	}
 	fmt.Printf("connected to host: %s, database: %s\n", conf.Host, conf.Name)
-	defer db.Close()
 
 	return db
 }

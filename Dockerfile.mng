@@ -1,0 +1,25 @@
+FROM golang:1.17-alpine as builder
+
+WORKDIR /tmp/game-library-auth-manage
+
+# copy and download dependencies
+COPY go.mod go.sum  ./
+RUN go mod download
+
+# copy code and config into container
+COPY ./app.env ./out/
+COPY ./migrations ./out/migrations
+COPY ./scripts ./out/scripts
+COPY . .
+
+# build app
+RUN go build -o ./out/game-library-auth-manage cmd/game-library-auth-manage/main.go
+
+FROM alpine:3.14
+
+WORKDIR /app
+
+# copy built app into runnable container
+COPY --from=builder /tmp/game-library-auth-manage/out ./
+
+ENTRYPOINT ["./game-library-auth-manage"]
