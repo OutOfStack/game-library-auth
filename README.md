@@ -4,6 +4,7 @@ Is an authentication service for game-library app
 ### Usage with `Make`:
     build           builds app
     run             runs app
+    test            runs tests for the whole project
     dockerrunpg     runs postgres server with 'auth' db in docker container
     migrate         applies all migrations to database
     rollback        roll backs one last migration of database

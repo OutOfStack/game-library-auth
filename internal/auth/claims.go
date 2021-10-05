@@ -7,12 +7,14 @@ import (
 	"github.com/google/uuid"
 )
 
+type Claims struct {
+	jwt.RegisteredClaims
+	UserRole string `json:"user_role,omitempty"`
+}
+
 // CreateClaims creates claims for user
 func CreateClaims(issuer string, userID uuid.UUID, role string) jwt.Claims {
-	claims := struct {
-		jwt.RegisteredClaims
-		UserRole string `json:"user_role,omitempty"`
-	}{
+	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    issuer,
 			Subject:   userID.String(),

@@ -16,6 +16,9 @@ dockerbuildauth:
 dockerrunauth:
 	docker compose up -d auth
 
+test:
+	go test -v ./...
+
 ### Manage service
 # apply all migrations
 migrate:
