@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	defaultRoleName string = "user"
+	defaultRoleName   string = "user"
+	publisherRoleName string = "publisher"
 
 	internalErrorMsg   string = "Internal error"
 	validationErrorMsg string = "Validation error"
@@ -35,8 +36,10 @@ type AuthAPI struct {
 // SignUp represents data for user sign up
 type SignUp struct {
 	Username        string `json:"username" validate:"required"`
+	Name            string `json:"name" validate:"required"`
 	Password        string `json:"password" validate:"required,min=8"`
 	ConfirmPassword string `json:"confirm_password" validate:"eqfield=Password"`
+	IsPublisher     bool   `json:"is_publisher"`
 }
 
 // SignIn represents data for user sign in
@@ -97,7 +100,7 @@ func (aa *AuthAPI) signInHandler(c *fiber.Ctx) error {
 	}
 
 	// create claims
-	claims := auth.CreateClaims(aa.AuthConf.Issuer, usr.ID, role.Name)
+	claims := auth.CreateClaims(aa.AuthConf.Issuer, usr, role.Name)
 
 	// generate jwt
 	tokenStr, err := aa.Auth.GenerateToken(claims)
@@ -148,8 +151,14 @@ func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	// get default role id
-	defaultRole, err := aa.UserRepo.GetRoleByName(c.Context(), defaultRoleName)
+	// get role id
+	var roleName string
+	if signUp.IsPublisher {
+		roleName = publisherRoleName
+	} else {
+		roleName = defaultRoleName
+	}
+	role, err := aa.UserRepo.GetRoleByName(c.Context(), roleName)
 	if err != nil {
 		aa.Log.Printf("Error fetching role %s: %v\n", defaultRoleName, err)
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
@@ -169,8 +178,9 @@ func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	usr := user.Info{
 		ID:           uuid.New(),
 		Username:     signUp.Username,
+		Name:         signUp.Name,
 		PasswordHash: hash,
-		RoleID:       defaultRole.ID,
+		RoleID:       role.ID,
 		DateCreated:  time.Now().UTC(),
 		DateUpdated:  sql.NullTime{},
 	}
@@ -186,6 +196,7 @@ func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	getUsr := user.GetUser{
 		ID:          usr.ID,
 		Username:    usr.Username,
+		Name:        usr.Name,
 		RoleID:      usr.RoleID,
 		DateCreated: usr.DateCreated.String(),
 		DateUpdated: types.NullTimeString(usr.DateUpdated),

@@ -11,6 +11,7 @@ import (
 type Info struct {
 	ID           uuid.UUID    `db:"id" json:"id"`
 	Username     string       `db:"username" json:"username"`
+	Name         string       `db:"name" json:"name"`
 	PasswordHash []byte       `db:"password_hash" json:"-"`
 	RoleID       uuid.UUID    `db:"role_id" json:"role_id"`
 	DateCreated  time.Time    `db:"date_created" json:"date_created"`
@@ -21,16 +22,10 @@ type Info struct {
 type GetUser struct {
 	ID          uuid.UUID `json:"id"`
 	Username    string    `json:"username"`
+	Name        string    `json:"name"`
 	RoleID      uuid.UUID `json:"role_id"`
 	DateCreated string    `json:"date_created"`
 	DateUpdated string    `json:"date_updated"`
-}
-
-// NewUser represents data for user creation
-type NewUser struct {
-	Username string
-	Password string
-	RoleID   uuid.UUID
 }
 
 // Role represents a user role

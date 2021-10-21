@@ -5,5 +5,5 @@ values ('fa0d517e-c7b5-474b-8586-306bb9536d2c', 'admin', 'Role that has a right 
        ('ce946525-1ef3-46c0-b39b-45d820d90021', 'moderator', 'Role that has a right to add sales', now(), null);
 
 -- admin:gamelibmaster
-insert into users (id, username, password_hash, role_id, date_created, date_updated)
-values ('66c52542-9b0f-4388-8248-6c4ea5fa89f0', 'admin', '$2a$06$4nOjQZtkUFXGN7.OMJ/ofebK/.GeACFPfrW/S1DJikSvET4jJT3E6', 'fa0d517e-c7b5-474b-8586-306bb9536d2c', now(), null);
+insert into users (id, username, name, password_hash, role_id, date_created, date_updated)
+values ('66c52542-9b0f-4388-8248-6c4ea5fa89f0', 'admin', 'Administrator', '$2a$06$4nOjQZtkUFXGN7.OMJ/ofebK/.GeACFPfrW/S1DJikSvET4jJT3E6', 'fa0d517e-c7b5-474b-8586-306bb9536d2c', now(), null);
