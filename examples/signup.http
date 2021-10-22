@@ -5,8 +5,8 @@ Content-Type: application/json
   "username": "test_user",
   "name": "Test User",
   "password": "123456qwe",
-  "confirm_password": "123456qwe",
-  "is_publisher": false
+  "confirmPassword": "123456qwe",
+  "isPublisher": false
 }
 
 ###

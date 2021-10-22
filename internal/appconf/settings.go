@@ -11,10 +11,11 @@ type DB struct {
 }
 
 type Web struct {
-	Address      string        `mapstructure:"APP_ADDRESS"`
-	DebugAddress string        `mapstructure:"DEBUG_ADDRESS"`
-	ReadTimeout  time.Duration `mapstructure:"APP_READTIMEOUT"`
-	WriteTimeout time.Duration `mapstructure:"APP_WRITETIMEOUT"`
+	Address           string        `mapstructure:"APP_ADDRESS"`
+	DebugAddress      string        `mapstructure:"DEBUG_ADDRESS"`
+	ReadTimeout       time.Duration `mapstructure:"APP_READTIMEOUT"`
+	WriteTimeout      time.Duration `mapstructure:"APP_WRITETIMEOUT"`
+	AllowedCORSOrigin string        `mapstructure:"APP_ALLOWEDCORSORIGIN"`
 }
 
 type Auth struct {

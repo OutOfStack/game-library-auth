@@ -38,8 +38,8 @@ type SignUp struct {
 	Username        string `json:"username" validate:"required"`
 	Name            string `json:"name" validate:"required"`
 	Password        string `json:"password" validate:"required,min=8"`
-	ConfirmPassword string `json:"confirm_password" validate:"eqfield=Password"`
-	IsPublisher     bool   `json:"is_publisher"`
+	ConfirmPassword string `json:"confirmPassword" validate:"eqfield=Password"`
+	IsPublisher     bool   `json:"isPublisher"`
 }
 
 // SignIn represents data for user sign in

@@ -8,5 +8,5 @@ type ErrResp struct {
 
 // TokenResp describes response with JWT
 type TokenResp struct {
-	AccessToken string `json:"access_token"`
+	AccessToken string `json:"accessToken"`
 }

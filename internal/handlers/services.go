@@ -9,6 +9,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/jmoiron/sqlx"
@@ -33,6 +34,11 @@ func AuthService(conf *appconf.Web, authConf *appconf.Auth, db *sqlx.DB, log *lo
 
 	// apply middleware
 	app.Use(logger.New())
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: conf.AllowedCORSOrigin,
+		AllowHeaders: "Origin, Content-Type, Accept",
+		AllowMethods: "POST, GET, OPTIONS",
+	}))
 
 	// register routes
 	RegisterRoutes(app, authConf, db, a, log)
