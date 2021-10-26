@@ -11,7 +11,7 @@ run:
 	go run ./cmd/game-library-auth/.
 
 dockerbuildauth:
-	docker build -f Dockerfile.web -t game-library-auth:latest .
+	docker build -t game-library-auth:latest .
 
 dockerrunauth:
 	docker compose up -d auth
