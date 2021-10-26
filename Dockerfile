@@ -7,7 +7,7 @@ COPY go.mod go.sum  ./
 RUN go mod download
 
 # copy code and config into container
-COPY ./app.env private.pem ./out/
+COPY ./app.env ./out/
 COPY . .
 
 # build app
