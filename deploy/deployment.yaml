@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: game-library-auth-deployment
+    namespace: game-library
+    labels:
+        app: game-library-auth
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: game-library-auth
+    template:
+        metadata:
+            labels:
+                app: game-library-auth
+        spec:
+            containers:
+              - name: game-library-auth
+                image: asctod/game-library-auth:latest
+                livenessProbe:
+                    httpGet:
+                        path: /health
+                        port: 8000
+                    initialDelaySeconds: 15
+                    periodSeconds: 45
+                    timeoutSeconds: 1
+                    failureThreshold: 3
+                ports:
+                  - containerPort: 8000
+                envFrom:
+                  - secretRef:
+                        name: game-library-auth-dbconfig
+                  - configMapRef:
+                        name: game-library-auth-config
+                imagePullPolicy: Always
+                volumeMounts:
+                    - name: token-volume
+                      mountPath: "/etc/gla"
+                      readOnly: true
+            volumes:
+                - name: token-volume
+                  secret:
+                    secretName: token-cert
