@@ -14,3 +14,10 @@ Is an authentication service for game-library app
     dockerrunauth   runs auth app in docker container
     dockerbuildmng  builds manage app docker image
     dockerrunmng-m  example of running manage service (migrate command) with docker
+
+### Endpoints:
+    /signup         [POST]  - creates new user
+    /signin         [POST]  - checks user credentials and returns access token
+    /token/verify   [POST]  - checks validity of provided JWT
+    
+    /health         [GET]   - checks app health
