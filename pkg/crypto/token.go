@@ -3,13 +3,13 @@ package crypto
 import (
 	"crypto/rsa"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/golang-jwt/jwt/v4"
 )
 
 func ReadPrivateKey(path string) (*rsa.PrivateKey, error) {
-	privatePEM, err := ioutil.ReadFile(path)
+	privatePEM, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading private key file: %w", err)
 	}

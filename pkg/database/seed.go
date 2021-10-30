@@ -1,7 +1,7 @@
 package database
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -10,7 +10,7 @@ const path = "./scripts/seed.sql"
 
 // Seed seeds database
 func Seed(db *sqlx.DB) error {
-	q, err := ioutil.ReadFile(path)
+	q, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
