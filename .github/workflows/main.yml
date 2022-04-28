@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - "main"
-      - "k8s-deploy"
 
 jobs:
   build_push_deploy:
