@@ -18,16 +18,27 @@ spec:
             containers:
               - name: game-library-auth
                 image: asctod/game-library-auth:latest
+                readinessProbe:
+                    httpGet:
+                        path: /readiness
+                        port: 8000
+                    initialDelaySeconds: 20
+                    periodSeconds: 45
+                    timeoutSeconds: 3
+                    failureThreshold: 3
                 livenessProbe:
                     httpGet:
-                        path: /health
+                        path: /liveness
                         port: 8000
-                    initialDelaySeconds: 15
+                    initialDelaySeconds: 20
                     periodSeconds: 45
                     timeoutSeconds: 1
                     failureThreshold: 3
                 ports:
-                  - containerPort: 8000
+                  - name: api
+                    containerPort: 8000
+                  - name: debug
+                    containerPort: 6060
                 envFrom:
                   - secretRef:
                         name: game-library-auth-dbconfig

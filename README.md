@@ -20,4 +20,5 @@ Is an authentication service for game-library app
     /signin         [POST]  - checks user credentials and returns access token
     /token/verify   [POST]  - checks validity of provided JWT
     
-    /health         [GET]   - checks app health
+    /readiness      [GET]   - checks app is ready
+    /liveness       [GET]   - checks app is up

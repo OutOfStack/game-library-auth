@@ -29,7 +29,8 @@ func RegisterRoutes(app *fiber.App, authConf *appconf.Auth, db *sqlx.DB, auth *a
 		DB: db,
 	}
 
-	app.Get("/health", checkAPI.Health)
+	app.Get("/readiness", checkAPI.Readiness)
+	app.Get("/liveness", checkAPI.Liveness)
 
 	app.Post("/signin", authAPI.signInHandler)
 	app.Post("/signup", authAPI.signUpHandler)

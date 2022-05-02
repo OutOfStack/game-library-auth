@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/auth"
@@ -19,8 +18,8 @@ import (
 func AuthService(conf *appconf.Web, authConf *appconf.Auth, db *sqlx.DB, log *log.Logger) (*fiber.App, error) {
 	app := fiber.New(fiber.Config{
 		AppName:      "game-library-auth",
-		ReadTimeout:  conf.ReadTimeout * time.Second,
-		WriteTimeout: conf.WriteTimeout * time.Second,
+		ReadTimeout:  conf.ReadTimeout,
+		WriteTimeout: conf.WriteTimeout,
 	})
 
 	privateKey, err := crypto.ReadPrivateKey(authConf.PrivateKeyFile)
@@ -49,7 +48,7 @@ func AuthService(conf *appconf.Web, authConf *appconf.Auth, db *sqlx.DB, log *lo
 // DebugService creates and configures debug app
 func DebugService() *fiber.App {
 	app := fiber.New(fiber.Config{
-		AppName: "pprof-debug",
+		AppName: "debug",
 	})
 
 	// apply middleware
