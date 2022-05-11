@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+    name: game-library-auth-service
+    namespace: game-library
+spec:
+    ports:
+      - protocol: TCP
+        name: api
+        port: 8000
+        targetPort: api
+      - protocol: TCP
+        name: debug
+        port: 6060
+        targetPort: debug
+    selector:
+        app: game-library-auth
