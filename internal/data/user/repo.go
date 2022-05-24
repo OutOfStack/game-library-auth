@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// User role names
 const (
 	DefaultRoleName   string = "user"
 	PublisherRoleName string = "publisher"

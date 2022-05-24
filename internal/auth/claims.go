@@ -7,6 +7,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+// Claims represent jwt claims
 type Claims struct {
 	jwt.RegisteredClaims
 	UserRole string `json:"user_role,omitempty"`
