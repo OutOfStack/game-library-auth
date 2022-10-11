@@ -15,9 +15,10 @@ import (
 )
 
 type config struct {
-	DB   appconf.DB   `mapstructure:",squash"`
-	Web  appconf.Web  `mapstructure:",squash"`
-	Auth appconf.Auth `mapstructure:",squash"`
+	DB     appconf.DB     `mapstructure:",squash"`
+	Web    appconf.Web    `mapstructure:",squash"`
+	Auth   appconf.Auth   `mapstructure:",squash"`
+	Zipkin appconf.Zipkin `mapstructure:",squash"`
 }
 
 func main() {
@@ -56,7 +57,7 @@ func run() error {
 	}()
 
 	// start auth service
-	app, err := handlers.AuthService(&config.Web, &config.Auth, db, logger)
+	app, err := handlers.AuthService(&config.Web, &config.Auth, &config.Zipkin, db, logger)
 	if err != nil {
 		return fmt.Errorf("starting auth service: %w", err)
 	}

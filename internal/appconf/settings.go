@@ -2,6 +2,9 @@ package appconf
 
 import "time"
 
+// ServiceName - service name
+const ServiceName = "game-library-auth"
+
 // DB represents settings related to database
 type DB struct {
 	Host       string `mapstructure:"DB_HOST"`
@@ -25,4 +28,9 @@ type Auth struct {
 	PrivateKeyFile   string `mapstructure:"AUTH_PRIVATEKEYFILE"`
 	SigningAlgorithm string `mapstructure:"AUTH_SIGNINGALG"`
 	Issuer           string `mapstructure:"AUTH_ISSUER"`
+}
+
+// Zipkin represents settings related to zipkin trace storage
+type Zipkin struct {
+	ReporterURL string `mapstructure:"ZIPKIN_REPORTERURL"`
 }

@@ -30,24 +30,12 @@ type AuthAPI struct {
 	Log      *log.Logger
 }
 
-// SignUp represents data for user sign up
-type SignUp struct {
-	Username        string `json:"username" validate:"required"`
-	Name            string `json:"name" validate:"required"`
-	Password        string `json:"password" validate:"required,min=8"`
-	ConfirmPassword string `json:"confirmPassword" validate:"eqfield=Password"`
-	IsPublisher     bool   `json:"isPublisher"`
-}
-
-// SignIn represents data for user sign in
-type SignIn struct {
-	Username string `json:"username" validate:"required"`
-	Password string `json:"password" validate:"required"`
-}
-
 // Handler for sign in endpoint
 func (aa *AuthAPI) signInHandler(c *fiber.Ctx) error {
-	var signIn SignIn
+	ctx, span := tracer.Start(c.UserContext(), "handlers.signin")
+	defer span.End()
+
+	var signIn SignInReq
 	if err := c.BodyParser(&signIn); err != nil {
 		aa.Log.Printf("error parsing data: %v\n", err)
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
@@ -65,7 +53,7 @@ func (aa *AuthAPI) signInHandler(c *fiber.Ctx) error {
 	}
 
 	// fetch user
-	usr, err := aa.UserRepo.GetByUsername(c.Context(), signIn.Username)
+	usr, err := aa.UserRepo.GetByUsername(ctx, signIn.Username)
 	if err != nil {
 		if err == user.ErrNotFound {
 			aa.Log.Printf("error username %s does not exist: %v\n", signIn.Username, err)
@@ -88,7 +76,7 @@ func (aa *AuthAPI) signInHandler(c *fiber.Ctx) error {
 	}
 
 	// get user's role
-	role, err := aa.UserRepo.GetRoleByID(c.Context(), usr.RoleID)
+	role, err := aa.UserRepo.GetRoleByID(ctx, usr.RoleID)
 	if err != nil {
 		aa.Log.Printf("error fetching role %v: %v\n", usr.RoleID, err)
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
@@ -108,14 +96,17 @@ func (aa *AuthAPI) signInHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(web.TokenResp{
+	return c.JSON(TokenResp{
 		AccessToken: tokenStr,
 	})
 }
 
 // Handler for sign up endpoint
 func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
-	var signUp SignUp
+	ctx, span := tracer.Start(c.UserContext(), "handlers.signup")
+	defer span.End()
+
+	var signUp SignUpReq
 	if err := c.BodyParser(&signUp); err != nil {
 		aa.Log.Printf("error parsing data: %v\n", err)
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
@@ -133,7 +124,7 @@ func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	}
 
 	// check if such username already exists
-	_, err := aa.UserRepo.GetByUsername(c.Context(), signUp.Username)
+	_, err := aa.UserRepo.GetByUsername(ctx, signUp.Username)
 	// if err is ErrNotFound then continue
 	if err != nil {
 		if err != user.ErrNotFound {
@@ -153,7 +144,7 @@ func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	var roleName string
 	if signUp.IsPublisher {
 		// check uniqueness of publisher name
-		exists, err := aa.UserRepo.CheckExistPublisherWithName(c.Context(), signUp.Name)
+		exists, err := aa.UserRepo.CheckExistPublisherWithName(ctx, signUp.Name)
 		if err != nil {
 			aa.Log.Printf("error checking existence of publisher with name %s: %v\n", signUp.Name, err)
 			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
@@ -170,7 +161,7 @@ func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	} else {
 		roleName = user.DefaultRoleName
 	}
-	role, err := aa.UserRepo.GetRoleByName(c.Context(), roleName)
+	role, err := aa.UserRepo.GetRoleByName(ctx, roleName)
 	if err != nil {
 		aa.Log.Printf("error fetching role %s: %v\n", roleName, err)
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
@@ -198,14 +189,14 @@ func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	}
 
 	// create new user
-	if _, err := aa.UserRepo.Create(c.Context(), usr); err != nil {
+	if _, err := aa.UserRepo.Create(ctx, usr); err != nil {
 		aa.Log.Printf("error creating new user: %v\n", err)
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})
 	}
 
-	getUsr := user.GetUser{
+	resp := SignUpResp{
 		ID:          usr.ID,
 		Username:    usr.Username,
 		Name:        usr.Name,
@@ -214,5 +205,5 @@ func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 		DateUpdated: types.NullTimeString(usr.DateUpdated),
 	}
 
-	return c.JSON(getUsr)
+	return c.JSON(resp)
 }

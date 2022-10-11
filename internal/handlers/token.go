@@ -26,6 +26,9 @@ type TokenAPI struct {
 }
 
 func (ta TokenAPI) verifyToken(c *fiber.Ctx) error {
+	_, span := tracer.Start(c.UserContext(), "handlers.verifytoken")
+	defer span.End()
+
 	var verifyToken VerifyToken
 	if err := c.BodyParser(&verifyToken); err != nil {
 		ta.Log.Printf("error parsing data: %v\n", err)

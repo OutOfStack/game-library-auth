@@ -18,16 +18,6 @@ type Info struct {
 	DateUpdated  sql.NullTime `db:"date_updated" json:"dateUpdated"`
 }
 
-// GetUser represents user data to be returned to client
-type GetUser struct {
-	ID          uuid.UUID `json:"id"`
-	Username    string    `json:"username"`
-	Name        string    `json:"name"`
-	RoleID      uuid.UUID `json:"roleId"`
-	DateCreated string    `json:"dateCreated"`
-	DateUpdated string    `json:"dateUpdated"`
-}
-
 // Role represents a user role
 type Role struct {
 	ID          uuid.UUID    `db:"id" json:"id"`

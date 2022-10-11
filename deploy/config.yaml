@@ -9,3 +9,4 @@ data:
     APP_ALLOWEDCORSORIGIN: https://vmi644117.contaboserver.net
     AUTH_PRIVATEKEYFILE: /etc/gla/private
     AUTH_ISSUER: https://vmi644117.contaboserver.net
+    ZIPKIN_REPORTERURL: http://vmi644117.contaboserver.net/_trace/api/v2/spans
