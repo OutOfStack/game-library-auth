@@ -4,7 +4,7 @@ services:
 
   db:
     container_name: auth_db
-    image: postgres:14-alpine
+    image: postgres:15-alpine
     ports:
       - "5433:5432"
     restart: always
@@ -12,6 +12,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: temp_pwd
       POSTGRES_DB: auth
+    volumes:
+      - ~/pgdata:/var/lib/postgresql/data
 
   auth:
     container_name: game-library-auth
