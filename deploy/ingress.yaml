@@ -4,7 +4,6 @@ metadata:
     name: game-library-auth-ingress
     namespace: game-library
     annotations:
-        ingressclass.kubernetes.io/is-default-class: 'true'
         nginx.ingress.kubernetes.io/rewrite-target: /$2
         nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
         nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
@@ -21,6 +20,23 @@ spec:
                         name: game-library-auth-service
                         port:
                             number: 8000
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+    # https://kubernetes.github.io/ingress-nginx/examples/auth/basic/
+    name: game-library-auth-ingress-with-auth
+    namespace: game-library
+    annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: /$2
+        nginx.ingress.kubernetes.io/auth-type: basic
+        nginx.ingress.kubernetes.io/auth-secret: basic-auth
+        nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - game library'
+spec:
+    rules:
+      - host: vmi644117.contaboserver.net
+        http:
+            paths:
               - path: /_debug/auth(/|$)(.*)
                 pathType: Prefix
                 backend:
