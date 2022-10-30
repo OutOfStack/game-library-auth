@@ -4,8 +4,7 @@ import (
 	"net/url"
 
 	"github.com/jmoiron/sqlx"
-	// register postgres driver
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // register postgres driver
 )
 
 // Config stores connection settings
