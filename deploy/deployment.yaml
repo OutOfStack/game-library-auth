@@ -17,7 +17,7 @@ spec:
         spec:
             containers:
               - name: game-library-auth
-                image: asctod/game-library-auth:latest
+                image: asctod/game-library-auth:_IMAGE_TAG_
                 readinessProbe:
                     httpGet:
                         path: /readiness
@@ -39,6 +39,23 @@ spec:
                     containerPort: 8000
                   - name: debug
                     containerPort: 6060
+                env:
+                  - name: KUBERNETES_NAMESPACE
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.namespace
+                  - name: KUBERNETES_PODNAME
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.name
+                  - name: KUBERNETES_PODIP
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: status.podIP
+                  - name: KUBERNETES_NODENAME
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: spec.nodeName
                 envFrom:
                   - secretRef:
                         name: game-library-auth-dbconfig

@@ -10,7 +10,7 @@ metadata:
         nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
 spec:
     rules:
-      - host: vmi644117.contaboserver.net
+      - host: _K8S_URL_
         http:
             paths:
               - path: /_auth(/|$)(.*)
@@ -34,7 +34,7 @@ metadata:
         nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - game library'
 spec:
     rules:
-      - host: vmi644117.contaboserver.net
+      - host: _K8S_URL_
         http:
             paths:
               - path: /_debug/auth(/|$)(.*)
