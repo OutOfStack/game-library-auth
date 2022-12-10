@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"log"
 	_ "net/http/pprof"
-	"os"
 
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/handlers"
 	"github.com/OutOfStack/game-library-auth/internal/server"
 	cfg "github.com/OutOfStack/game-library-auth/pkg/config"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type config struct {
@@ -28,11 +29,18 @@ func main() {
 }
 
 func run() error {
-	logger := log.New(os.Stdout, "AUTH : ", log.LstdFlags)
+	loggerCfg := zap.NewProductionConfig()
+	loggerCfg.DisableCaller = true
+	loggerCfg.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	logger, err := loggerCfg.Build()
+	if err != nil {
+		return fmt.Errorf("can't initialize zap logger: %w", err)
+	}
+	defer logger.Sync()
 
 	config := &config{}
 	if err := cfg.Load(".", "app", "env", config); err != nil {
-		logger.Fatalf("error parsing config: %v", err)
+		return fmt.Errorf("error parsing config: %w", err)
 	}
 
 	// connect to database
@@ -52,14 +60,16 @@ func run() error {
 	// start debug service
 	debugApp := handlers.DebugService()
 	go func() {
+		logger.Info("Debug service started", zap.String("address", config.Web.DebugAddress))
 		err := server.Start(debugApp, config.Web.DebugAddress)
-		logger.Printf("Debug service stopped %v\n", err)
+		logger.Info("Debug service stopped", zap.Error(err))
 	}()
 
 	// start auth service
-	app, err := handlers.AuthService(&config.Web, &config.Auth, &config.Zipkin, db, logger)
+	app, err := handlers.AuthService(logger, &config.Web, &config.Auth, &config.Zipkin, db)
 	if err != nil {
-		return fmt.Errorf("starting auth service: %w", err)
+		return fmt.Errorf("creating auth service: %w", err)
 	}
-	return server.StartWithGracefulShutdown(app, config.Web.Address)
+	logger.Info("Auth service started", zap.String("address", config.Web.Address))
+	return server.StartWithGracefulShutdown(app, logger, config.Web.Address)
 }

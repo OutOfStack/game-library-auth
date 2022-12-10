@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"database/sql"
-	"log"
 	"net/http"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/pkg/types"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -27,25 +27,27 @@ type AuthAPI struct {
 	Auth     *auth.Auth
 	AuthConf *appconf.Auth
 	UserRepo user.Repo
-	Log      *log.Logger
+	Log      *zap.Logger
 }
 
 // Handler for sign in endpoint
-func (aa *AuthAPI) signInHandler(c *fiber.Ctx) error {
+func (a *AuthAPI) signInHandler(c *fiber.Ctx) error {
 	ctx, span := tracer.Start(c.UserContext(), "handlers.signin")
 	defer span.End()
 
 	var signIn SignInReq
 	if err := c.BodyParser(&signIn); err != nil {
-		aa.Log.Printf("error parsing data: %v\n", err)
+		a.Log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 			Error: "Error parsing data",
 		})
 	}
 
+	log := a.Log.With(zap.String("username", signIn.Username))
+
 	// validate
 	if fields, err := web.Validate(signIn); err != nil {
-		aa.Log.Printf("validation error: %v\n", err)
+		log.Info("validating credentials", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 			Error:  validationErrorMsg,
 			Fields: fields,
@@ -53,15 +55,15 @@ func (aa *AuthAPI) signInHandler(c *fiber.Ctx) error {
 	}
 
 	// fetch user
-	usr, err := aa.UserRepo.GetByUsername(ctx, signIn.Username)
+	usr, err := a.UserRepo.GetByUsername(ctx, signIn.Username)
 	if err != nil {
 		if err == user.ErrNotFound {
-			aa.Log.Printf("error username %s does not exist: %v\n", signIn.Username, err)
+			log.Info("username does not exist", zap.Error(err))
 			return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
 				Error: authErrorMsg,
 			})
 		}
-		aa.Log.Printf("error fetching user %s: %v\n", signIn.Username, err)
+		log.Error("fetching user", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})
@@ -69,28 +71,28 @@ func (aa *AuthAPI) signInHandler(c *fiber.Ctx) error {
 
 	// check password
 	if err := bcrypt.CompareHashAndPassword(usr.PasswordHash, []byte(signIn.Password)); err != nil {
-		aa.Log.Printf("error password does not match for user %s: %v\n", signIn.Username, err)
+		log.Info("invalid password", zap.Error(err))
 		return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
 			Error: authErrorMsg,
 		})
 	}
 
 	// get user's role
-	role, err := aa.UserRepo.GetRoleByID(ctx, usr.RoleID)
+	role, err := a.UserRepo.GetRoleByID(ctx, usr.RoleID)
 	if err != nil {
-		aa.Log.Printf("error fetching role %v: %v\n", usr.RoleID, err)
+		log.Error("fetching role", zap.String("role", usr.RoleID.String()), zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})
 	}
 
 	// create claims
-	claims := auth.CreateClaims(aa.AuthConf.Issuer, usr, role.Name)
+	claims := auth.CreateClaims(a.AuthConf.Issuer, usr, role.Name)
 
 	// generate jwt
-	tokenStr, err := aa.Auth.GenerateToken(claims)
+	tokenStr, err := a.Auth.GenerateToken(claims)
 	if err != nil {
-		aa.Log.Printf("error generating jwt: %v", err)
+		log.Error("generating jwt", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})
@@ -102,21 +104,22 @@ func (aa *AuthAPI) signInHandler(c *fiber.Ctx) error {
 }
 
 // Handler for sign up endpoint
-func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
+func (a *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	ctx, span := tracer.Start(c.UserContext(), "handlers.signup")
 	defer span.End()
 
 	var signUp SignUpReq
 	if err := c.BodyParser(&signUp); err != nil {
-		aa.Log.Printf("error parsing data: %v\n", err)
+		a.Log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 			Error: "Error parsing data",
 		})
 	}
 
+	log := a.Log.With(zap.String("username", signUp.Name))
 	// validate
 	if fields, err := web.Validate(signUp); err != nil {
-		aa.Log.Printf("validation error: %v\n", err)
+		log.Info("validating sign up data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 			Error:  validationErrorMsg,
 			Fields: fields,
@@ -124,17 +127,16 @@ func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	}
 
 	// check if such username already exists
-	_, err := aa.UserRepo.GetByUsername(ctx, signUp.Username)
+	_, err := a.UserRepo.GetByUsername(ctx, signUp.Username)
 	// if err is ErrNotFound then continue
-	if err != nil {
-		if err != user.ErrNotFound {
-			aa.Log.Printf("error checking existence of user %s: %v\n", signUp.Username, err)
-			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
-				Error: internalErrorMsg,
-			})
-		}
-	} else {
-		aa.Log.Printf("error username %s already exists\n", signUp.Username)
+	if err != nil && err != user.ErrNotFound {
+		log.Info("checking existence of user", zap.Error(err))
+		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+			Error: internalErrorMsg,
+		})
+	}
+	if err == nil {
+		log.Info("username already exists")
 		return c.Status(http.StatusConflict).JSON(web.ErrResp{
 			Error: "This username is already taken",
 		})
@@ -144,15 +146,15 @@ func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	var roleName string
 	if signUp.IsPublisher {
 		// check uniqueness of publisher name
-		exists, err := aa.UserRepo.CheckExistPublisherWithName(ctx, signUp.Name)
+		exists, err := a.UserRepo.CheckExistPublisherWithName(ctx, signUp.Name)
 		if err != nil {
-			aa.Log.Printf("error checking existence of publisher with name %s: %v\n", signUp.Name, err)
+			log.Error("checking existence of publisher with name", zap.Error(err))
 			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 				Error: internalErrorMsg,
 			})
 		}
 		if exists {
-			aa.Log.Printf("error publisher with name %s already exists\n", signUp.Name)
+			log.Info("publisher already exists")
 			return c.Status(http.StatusConflict).JSON(web.ErrResp{
 				Error: "Publisher with this name already exists",
 			})
@@ -161,9 +163,9 @@ func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	} else {
 		roleName = user.DefaultRoleName
 	}
-	role, err := aa.UserRepo.GetRoleByName(ctx, roleName)
+	role, err := a.UserRepo.GetRoleByName(ctx, roleName)
 	if err != nil {
-		aa.Log.Printf("error fetching role %s: %v\n", roleName, err)
+		log.Error("fetching role", zap.String("role", roleName), zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})
@@ -172,7 +174,7 @@ func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	// hash password
 	hash, err := bcrypt.GenerateFromPassword([]byte(signUp.Password), bcrypt.DefaultCost)
 	if err != nil {
-		aa.Log.Printf("error generating password hash: %v", err)
+		log.Error("generating password hash", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})
@@ -189,8 +191,8 @@ func (aa *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	}
 
 	// create new user
-	if _, err := aa.UserRepo.Create(ctx, usr); err != nil {
-		aa.Log.Printf("error creating new user: %v\n", err)
+	if _, err := a.UserRepo.Create(ctx, usr); err != nil {
+		log.Error("creating new user", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})
