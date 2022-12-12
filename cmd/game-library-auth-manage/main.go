@@ -13,7 +13,7 @@ import (
 	migrate "github.com/rubenv/sql-migrate"
 )
 
-const migrationsDir string = "migrations"
+const migrationsDir string = "scripts/migrations"
 
 type config struct {
 	DB   appconf.DB   `mapstructure:",squash"`

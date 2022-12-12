@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/auth"
@@ -19,12 +18,13 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	trace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
+	"go.uber.org/zap"
 )
 
 var tracer = otel.Tracer(appconf.ServiceName)
 
 // AuthService creates and configures auth app
-func AuthService(conf *appconf.Web, authConf *appconf.Auth, zipkinConf *appconf.Zipkin, db *sqlx.DB, log *log.Logger) (*fiber.App, error) {
+func AuthService(log *zap.Logger, conf *appconf.Web, authConf *appconf.Auth, zipkinConf *appconf.Zipkin, db *sqlx.DB) (*fiber.App, error) {
 	err := initTracer(zipkinConf.ReporterURL)
 	if err != nil {
 		return nil, fmt.Errorf("initializing exporter: %w", err)
@@ -54,7 +54,7 @@ func AuthService(conf *appconf.Web, authConf *appconf.Auth, zipkinConf *appconf.
 	}))
 
 	// register routes
-	RegisterRoutes(app, authConf, db, a, log)
+	RegisterRoutes(log, app, authConf, db, a)
 
 	return app, nil
 }

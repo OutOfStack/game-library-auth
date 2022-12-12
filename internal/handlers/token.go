@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 )
 
 // VerifyToken is a request type for JWT verification
@@ -22,7 +22,7 @@ type VerifyTokenResp struct {
 // TokenAPI describes dependencies for token endpoints
 type TokenAPI struct {
 	Auth *auth.Auth
-	Log  *log.Logger
+	Log  *zap.Logger
 }
 
 func (ta TokenAPI) verifyToken(c *fiber.Ctx) error {
@@ -31,7 +31,7 @@ func (ta TokenAPI) verifyToken(c *fiber.Ctx) error {
 
 	var verifyToken VerifyToken
 	if err := c.BodyParser(&verifyToken); err != nil {
-		ta.Log.Printf("error parsing data: %v\n", err)
+		ta.Log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 			Error: "Error parsing data",
 		})
@@ -39,7 +39,7 @@ func (ta TokenAPI) verifyToken(c *fiber.Ctx) error {
 
 	// validate
 	if fields, err := web.Validate(verifyToken); err != nil {
-		ta.Log.Printf("validation error: %v\n", err)
+		ta.Log.Error("validating token", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 			Error:  validationErrorMsg,
 			Fields: fields,
@@ -50,7 +50,7 @@ func (ta TokenAPI) verifyToken(c *fiber.Ctx) error {
 
 	_, err := ta.Auth.ValidateToken(tokenStr)
 	if err != nil {
-		ta.Log.Printf("token validation failed: %v", err)
+		ta.Log.Error("token validation failed", zap.Error(err))
 		return c.JSON(VerifyTokenResp{
 			Valid: false,
 		})
