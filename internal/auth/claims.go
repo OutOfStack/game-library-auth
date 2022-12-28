@@ -10,9 +10,11 @@ import (
 // Claims represent jwt claims
 type Claims struct {
 	jwt.RegisteredClaims
-	UserRole string `json:"user_role,omitempty"`
-	Username string `json:"username,omitempty"`
-	Name     string `json:"name,omitempty"`
+	UserID    string `json:"user_id"`
+	UserRole  string `json:"user_role,omitempty"`
+	Username  string `json:"username,omitempty"`
+	Name      string `json:"name,omitempty"`
+	AvatarURL string `json:"avatar,omitempty"`
 }
 
 // CreateClaims creates claims for user
@@ -26,9 +28,11 @@ func CreateClaims(issuer string, user *user.Info, role string) jwt.Claims {
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
-		UserRole: role,
-		Username: user.Username,
-		Name:     user.Name,
+		UserID:    user.ID.String(),
+		UserRole:  role,
+		Username:  user.Username,
+		Name:      user.Name,
+		AvatarURL: user.AvatarURL.String,
 	}
 
 	return claims

@@ -2,14 +2,13 @@ package handlers
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
-	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/data/user"
 	"github.com/OutOfStack/game-library-auth/internal/web"
-	"github.com/OutOfStack/game-library-auth/pkg/types"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -30,8 +29,8 @@ type AuthAPI struct {
 	Log      *zap.Logger
 }
 
-// Handler for sign in endpoint
-func (a *AuthAPI) signInHandler(c *fiber.Ctx) error {
+// SignInHandler - handler for sign in endpoint
+func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 	ctx, span := tracer.Start(c.UserContext(), "handlers.signin")
 	defer span.End()
 
@@ -103,8 +102,8 @@ func (a *AuthAPI) signInHandler(c *fiber.Ctx) error {
 	})
 }
 
-// Handler for sign up endpoint
-func (a *AuthAPI) signUpHandler(c *fiber.Ctx) error {
+// SignUpHandler - handler for sign up endpoint
+func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 	ctx, span := tracer.Start(c.UserContext(), "handlers.signup")
 	defer span.End()
 
@@ -172,7 +171,7 @@ func (a *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	}
 
 	// hash password
-	hash, err := bcrypt.GenerateFromPassword([]byte(signUp.Password), bcrypt.DefaultCost)
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(signUp.Password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Error("generating password hash", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
@@ -184,10 +183,9 @@ func (a *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 		ID:           uuid.New(),
 		Username:     signUp.Username,
 		Name:         signUp.Name,
-		PasswordHash: hash,
+		PasswordHash: passwordHash,
 		RoleID:       role.ID,
-		DateCreated:  time.Now().UTC(),
-		DateUpdated:  sql.NullTime{},
+		AvatarURL:    sql.NullString{String: signUp.AvatarURL, Valid: signUp.AvatarURL != ""},
 	}
 
 	// create new user
@@ -199,13 +197,125 @@ func (a *AuthAPI) signUpHandler(c *fiber.Ctx) error {
 	}
 
 	resp := SignUpResp{
-		ID:          usr.ID,
-		Username:    usr.Username,
-		Name:        usr.Name,
-		RoleID:      usr.RoleID,
-		DateCreated: usr.DateCreated.String(),
-		DateUpdated: types.NullTimeString(usr.DateUpdated),
+		ID: usr.ID,
 	}
 
 	return c.JSON(resp)
+}
+
+// UpdateProfileHandler - handler for update profile endpoint
+func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
+	ctx, span := tracer.Start(c.UserContext(), "handlers.updateprofile")
+	defer span.End()
+
+	var params UpdateProfileReq
+	if err := c.BodyParser(&params); err != nil {
+		a.Log.Error("parsing data", zap.Error(err))
+		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+			Error: "Error parsing data",
+		})
+	}
+
+	log := a.Log.With(zap.String("userid", params.UserID))
+
+	// validate
+	if fields, err := web.Validate(params); err != nil {
+		log.Info("validating update profile data", zap.Error(err))
+		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+			Error:  validationErrorMsg,
+			Fields: fields,
+		})
+	}
+
+	if params.Password == nil && params.NewPassword != nil {
+		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+			Error: "Empty password",
+		})
+	}
+	if params.Password != nil && params.NewPassword == nil {
+		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+			Error: "Empty new password",
+		})
+	}
+	if params.NewPassword != nil && params.ConfirmNewPassword != nil && *params.NewPassword != *params.ConfirmNewPassword {
+		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+			Error: "Confirm password does not match",
+		})
+	}
+
+	// check if user exists
+	usr, err := a.UserRepo.GetByID(ctx, params.UserID)
+	if err != nil {
+		if errors.Is(err, user.ErrNotFound) {
+			return c.Status(http.StatusNotFound).JSON(web.ErrResp{
+				Error: "User does not exist",
+			})
+		}
+		log.Info("checking existence of user", zap.Error(err))
+		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+			Error: internalErrorMsg,
+		})
+	}
+
+	if params.Password != nil {
+		// check password
+		if err := bcrypt.CompareHashAndPassword(usr.PasswordHash, []byte(*params.Password)); err != nil {
+			log.Info("invalid password", zap.Error(err))
+			return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
+				Error: "Invalid current password",
+			})
+		}
+
+		// hash password
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(*params.NewPassword), bcrypt.DefaultCost)
+		if err != nil {
+			log.Error("generating password hash", zap.Error(err))
+			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+				Error: internalErrorMsg,
+			})
+		}
+
+		usr.PasswordHash = passwordHash
+	}
+
+	if params.Name != nil {
+		usr.Name = *params.Name
+	}
+	if params.AvatarURL != nil {
+		usr.AvatarURL = sql.NullString{String: *params.AvatarURL, Valid: *params.AvatarURL != ""}
+	}
+
+	// update user
+	if _, err := a.UserRepo.Update(ctx, usr); err != nil {
+		log.Error("update user", zap.Error(err))
+		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+			Error: internalErrorMsg,
+		})
+	}
+
+	// get user's role
+	role, err := a.UserRepo.GetRoleByID(ctx, usr.RoleID)
+	if err != nil {
+		log.Error("fetching role", zap.String("role", usr.RoleID.String()), zap.Error(err))
+		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+			Error: internalErrorMsg,
+		})
+	}
+
+	// create claims
+	claims := auth.CreateClaims(a.AuthConf.Issuer, usr, role.Name)
+
+	// generate jwt
+	tokenStr, err := a.Auth.GenerateToken(claims)
+	if err != nil {
+		log.Error("generating jwt", zap.Error(err))
+		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+			Error: internalErrorMsg,
+		})
+	}
+
+	// return token
+	return c.JSON(TokenResp{
+		AccessToken: tokenStr,
+	})
 }

@@ -25,7 +25,8 @@ type TokenAPI struct {
 	Log  *zap.Logger
 }
 
-func (ta TokenAPI) verifyToken(c *fiber.Ctx) error {
+// VerifyToken verifies token
+func (ta TokenAPI) VerifyToken(c *fiber.Ctx) error {
 	_, span := tracer.Start(c.UserContext(), "handlers.verifytoken")
 	defer span.End()
 

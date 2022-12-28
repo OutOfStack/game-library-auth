@@ -31,8 +31,9 @@ func RegisterRoutes(log *zap.Logger, app *fiber.App, authConf *appconf.Auth, db 
 	app.Get("/readiness", checkAPI.Readiness)
 	app.Get("/liveness", checkAPI.Liveness)
 
-	app.Post("/signin", authAPI.signInHandler)
-	app.Post("/signup", authAPI.signUpHandler)
+	app.Post("/signin", authAPI.SignInHandler)
+	app.Post("/signup", authAPI.SignUpHandler)
+	app.Post("/update_profile", authAPI.UpdateProfileHandler)
 
-	app.Post("/token/verify", tokenAPI.verifyToken)
+	app.Post("/token/verify", tokenAPI.VerifyToken)
 }

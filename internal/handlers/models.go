@@ -22,14 +22,20 @@ type SignUpReq struct {
 	Password        string `json:"password" validate:"required,min=8"`
 	ConfirmPassword string `json:"confirmPassword" validate:"eqfield=Password"`
 	IsPublisher     bool   `json:"isPublisher"`
+	AvatarURL       string `json:"avatarUrl" validate:"len=0|url"`
 }
 
 // SignUpResp represents sign up response
 type SignUpResp struct {
-	ID          uuid.UUID `json:"id"`
-	Username    string    `json:"username"`
-	Name        string    `json:"name"`
-	RoleID      uuid.UUID `json:"roleId"`
-	DateCreated string    `json:"dateCreated"`
-	DateUpdated string    `json:"dateUpdated"`
+	ID uuid.UUID `json:"id"`
+}
+
+// UpdateProfileReq represents update profile request
+type UpdateProfileReq struct {
+	UserID             string  `json:"userId" validate:"uuid4,required"`
+	Name               *string `json:"name"`
+	AvatarURL          *string `json:"avatarUrl" validate:"omitempty,len=0|url"`
+	Password           *string `json:"password"`
+	NewPassword        *string `json:"newPassword" validate:"omitempty,min=8"`
+	ConfirmNewPassword *string `json:"confirmNewPassword"`
 }

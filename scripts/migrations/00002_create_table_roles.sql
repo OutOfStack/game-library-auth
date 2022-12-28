@@ -9,10 +9,7 @@ create table roles (
 	primary key(id)
 );
 
-alter table users
-add constraint fk_role
-foreign key (role_id)
-references roles(id);
+alter table users add constraint fk_role foreign key (role_id) references roles(id);
 
 -- +migrate Down
 alter table users
