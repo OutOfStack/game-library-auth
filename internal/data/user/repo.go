@@ -42,10 +42,10 @@ func (r *Repo) Create(ctx context.Context, usr *Info) (*Info, error) {
 	defer span.End()
 
 	const q = `INSERT INTO users
-		(id, username, name, password_hash, role_id, date_created, date_updated)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`
+		(id, username, name, password_hash, role_id, avatar_url, date_created)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW())`
 
-	_, err := r.db.ExecContext(ctx, q, usr.ID, usr.Username, usr.Name, usr.PasswordHash, usr.RoleID, usr.DateCreated, usr.DateUpdated)
+	_, err := r.db.ExecContext(ctx, q, usr.ID, usr.Username, usr.Name, usr.PasswordHash, usr.RoleID, usr.AvatarURL)
 	if err != nil {
 		return nil, fmt.Errorf("inserting user: %w", err)
 	}
@@ -53,12 +53,33 @@ func (r *Repo) Create(ctx context.Context, usr *Info) (*Info, error) {
 	return usr, nil
 }
 
+// Update updates user
+func (r *Repo) Update(ctx context.Context, usr *Info) (*Info, error) {
+	ctx, span := tracer.Start(ctx, "sql.user.update")
+	defer span.End()
+
+	const q = `UPDATE users
+		SET name = COALESCE(NULLIF($2, ''), name),
+		avatar_url = COALESCE(NULLIF($3, ''), avatar_url),
+		password_hash = COALESCE(NULLIF($4, ''), password_hash),
+		date_updated = NOW()
+		WHERE id = $1`
+
+	_, err := r.db.ExecContext(ctx, q, usr.ID, usr.Name, usr.AvatarURL, usr.PasswordHash)
+	if err != nil {
+		return nil, fmt.Errorf("update user: %w", err)
+	}
+
+	return usr, nil
+}
+
 // GetByID returns user by id
-func (r *Repo) GetByID(ctx context.Context, userID uuid.UUID) (*Info, error) {
+func (r *Repo) GetByID(ctx context.Context, userID string) (*Info, error) {
 	ctx, span := tracer.Start(ctx, "sql.user.getbyid")
 	defer span.End()
 
-	const q = `SELECT id, username, name, role_id, date_created, date_updated FROM users
+	const q = `SELECT id, username, name, password_hash, role_id, avatar_url, date_created, date_updated 
+		FROM users
 		WHERE id = $1`
 
 	var usr Info
@@ -77,7 +98,8 @@ func (r *Repo) GetByUsername(ctx context.Context, username string) (*Info, error
 	ctx, span := tracer.Start(ctx, "sql.user.getbyusername")
 	defer span.End()
 
-	const q = `SELECT id, username, name, password_hash, role_id, date_created, date_updated FROM users
+	const q = `SELECT id, username, name, password_hash, role_id, avatar_url, date_created, date_updated 
+		FROM users
 		WHERE username = $1`
 
 	var usr Info
@@ -117,7 +139,8 @@ func (r *Repo) GetRoleByID(ctx context.Context, roleID uuid.UUID) (*Role, error)
 	ctx, span := tracer.Start(ctx, "sql.role.getbyid")
 	defer span.End()
 
-	const q = `SELECT id, name, description, date_created, date_updated FROM roles
+	const q = `SELECT id, name, description, date_created, date_updated 
+		FROM roles
 		WHERE id = $1`
 
 	var role Role
@@ -136,7 +159,8 @@ func (r *Repo) GetRoleByName(ctx context.Context, roleName string) (*Role, error
 	ctx, span := tracer.Start(ctx, "sql.role.getbyname")
 	defer span.End()
 
-	const q = `SELECT id, name, description, date_created, date_updated FROM roles
+	const q = `SELECT id, name, description, date_created, date_updated 
+		FROM roles
 		WHERE name = $1`
 
 	var role Role
