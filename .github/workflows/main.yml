@@ -11,7 +11,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v3
       with:
-        go-version: '1.20'
+        go-version: '1.21'
         cache: true
 
     - name: Verify dependencies
@@ -69,7 +69,7 @@ jobs:
         sed -i'' -e 's/_K8S_URL_/${{ secrets.K8S_URL }}/g' -e 's/_IMAGE_TAG_/${{ github.sha }}/g' deploy/*.yaml
 
     - name: Kubernetes Apply configs
-      run: | 
+      run: |
         kubectl apply -f deploy/config.yaml
         kubectl apply -f deploy/deployment.yaml
         kubectl apply -f deploy/service.yaml

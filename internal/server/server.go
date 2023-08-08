@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -32,7 +33,7 @@ func StartWithGracefulShutdown(app *fiber.App, log *zap.Logger, address string) 
 	case <-shutdown:
 		log.Info("Start shutdown")
 
-		err := app.Shutdown()
+		err := app.ShutdownWithTimeout(5 * time.Second)
 		if err != nil {
 			log.Error("Shutdown did not complete", zap.Error(err))
 		}

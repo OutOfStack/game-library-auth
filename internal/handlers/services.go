@@ -16,7 +16,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/zipkin"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
-	trace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	"go.uber.org/zap"
 )
@@ -45,7 +45,7 @@ func AuthService(log *zap.Logger, conf *appconf.Web, authConf *appconf.Auth, zip
 	})
 
 	// apply middleware
-	app.Use(otelfiber.Middleware(fmt.Sprintf("%s.mw", appconf.ServiceName)))
+	app.Use(otelfiber.Middleware(otelfiber.WithServerName(fmt.Sprintf("%s.mw", appconf.ServiceName))))
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: conf.AllowedCORSOrigin,
