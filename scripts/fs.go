@@ -1,8 +1,10 @@
 package scripts
 
 import (
-	_ "embed"
+	_ "embed" // required for embedding
 )
 
+// SeedSQL - embedded seed sql content
+//
 //go:embed seed.sql
-var SeedSql string
+var SeedSQL string

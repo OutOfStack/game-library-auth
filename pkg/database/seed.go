@@ -7,7 +7,7 @@ import (
 
 // Seed seeds database
 func Seed(db *sqlx.DB) error {
-	q := scripts.SeedSql
+	q := scripts.SeedSQL
 
 	tx, err := db.Begin()
 	if err != nil {
