@@ -56,7 +56,7 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 	// fetch user
 	usr, err := a.UserRepo.GetByUsername(ctx, signIn.Username)
 	if err != nil {
-		if err == user.ErrNotFound {
+		if errors.Is(err, user.ErrNotFound) {
 			log.Info("username does not exist", zap.Error(err))
 			return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
 				Error: authErrorMsg,
@@ -128,7 +128,7 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 	// check if such username already exists
 	_, err := a.UserRepo.GetByUsername(ctx, signUp.Username)
 	// if err is ErrNotFound then continue
-	if err != nil && err != user.ErrNotFound {
+	if err != nil && !errors.Is(err, user.ErrNotFound) {
 		log.Info("checking existence of user", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
