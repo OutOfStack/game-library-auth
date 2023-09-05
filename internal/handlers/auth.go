@@ -24,7 +24,7 @@ const (
 // AuthAPI describes dependencies for auth endpoints
 type AuthAPI struct {
 	Auth     *auth.Auth
-	AuthConf *appconf.Auth
+	AuthConf appconf.Auth
 	UserRepo user.Repo
 	Log      *zap.Logger
 }

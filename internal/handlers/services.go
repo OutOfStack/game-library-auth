@@ -24,7 +24,7 @@ import (
 var tracer = otel.Tracer(appconf.ServiceName)
 
 // AuthService creates and configures auth app
-func AuthService(log *zap.Logger, conf *appconf.Web, authConf *appconf.Auth, zipkinConf *appconf.Zipkin, db *sqlx.DB) (*fiber.App, error) {
+func AuthService(log *zap.Logger, db *sqlx.DB, conf appconf.Web, authConf appconf.Auth, zipkinConf appconf.Zipkin) (*fiber.App, error) {
 	err := initTracer(zipkinConf.ReporterURL)
 	if err != nil {
 		return nil, fmt.Errorf("initializing exporter: %w", err)
@@ -74,7 +74,7 @@ func DebugService() *fiber.App {
 func initTracer(reporterURL string) error {
 	exporter, err := zipkin.New(reporterURL)
 	if err != nil {
-		return fmt.Errorf("creating new exporter: %w", err)
+		return fmt.Errorf("can't create new exporter: %w", err)
 	}
 
 	tp := trace.NewTracerProvider(

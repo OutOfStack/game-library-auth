@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
-	cfg "github.com/OutOfStack/game-library-auth/pkg/config"
+	conf "github.com/OutOfStack/game-library-auth/pkg/config"
 	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	"github.com/jmoiron/sqlx"
@@ -21,9 +21,9 @@ type config struct {
 }
 
 func main() {
-	config := &config{}
-	if err := cfg.Load(".", "app", "env", config); err != nil {
-		log.Fatalf("error parsing config: %v", err)
+	var cfg config
+	if err := conf.Load(".", "app", "env", &cfg); err != nil {
+		log.Fatalf("can't parse config: %v", err)
 	}
 
 	migrations := &migrate.FileMigrationSource{
@@ -33,15 +33,15 @@ func main() {
 	flag.Parse()
 	switch flag.Arg(0) {
 	case "migrate":
-		db := connectDB(config.DB)
+		db := connectDB(cfg.DB)
 		defer db.Close()
 		applyMigrations(db, migrations)
 	case "rollback":
-		db := connectDB(config.DB)
+		db := connectDB(cfg.DB)
 		defer db.Close()
 		rollbackMigration(db, migrations)
 	case "seed":
-		db := connectDB(config.DB)
+		db := connectDB(cfg.DB)
 		defer db.Close()
 		seed(db)
 	case "keygen":

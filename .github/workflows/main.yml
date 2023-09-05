@@ -66,11 +66,11 @@ jobs:
 
     - name: Replace deployment variables
       run: |
-        sed -i'' -e 's/_K8S_URL_/${{ secrets.K8S_URL }}/g' -e 's/_IMAGE_TAG_/${{ github.sha }}/g' deploy/*.yaml
+        sed -i'' -e 's/_K8S_URL_/${{ secrets.K8S_URL }}/g' -e 's/_IMAGE_TAG_/${{ github.sha }}/g' .k8s/*.yaml
 
     - name: Kubernetes Apply configs
       run: |
-        kubectl apply -f deploy/config.yaml
-        kubectl apply -f deploy/deployment.yaml
-        kubectl apply -f deploy/service.yaml
-        kubectl apply -f deploy/ingress.yaml
+        kubectl apply -f .k8s/config.yaml
+        kubectl apply -f .k8s/deployment.yaml
+        kubectl apply -f .k8s/service.yaml
+        kubectl apply -f .k8s/ingress.yaml
