@@ -10,8 +10,7 @@ import (
 )
 
 // RegisterRoutes registers routes for auth service
-func RegisterRoutes(log *zap.Logger, app *fiber.App, authConf *appconf.Auth, db *sqlx.DB, auth *auth.Auth) {
-
+func RegisterRoutes(log *zap.Logger, app *fiber.App, authConf appconf.Auth, db *sqlx.DB, auth *auth.Auth) {
 	authAPI := AuthAPI{
 		UserRepo: user.NewRepo(db),
 		Auth:     auth,

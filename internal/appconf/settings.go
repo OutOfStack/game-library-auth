@@ -5,6 +5,15 @@ import "time"
 // ServiceName - service name
 const ServiceName = "game-library-auth"
 
+// Cfg - app configuration
+type Cfg struct {
+	DB      DB      `mapstructure:",squash"`
+	Web     Web     `mapstructure:",squash"`
+	Auth    Auth    `mapstructure:",squash"`
+	Zipkin  Zipkin  `mapstructure:",squash"`
+	Graylog Graylog `mapstructure:",squash"`
+}
+
 // DB represents settings related to database
 type DB struct {
 	Host       string `mapstructure:"DB_HOST"`
@@ -33,4 +42,9 @@ type Auth struct {
 // Zipkin represents settings related to zipkin trace storage
 type Zipkin struct {
 	ReporterURL string `mapstructure:"ZIPKIN_REPORTERURL"`
+}
+
+// Graylog represents settings related to Graylog integration
+type Graylog struct {
+	Address string `mapstructure:"GRAYLOG_ADDR"`
 }

@@ -1,0 +1,13 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+    name: game-library-auth-config
+    namespace: game-library
+data:
+    APP_ADDRESS: "0.0.0.0:8000"
+    DEBUG_ADDRESS: "0.0.0.0:6060"
+    APP_ALLOWEDCORSORIGIN: "https://_K8S_URL_"
+    AUTH_PRIVATEKEYFILE: "/etc/gla/private"
+    AUTH_ISSUER: "https://_K8S_URL_"
+    ZIPKIN_REPORTERURL: "http://zipkin-service.game-library.svc.cluster.local:9411/api/v2/spans"
+    GRAYLOG_ADDR: "graylog-service.game-library.svc.cluster.local:12201"

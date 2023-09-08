@@ -33,8 +33,7 @@ func StartWithGracefulShutdown(app *fiber.App, log *zap.Logger, address string) 
 	case <-shutdown:
 		log.Info("Start shutdown")
 
-		err := app.ShutdownWithTimeout(5 * time.Second)
-		if err != nil {
+		if err := app.ShutdownWithTimeout(5 * time.Second); err != nil {
 			log.Error("Shutdown did not complete", zap.Error(err))
 		}
 	}
