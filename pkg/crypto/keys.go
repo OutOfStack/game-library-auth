@@ -32,7 +32,7 @@ func KeyGen() error {
 	defer privateKeyFile.Close()
 
 	// write private key to file
-	if err := pem.Encode(privateKeyFile, &privateKeyBlock); err != nil {
+	if err = pem.Encode(privateKeyFile, &privateKeyBlock); err != nil {
 		return fmt.Errorf("writing private key file: %w", err)
 	}
 
