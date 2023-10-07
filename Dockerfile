@@ -15,7 +15,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o ./out/game-library-auth cmd/game-library-auth/main.go
 
 # run
-FROM golang:1.21 AS build-release-stage
+FROM ubuntu:23.10 AS build-release-stage
 
 WORKDIR /app
 
