@@ -1,5 +1,5 @@
 # build
-FROM golang:1.21-alpine3.18 as builder
+FROM golang:1.21 as builder
 
 WORKDIR /tmp/game-library-auth
 
@@ -15,7 +15,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o ./out/game-library-auth cmd/game-library-auth/main.go
 
 # run
-FROM gcr.io/distroless/base-debian12 AS build-release-stage
+FROM ubuntu:22.04 AS build-release-stage
 
 WORKDIR /app
 
