@@ -17,6 +17,8 @@ RUN go build -o ./out/game-library-auth cmd/game-library-auth/main.go
 # run
 FROM alpine:3.18
 
+RUN apk update && apk add bind-tools
+
 WORKDIR /app
 
 # copy built app into runnable container
