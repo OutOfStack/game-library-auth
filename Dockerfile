@@ -12,12 +12,10 @@ COPY ./app.env ./out/
 COPY . .
 
 # build app
-RUN go build -o ./out/game-library-auth cmd/game-library-auth/main.go
+RUN CGO_ENABLED=0 go build -o ./out/game-library-auth cmd/game-library-auth/main.go
 
 # run
-FROM alpine:3.18
-
-RUN apk update && apk add bind-tools
+FROM gcr.io/distroless/base-debian12 AS build-release-stage
 
 WORKDIR /app
 
@@ -25,5 +23,7 @@ WORKDIR /app
 COPY --from=builder /tmp/game-library-auth/out ./
 
 EXPOSE 8000
+
+USER nonroot:nonroot
 
 ENTRYPOINT ["./game-library-auth"]
