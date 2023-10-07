@@ -15,7 +15,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o ./out/game-library-auth cmd/game-library-auth/main.go
 
 # run
-FROM ubuntu:22.04 AS build-release-stage
+FROM golang:1.21 AS build-release-stage
 
 WORKDIR /app
 
@@ -23,7 +23,5 @@ WORKDIR /app
 COPY --from=builder /tmp/game-library-auth/out ./
 
 EXPOSE 8000
-
-USER nonroot:nonroot
 
 ENTRYPOINT ["./game-library-auth"]
