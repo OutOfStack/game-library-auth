@@ -1,4 +1,5 @@
-FROM golang:1.21-alpine as builder
+# build
+FROM golang:1.21-alpine3.18 as builder
 
 WORKDIR /tmp/game-library-auth
 
@@ -11,9 +12,10 @@ COPY ./app.env ./out/
 COPY . .
 
 # build app
-RUN go build -o ./out/game-library-auth cmd/game-library-auth/main.go
+RUN CGO_ENABLED=0 go build -o ./out/game-library-auth cmd/game-library-auth/main.go
 
-FROM alpine:3.16
+# run
+FROM alpine:3.18 AS build-release-stage
 
 WORKDIR /app
 
