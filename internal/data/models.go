@@ -1,4 +1,4 @@
-package user
+package data
 
 import (
 	"database/sql"
@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// Info represents a user
-type Info struct {
+// User represents a user
+type User struct {
 	ID           uuid.UUID      `db:"id"`
 	Username     string         `db:"username"`
 	Name         string         `db:"name"`
