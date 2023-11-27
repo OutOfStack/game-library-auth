@@ -7,7 +7,7 @@ import (
 
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/auth"
-	"github.com/OutOfStack/game-library-auth/internal/data/user"
+	"github.com/OutOfStack/game-library-auth/internal/data"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -25,13 +25,13 @@ const (
 type AuthAPI struct {
 	Auth     *auth.Auth
 	AuthConf appconf.Auth
-	UserRepo user.Repo
+	DB       data.Repo
 	Log      *zap.Logger
 }
 
 // SignInHandler - handler for sign in endpoint
 func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
-	ctx, span := tracer.Start(c.UserContext(), "handlers.signin")
+	ctx, span := tracer.Start(c.UserContext(), "handlers.signIn")
 	defer span.End()
 
 	var signIn SignInReq
@@ -54,9 +54,9 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 	}
 
 	// fetch user
-	usr, err := a.UserRepo.GetByUsername(ctx, signIn.Username)
+	usr, err := a.DB.GetUserByUsername(ctx, signIn.Username)
 	if err != nil {
-		if errors.Is(err, user.ErrNotFound) {
+		if errors.Is(err, data.ErrNotFound) {
 			log.Info("username does not exist", zap.Error(err))
 			return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
 				Error: authErrorMsg,
@@ -69,7 +69,7 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 	}
 
 	// check password
-	if err := bcrypt.CompareHashAndPassword(usr.PasswordHash, []byte(signIn.Password)); err != nil {
+	if err = bcrypt.CompareHashAndPassword(usr.PasswordHash, []byte(signIn.Password)); err != nil {
 		log.Info("invalid password", zap.Error(err))
 		return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
 			Error: authErrorMsg,
@@ -77,7 +77,7 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 	}
 
 	// get user's role
-	role, err := a.UserRepo.GetRoleByID(ctx, usr.RoleID)
+	role, err := a.DB.GetRoleByID(ctx, usr.RoleID)
 	if err != nil {
 		log.Error("fetching role", zap.String("role", usr.RoleID.String()), zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
@@ -104,7 +104,7 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 
 // SignUpHandler - handler for sign up endpoint
 func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
-	ctx, span := tracer.Start(c.UserContext(), "handlers.signup")
+	ctx, span := tracer.Start(c.UserContext(), "handlers.signUp")
 	defer span.End()
 
 	var signUp SignUpReq
@@ -126,9 +126,9 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 	}
 
 	// check if such username already exists
-	_, err := a.UserRepo.GetByUsername(ctx, signUp.Username)
+	_, err := a.DB.GetUserByUsername(ctx, signUp.Username)
 	// if err is ErrNotFound then continue
-	if err != nil && !errors.Is(err, user.ErrNotFound) {
+	if err != nil && !errors.Is(err, data.ErrNotFound) {
 		log.Info("checking existence of user", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
@@ -145,9 +145,9 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 	var roleName string
 	if signUp.IsPublisher {
 		// check uniqueness of publisher name
-		exists, err := a.UserRepo.CheckExistPublisherWithName(ctx, signUp.Name)
-		if err != nil {
-			log.Error("checking existence of publisher with name", zap.Error(err))
+		exists, cErr := a.DB.CheckExistsPublisherWithName(ctx, signUp.Name)
+		if cErr != nil {
+			log.Error("checking existence of publisher with name", zap.Error(cErr))
 			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 				Error: internalErrorMsg,
 			})
@@ -158,11 +158,11 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 				Error: "Publisher with this name already exists",
 			})
 		}
-		roleName = user.PublisherRoleName
+		roleName = data.PublisherRoleName
 	} else {
-		roleName = user.DefaultRoleName
+		roleName = data.DefaultRoleName
 	}
-	role, err := a.UserRepo.GetRoleByName(ctx, roleName)
+	role, err := a.DB.GetRoleByName(ctx, roleName)
 	if err != nil {
 		log.Error("fetching role", zap.String("role", roleName), zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
@@ -179,7 +179,7 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	usr := &user.Info{
+	usr := data.User{
 		ID:           uuid.New(),
 		Username:     signUp.Username,
 		Name:         signUp.Name,
@@ -189,7 +189,7 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 	}
 
 	// create new user
-	if _, err := a.UserRepo.Create(ctx, usr); err != nil {
+	if err = a.DB.CreateUser(ctx, usr); err != nil {
 		log.Error("creating new user", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
@@ -205,7 +205,7 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 
 // UpdateProfileHandler - handler for update profile endpoint
 func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
-	ctx, span := tracer.Start(c.UserContext(), "handlers.updateprofile")
+	ctx, span := tracer.Start(c.UserContext(), "handlers.updateProfile")
 	defer span.End()
 
 	var params UpdateProfileReq
@@ -244,9 +244,9 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 	}
 
 	// check if user exists
-	usr, err := a.UserRepo.GetByID(ctx, params.UserID)
+	usr, err := a.DB.GetUserByID(ctx, params.UserID)
 	if err != nil {
-		if errors.Is(err, user.ErrNotFound) {
+		if errors.Is(err, data.ErrNotFound) {
 			return c.Status(http.StatusNotFound).JSON(web.ErrResp{
 				Error: "User does not exist",
 			})
@@ -259,7 +259,7 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 
 	if params.Password != nil {
 		// check password
-		if err := bcrypt.CompareHashAndPassword(usr.PasswordHash, []byte(*params.Password)); err != nil {
+		if err = bcrypt.CompareHashAndPassword(usr.PasswordHash, []byte(*params.Password)); err != nil {
 			log.Info("invalid password", zap.Error(err))
 			return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
 				Error: "Invalid current password",
@@ -267,9 +267,9 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 		}
 
 		// hash password
-		passwordHash, err := bcrypt.GenerateFromPassword([]byte(*params.NewPassword), bcrypt.DefaultCost)
-		if err != nil {
-			log.Error("generating password hash", zap.Error(err))
+		passwordHash, gErr := bcrypt.GenerateFromPassword([]byte(*params.NewPassword), bcrypt.DefaultCost)
+		if gErr != nil {
+			log.Error("generating password hash", zap.Error(gErr))
 			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 				Error: internalErrorMsg,
 			})
@@ -286,7 +286,7 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 	}
 
 	// update user
-	if _, err := a.UserRepo.Update(ctx, usr); err != nil {
+	if err = a.DB.UpdateUser(ctx, usr); err != nil {
 		log.Error("update user", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
@@ -294,7 +294,7 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 	}
 
 	// get user's role
-	role, err := a.UserRepo.GetRoleByID(ctx, usr.RoleID)
+	role, err := a.DB.GetRoleByID(ctx, usr.RoleID)
 	if err != nil {
 		log.Error("fetching role", zap.String("role", usr.RoleID.String()), zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
