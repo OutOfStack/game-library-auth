@@ -9,6 +9,10 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+const (
+	unavailable = "unavailable"
+)
+
 // CheckAPI has methods for readiness and liveness checking
 type CheckAPI struct {
 	DB *sqlx.DB
@@ -28,7 +32,7 @@ func (ca *CheckAPI) Readiness(c *fiber.Ctx) error {
 	var h health
 	host, err := os.Hostname()
 	if err != nil {
-		host = "unavailable"
+		host = unavailable
 	}
 	h.Host = host
 	err = database.StatusCheck(ca.DB)
@@ -44,7 +48,7 @@ func (ca *CheckAPI) Readiness(c *fiber.Ctx) error {
 func (ca *CheckAPI) Liveness(c *fiber.Ctx) error {
 	host, err := os.Hostname()
 	if err != nil {
-		host = "unavailable"
+		host = unavailable
 	}
 	h := health{
 		Host:      host,

@@ -19,6 +19,21 @@ dockerrunauth:
 test:
 	go test -v ./...
 
+LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.0
+LINT_BIN := $(shell go env GOPATH)/bin/golangci-lint
+lint:
+	@if \[ ! -f ${LINT_BIN} \]; then \
+		echo "Installing golangci-lint..."; \
+    go install ${LINT_PKG}; \
+  fi
+	@if \[ -f ${LINT_BIN} \]; then \
+  	echo "Found golangci-lint at '$(LINT_BIN)', running..."; \
+    ${LINT_BIN} run; \
+	else \
+    echo "golangci-lint not found or the file does not exist"; \
+    exit 1; \
+  fi
+
 ### Manage service
 # apply all migrations
 migrate:
@@ -39,3 +54,9 @@ dockerbuildmng:
 
 dockerrunmng-m:
 	docker compose run --rm mng migrate
+
+dockerrunmng-r:
+	docker compose run --rm mng rollback
+
+dockerrunmng-s:
+	docker compose run --rm mng seed
