@@ -20,20 +20,11 @@ jobs:
     - name: Build
       run: go build -v ./...
 
-    - name: Run go vet
-      run: go vet ./...
-
-    - name: Install staticcheck
-      run: go install honnef.co/go/tools/cmd/staticcheck@latest
-
-    - name: Run staticcheck
-      run: staticcheck ./...
-
-    - name: Install golint
-      run: go install golang.org/x/lint/golint@latest
-
-    - name: Run golint
-      run: golint -set_exit_status ./...
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v4
+      with:
+        version: v1.57.0
+        args: --out-format=colored-line-number
 
     - name: Run tests
       run: go test -race -vet=off ./...

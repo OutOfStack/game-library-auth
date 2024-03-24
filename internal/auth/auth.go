@@ -22,7 +22,7 @@ func New(algorithm string, privateKey *rsa.PrivateKey) (*Auth, error) {
 		return nil, fmt.Errorf("unknown algorithm: %s", algorithm)
 	}
 
-	var keyFunc jwt.Keyfunc = func(token *jwt.Token) (interface{}, error) {
+	var keyFunc jwt.Keyfunc = func(_ *jwt.Token) (interface{}, error) {
 		return &privateKey.PublicKey, nil
 	}
 
