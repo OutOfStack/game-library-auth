@@ -5,24 +5,32 @@ import (
 	"fmt"
 	"log"
 	_ "net/http/pprof"
-	"os"
 
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/handlers"
 	"github.com/OutOfStack/game-library-auth/internal/server"
 	conf "github.com/OutOfStack/game-library-auth/pkg/config"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
+	lg "github.com/OutOfStack/game-library-auth/pkg/log"
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	"gopkg.in/Graylog2/go-gelf.v2/gelf"
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
+	// load config
 	var cfg appconf.Cfg
 	if err := conf.Load(".", "app", "env", &cfg); err != nil {
 		log.Fatalf("can't parse config: %v", err)
 	}
-	logger, err := initLogger(cfg)
+
+	// init logger
+	logger, err := lg.InitLogger(cfg.Graylog.Address)
 	if err != nil {
 		log.Fatalf("can't init logger: %v", err)
 	}
@@ -32,38 +40,6 @@ func main() {
 		}
 	}(logger)
 
-	if err = run(logger, cfg); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func initLogger(cfg appconf.Cfg) (*zap.Logger, error) {
-	encoderCfg := zap.NewProductionEncoderConfig()
-	encoderCfg.EncodeTime = zapcore.RFC3339TimeEncoder
-	encoderCfg.EncodeLevel = zapcore.CapitalLevelEncoder
-
-	gelfWriter, err := gelf.NewTCPWriter(cfg.Graylog.Address)
-	if err != nil {
-		return nil, fmt.Errorf("can't create gelf writer: %v", err)
-	}
-	consoleWriter := zapcore.Lock(os.Stderr)
-
-	core := zapcore.NewTee(
-		zapcore.NewCore(
-			zapcore.NewJSONEncoder(encoderCfg),
-			zapcore.AddSync(gelfWriter),
-			zap.InfoLevel),
-		zapcore.NewCore(
-			zapcore.NewJSONEncoder(encoderCfg),
-			consoleWriter,
-			zap.InfoLevel))
-
-	logger := zap.New(core, zap.WithCaller(false)).With(zap.String("source", appconf.ServiceName))
-
-	return logger, nil
-}
-
-func run(logger *zap.Logger, cfg appconf.Cfg) error {
 	// connect to database
 	db, err := database.Open(database.Config{
 		Host:       cfg.DB.Host,
@@ -72,11 +48,14 @@ func run(logger *zap.Logger, cfg appconf.Cfg) error {
 		Password:   cfg.DB.Password,
 		RequireSSL: cfg.DB.RequireSSL,
 	})
-
 	if err != nil {
 		return fmt.Errorf("can't open db: %w", err)
 	}
-	defer db.Close()
+	defer func(db *sqlx.DB) {
+		if err = db.Close(); err != nil {
+			logger.Error("calling database close", zap.Error(err))
+		}
+	}(db)
 
 	// start debug service
 	debugApp := handlers.DebugService()
