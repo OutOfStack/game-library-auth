@@ -24,7 +24,7 @@ import (
 var tracer = otel.Tracer(appconf.ServiceName)
 
 // AuthService creates and configures auth app
-func AuthService(log *zap.Logger, db *sqlx.DB, conf appconf.Web, authConf appconf.Auth, zipkinConf appconf.Zipkin) (*fiber.App, error) {
+func AuthService(log *zap.Logger, db *sqlx.DB, webConf appconf.Web, authConf appconf.Auth, zipkinConf appconf.Zipkin) (*fiber.App, error) {
 	err := initTracer(zipkinConf.ReporterURL)
 	if err != nil {
 		return nil, fmt.Errorf("initializing exporter: %w", err)
@@ -40,15 +40,15 @@ func AuthService(log *zap.Logger, db *sqlx.DB, conf appconf.Web, authConf appcon
 
 	app := fiber.New(fiber.Config{
 		AppName:      appconf.ServiceName,
-		ReadTimeout:  conf.ReadTimeout,
-		WriteTimeout: conf.WriteTimeout,
+		ReadTimeout:  webConf.ReadTimeout,
+		WriteTimeout: webConf.WriteTimeout,
 	})
 
 	// apply middleware
 	app.Use(otelfiber.Middleware(otelfiber.WithServerName(fmt.Sprintf("%s.mw", appconf.ServiceName))))
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: conf.AllowedCORSOrigin,
+		AllowOrigins: webConf.AllowedCORSOrigin,
 		AllowHeaders: "Origin, Content-Type, Accept",
 		AllowMethods: "POST, GET, OPTIONS",
 	}))
