@@ -1,4 +1,4 @@
-package auth
+package auth_test
 
 import (
 	"crypto/rand"
@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -17,12 +18,12 @@ func TestGenerateValidate(t *testing.T) {
 		t.Fatalf("Generating private key: %v\n", err)
 	}
 
-	auth, err := New("RS256", privateKey)
+	a, err := auth.New("RS256", privateKey)
 	if err != nil {
 		t.Fatalf("Initializing token service instance: %v", err)
 	}
 
-	claims := Claims{
+	claims := auth.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "test_runner",
 			Subject:   "12345qwerty",
@@ -33,12 +34,12 @@ func TestGenerateValidate(t *testing.T) {
 		UserRole: "super_admin",
 	}
 
-	tokenStr, err := auth.GenerateToken(claims)
+	tokenStr, err := a.GenerateToken(claims)
 	if err != nil {
 		t.Fatalf("Generating token: %v\n", err)
 	}
 
-	parsedClaims, err := auth.ValidateToken(tokenStr)
+	parsedClaims, err := a.ValidateToken(tokenStr)
 	if err != nil {
 		t.Fatalf("Validating token: %v\n", err)
 	}

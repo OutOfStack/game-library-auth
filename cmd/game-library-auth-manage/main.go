@@ -15,14 +15,9 @@ import (
 
 const migrationsDir string = "scripts/migrations"
 
-type config struct {
-	DB   appconf.DB   `mapstructure:",squash"`
-	Auth appconf.Auth `mapstructure:",squash"`
-}
-
 func main() {
-	var cfg config
-	if err := conf.Load(".", "app", "env", &cfg); err != nil {
+	cfg, err := conf.Init()
+	if err != nil {
 		log.Fatalf("can't parse config: %v", err)
 	}
 

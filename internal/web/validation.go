@@ -42,7 +42,7 @@ func Validate(val interface{}) ([]FieldError, error) {
 		return nil, err
 	}
 
-	var fields []FieldError
+	fields := make([]FieldError, 0, len(vErrs))
 	for _, vErr := range vErrs {
 		field := FieldError{
 			Field: vErr.Field(),

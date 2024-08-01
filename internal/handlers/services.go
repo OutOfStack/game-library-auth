@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
+	rec "github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/jmoiron/sqlx"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/zipkin"
@@ -24,37 +25,38 @@ import (
 var tracer = otel.Tracer(appconf.ServiceName)
 
 // AuthService creates and configures auth app
-func AuthService(log *zap.Logger, db *sqlx.DB, webConf appconf.Web, authConf appconf.Auth, zipkinConf appconf.Zipkin) (*fiber.App, error) {
-	err := initTracer(zipkinConf.ReporterURL)
+func AuthService(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, error) {
+	err := initTracer(cfg.Zipkin.ReporterURL)
 	if err != nil {
 		return nil, fmt.Errorf("initializing exporter: %w", err)
 	}
-	privateKey, err := crypto.ReadPrivateKey(authConf.PrivateKeyFile)
+	privateKey, err := crypto.ReadPrivateKey(cfg.Auth.PrivateKeyFile)
 	if err != nil {
 		return nil, fmt.Errorf("reading private key file: %w", err)
 	}
-	a, err := auth.New(authConf.SigningAlgorithm, privateKey)
+	a, err := auth.New(cfg.Auth.SigningAlgorithm, privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("initializing token service instance: %w", err)
 	}
 
 	app := fiber.New(fiber.Config{
 		AppName:      appconf.ServiceName,
-		ReadTimeout:  webConf.ReadTimeout,
-		WriteTimeout: webConf.WriteTimeout,
+		ReadTimeout:  cfg.Web.ReadTimeout,
+		WriteTimeout: cfg.Web.WriteTimeout,
 	})
 
 	// apply middleware
-	app.Use(otelfiber.Middleware(otelfiber.WithServerName(fmt.Sprintf("%s.mw", appconf.ServiceName))))
+	app.Use(rec.New())
+	app.Use(otelfiber.Middleware(otelfiber.WithServerName(appconf.ServiceName + ".mw")))
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: webConf.AllowedCORSOrigin,
+		AllowOrigins: cfg.Web.AllowedCORSOrigin,
 		AllowHeaders: "Origin, Content-Type, Accept",
 		AllowMethods: "POST, GET, OPTIONS",
 	}))
 
 	// register routes
-	RegisterRoutes(log, app, authConf, db, a)
+	RegisterRoutes(log, app, cfg, db, a)
 
 	return app, nil
 }

@@ -63,10 +63,10 @@ spec:
                         name: game-library-auth-config
                 imagePullPolicy: Always
                 volumeMounts:
-                    - name: token-volume
-                      mountPath: "/etc/gla"
-                      readOnly: true
+                  - name: token-volume
+                    mountPath: "/etc/gla"
+                    readOnly: true
             volumes:
-                - name: token-volume
-                  secret:
-                      secretName: token-cert
+              - name: token-volume
+                secret:
+                    secretName: token-cert
