@@ -2,6 +2,7 @@ package auth
 
 import (
 	"crypto/rsa"
+	"errors"
 	"fmt"
 	"time"
 
@@ -63,12 +64,12 @@ func (a *Auth) ValidateToken(tokenStr string) (Claims, error) {
 	}
 
 	if !token.Valid {
-		return Claims{}, fmt.Errorf("invalid token")
+		return Claims{}, errors.New("invalid token")
 	}
 
 	active := claims.VerifyExpiresAt(time.Now(), true)
 	if !active {
-		return Claims{}, fmt.Errorf("token expired")
+		return Claims{}, errors.New("token expired")
 	}
 
 	return claims, nil

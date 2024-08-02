@@ -23,10 +23,10 @@ const (
 
 // AuthAPI describes dependencies for auth endpoints
 type AuthAPI struct {
-	Auth     *auth.Auth
-	AuthConf appconf.Auth
-	DB       data.Repo
-	Log      *zap.Logger
+	Auth *auth.Auth
+	Cfg  appconf.Cfg
+	DB   data.Repo
+	Log  *zap.Logger
 }
 
 // SignInHandler - handler for sign in endpoint
@@ -86,7 +86,7 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 	}
 
 	// create claims
-	claims := auth.CreateClaims(a.AuthConf.Issuer, usr, role.Name)
+	claims := auth.CreateClaims(a.Cfg.Auth.Issuer, usr, role.Name)
 
 	// generate jwt
 	tokenStr, err := a.Auth.GenerateToken(claims)
@@ -303,7 +303,7 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 	}
 
 	// create claims
-	claims := auth.CreateClaims(a.AuthConf.Issuer, usr, role.Name)
+	claims := auth.CreateClaims(a.Cfg.Auth.Issuer, usr, role.Name)
 
 	// generate jwt
 	tokenStr, err := a.Auth.GenerateToken(claims)

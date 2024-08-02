@@ -6,7 +6,6 @@ import (
 	"log"
 	_ "net/http/pprof"
 
-	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/handlers"
 	"github.com/OutOfStack/game-library-auth/internal/server"
 	conf "github.com/OutOfStack/game-library-auth/pkg/config"
@@ -23,9 +22,8 @@ func main() {
 }
 
 func run() error {
-	// load config
-	var cfg appconf.Cfg
-	if err := conf.Load(".", "app", "env", &cfg); err != nil {
+	cfg, err := conf.Init()
+	if err != nil {
 		log.Fatalf("can't parse config: %v", err)
 	}
 
@@ -68,7 +66,7 @@ func run() error {
 	}()
 
 	// start auth service
-	app, err := handlers.AuthService(logger, db, cfg.Web, cfg.Auth, cfg.Zipkin)
+	app, err := handlers.AuthService(logger, db, cfg)
 	if err != nil {
 		return fmt.Errorf("creating auth service: %w", err)
 	}

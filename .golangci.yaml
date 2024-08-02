@@ -4,12 +4,13 @@ run:
   # Default: 1m
   timeout: 3m
 
+output:
+  formats:
+    - format: colored-line-number
+      path: stdout
+
 # All available settings of specific linters.
 linters-settings:
-  errcheck:
-    # List of functions to exclude from checking, where each entry is a single function to exclude.
-    # See https://github.com/kisielk/errcheck#excluding-functions for details.
-    exclude-functions:
   govet:
     enable:
       - shadow
@@ -18,25 +19,88 @@ linters-settings:
     min-occurrences: 2
 
 linters:
-  disable-all: true
   enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - copyloopvar
+    - decorder
+    - dogsled
+    - dupword
+    - durationcheck
     - errcheck
+    - errname
+    - exhaustive
+    - exportloopref
+    - fatcontext
+    - forcetypeassert
+    - gci
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecksumtype
     - goconst
+    - gocritic
+    - godox
+    - gofmt
+    - goheader
     - goimports
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
     - gosec
-    - govet
-    - ineffassign
-    - staticcheck
     - gosimple
-    - unused
+    - gosmopolitan
+    - govet
+    - grouper
+    - importas
+    - inamedparam
+    - ineffassign
+    - intrange
+    - loggercheck
+    - makezero
+    - mirror
+    - misspell
+    - nakedret
+    - nilerr
+    - nilnil
+    - noctx
+    - nolintlint
+    - nosprintfhostport
+    - perfsprint
+    - prealloc
+    - predeclared
+    - promlinter
+    - protogetter
+    - reassign
     - revive
+    - rowserrcheck
+    - sloglint
+    - spancheck
+    - sqlclosecheck
+    - staticcheck
+    - stylecheck
+    - tenv
+    - testableexamples
+    - testifylint
+    - testpackage
+    - thelper
+    - tparallel
     - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - wastedassign
+    - whitespace
+    - zerologlint
 
 issues:
   exclude:
     # pprof exposure. closed with auth
     - G108
-
   # Which dirs to skip: issues from them won't be reported.
   # Can use regexp here: `generated.*`, regexp is applied on full path.
   exclude-dirs:

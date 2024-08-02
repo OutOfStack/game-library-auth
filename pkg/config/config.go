@@ -1,21 +1,30 @@
 package config
 
 import (
+	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/spf13/viper"
 )
 
-// Load reads config from provided file to specified config data structure
-func Load(path, name, ext string, config interface{}) error {
-	viper.AddConfigPath(path)
-	viper.SetConfigName(name)
-	viper.SetConfigType(ext)
+const (
+	configPath = "./app.env"
+)
+
+// Init reads config from provided file to specified config data structure
+func Init() (appconf.Cfg, error) {
+	var cfg appconf.Cfg
+	viper.SetConfigFile(configPath)
 
 	viper.AutomaticEnv()
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		return err
+		return appconf.Cfg{}, err
 	}
 
-	return viper.Unmarshal(&config)
+	err = viper.Unmarshal(&cfg)
+	if err != nil {
+		return appconf.Cfg{}, err
+	}
+
+	return cfg, nil
 }

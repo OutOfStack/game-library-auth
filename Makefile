@@ -19,7 +19,7 @@ dockerrunauth:
 test:
 	go test -v ./...
 
-LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.0
+LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
 LINT_BIN := $(shell go env GOPATH)/bin/golangci-lint
 lint:
 	@if \[ ! -f ${LINT_BIN} \]; then \
