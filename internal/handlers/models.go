@@ -4,6 +4,12 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	internalErrorMsg   string = "Internal error"
+	validationErrorMsg string = "Validation error"
+	authErrorMsg       string = "Incorrect username or password"
+)
+
 // SignInReq represents user sign in request
 type SignInReq struct {
 	Username string `json:"username" validate:"required"`
@@ -38,4 +44,14 @@ type UpdateProfileReq struct {
 	Password           *string `json:"password"`
 	NewPassword        *string `json:"newPassword" validate:"omitempty,min=8"`
 	ConfirmNewPassword *string `json:"confirmNewPassword"`
+}
+
+// VerifyToken is a request type for JWT verification
+type VerifyToken struct {
+	Token string `json:"token" validate:"jwt"`
+}
+
+// VerifyTokenResp is a response type for JWT verification
+type VerifyTokenResp struct {
+	Valid bool `json:"valid"`
 }

@@ -2,9 +2,24 @@ package data
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+)
+
+// Role - user role
+type Role string
+
+// User role names
+const (
+	UserRoleName      Role = "user"
+	PublisherRoleName Role = "publisher"
+)
+
+var (
+	// ErrNotFound is used when requested entity is not found
+	ErrNotFound = errors.New("not found")
 )
 
 // User represents a user
@@ -13,17 +28,8 @@ type User struct {
 	Username     string         `db:"username"`
 	Name         string         `db:"name"`
 	PasswordHash []byte         `db:"password_hash"`
-	RoleID       uuid.UUID      `db:"role_id"`
+	Role         Role           `db:"role"`
 	AvatarURL    sql.NullString `db:"avatar_url"`
 	DateCreated  time.Time      `db:"date_created"`
 	DateUpdated  sql.NullTime   `db:"date_updated"`
-}
-
-// Role represents a user role
-type Role struct {
-	ID          uuid.UUID    `db:"id"`
-	Name        string       `db:"name"`
-	Description string       `db:"description"`
-	DateCreated time.Time    `db:"date_created"`
-	DateUpdated sql.NullTime `db:"date_updated"`
 }

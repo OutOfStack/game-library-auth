@@ -5,6 +5,7 @@ import (
 
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/auth"
+	"github.com/OutOfStack/game-library-auth/internal/data"
 	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/gofiber/contrib/otelfiber"
 	"github.com/gofiber/fiber/v2"
@@ -24,19 +25,19 @@ import (
 
 var tracer = otel.Tracer(appconf.ServiceName)
 
-// AuthService creates and configures auth app
-func AuthService(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, error) {
+// Service creates and configures auth app
+func Service(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, error) {
 	err := initTracer(cfg.Zipkin.ReporterURL)
 	if err != nil {
-		return nil, fmt.Errorf("initializing exporter: %w", err)
+		return nil, fmt.Errorf("init exporter: %w", err)
 	}
 	privateKey, err := crypto.ReadPrivateKey(cfg.Auth.PrivateKeyFile)
 	if err != nil {
-		return nil, fmt.Errorf("reading private key file: %w", err)
+		return nil, fmt.Errorf("read private key file: %w", err)
 	}
-	a, err := auth.New(cfg.Auth.SigningAlgorithm, privateKey)
+	a, err := auth.New(cfg.Auth.SigningAlgorithm, privateKey, cfg.Auth.Issuer)
 	if err != nil {
-		return nil, fmt.Errorf("initializing token service instance: %w", err)
+		return nil, fmt.Errorf("create token service instance: %w", err)
 	}
 
 	app := fiber.New(fiber.Config{
@@ -56,7 +57,9 @@ func AuthService(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, err
 	}))
 
 	// register routes
-	RegisterRoutes(log, app, cfg, db, a)
+	authAPI := NewAuthAPI(log, a, data.NewRepo(db))
+	checkAPI := NewCheckAPI(db)
+	registerRoutes(app, authAPI, checkAPI)
 
 	return app, nil
 }
@@ -71,6 +74,17 @@ func DebugService() *fiber.App {
 	app.Use(pprof.New())
 
 	return app
+}
+
+func registerRoutes(app *fiber.App, authAPI *AuthAPI, checkAPI *CheckAPI) {
+	app.Get("/readiness", checkAPI.Readiness)
+	app.Get("/liveness", checkAPI.Liveness)
+
+	app.Post("/signin", authAPI.SignInHandler)
+	app.Post("/signup", authAPI.SignUpHandler)
+	app.Post("/update_profile", authAPI.UpdateProfileHandler)
+
+	app.Post("/token/verify", authAPI.VerifyToken)
 }
 
 func initTracer(reporterURL string) error {

@@ -15,12 +15,12 @@ func TestGenerateValidate(t *testing.T) {
 	t.Logf("Testing generation and validation of JWT\n")
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		t.Fatalf("Generating private key: %v\n", err)
+		t.Fatalf("Generating private key: %v", err)
 	}
 
-	a, err := auth.New("RS256", privateKey)
+	a, err := auth.New("RS256", privateKey, "")
 	if err != nil {
-		t.Fatalf("Initializing token service instance: %v", err)
+		t.Fatalf("Initializing auth service instance: %v", err)
 	}
 
 	claims := auth.Claims{

@@ -23,7 +23,7 @@ jobs:
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v4
       with:
-        version: v1.60.1
+        version: v1.64
         args: --out-format=colored-line-number
 
     - name: Run tests
