@@ -21,10 +21,9 @@ jobs:
       run: go build -v ./...
 
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v4
+      uses: golangci/golangci-lint-action@v6
       with:
         version: v1.64
-        args: --out-format=colored-line-number
 
     - name: Run tests
       run: go test -race -vet=off ./...

@@ -18,8 +18,8 @@ type Storage interface {
 	CheckUserExists(ctx context.Context, name string, role data.Role) (bool, error)
 }
 
-// Auther provides authentication methods
-type Auther interface {
+// Auth provides authentication methods
+type Auth interface {
 	GenerateToken(claims jwt.Claims) (string, error)
 	ValidateToken(tokenStr string) (auth.Claims, error)
 	CreateClaims(user data.User) jwt.Claims
@@ -27,13 +27,13 @@ type Auther interface {
 
 // AuthAPI describes dependencies for auth endpoints
 type AuthAPI struct {
-	auth    Auther
+	auth    Auth
 	storage Storage
 	log     *zap.Logger
 }
 
 // NewAuthAPI return new instance of auth api
-func NewAuthAPI(log *zap.Logger, auth Auther, storage Storage) *AuthAPI {
+func NewAuthAPI(log *zap.Logger, auth Auth, storage Storage) *AuthAPI {
 	return &AuthAPI{
 		auth:    auth,
 		storage: storage,
