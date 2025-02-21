@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/OutOfStack/game-library-auth/pkg/database"
 	"github.com/gofiber/fiber/v2"
 	"github.com/jmoiron/sqlx"
 )
@@ -15,7 +14,14 @@ const (
 
 // CheckAPI has methods for readiness and liveness checking
 type CheckAPI struct {
-	DB *sqlx.DB
+	db *sqlx.DB
+}
+
+// NewCheckAPI returns new instance of healthcheck api
+func NewCheckAPI(db *sqlx.DB) *CheckAPI {
+	return &CheckAPI{
+		db: db,
+	}
 }
 
 type health struct {
@@ -28,14 +34,14 @@ type health struct {
 }
 
 // Readiness determines whether service is ready
-func (ca *CheckAPI) Readiness(c *fiber.Ctx) error {
+func (a *CheckAPI) Readiness(c *fiber.Ctx) error {
 	var h health
 	host, err := os.Hostname()
 	if err != nil {
 		host = unavailable
 	}
 	h.Host = host
-	err = database.StatusCheck(ca.DB)
+	err = a.db.Ping()
 	if err != nil {
 		h.Status = "database not ready"
 		return c.Status(http.StatusInternalServerError).JSON(h)
@@ -45,7 +51,7 @@ func (ca *CheckAPI) Readiness(c *fiber.Ctx) error {
 }
 
 // Liveness determines whether service is up
-func (ca *CheckAPI) Liveness(c *fiber.Ctx) error {
+func (a *CheckAPI) Liveness(c *fiber.Ctx) error {
 	host, err := os.Hostname()
 	if err != nil {
 		host = unavailable

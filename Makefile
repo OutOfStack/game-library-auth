@@ -7,6 +7,10 @@ build:
 	mkdir -p bin
 	go build -o bin/game-library-auth cmd/game-library-auth/main.go
 
+build-mng:
+	mkdir -p bin
+	go build -o bin/game-library-auth-manage cmd/game-library-auth-manage/main.go
+
 run:
 	go run ./cmd/game-library-auth/.
 
@@ -17,9 +21,9 @@ dockerrunauth:
 	docker compose up -d auth
 
 test:
-	go test -v ./...
+	go test -v -race ./...
 
-LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.60.1
+LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64
 LINT_BIN := $(shell go env GOPATH)/bin/golangci-lint
 lint:
 	@if \[ ! -f ${LINT_BIN} \]; then \
@@ -43,9 +47,6 @@ migrate:
 rollback:
 	go run ./cmd/game-library-auth-manage/. rollback
 
-seed:
-	go run ./cmd/game-library-auth-manage/. seed
-
 keygen:
 	go run ./cmd/game-library-auth-manage/. keygen
 
@@ -57,6 +58,3 @@ dockerrunmng-m:
 
 dockerrunmng-r:
 	docker compose run --rm mng rollback
-
-dockerrunmng-s:
-	docker compose run --rm mng seed

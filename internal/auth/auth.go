@@ -11,14 +11,15 @@ import (
 
 // Auth represents dependencies for auth methods
 type Auth struct {
-	algorithm  string
-	privateKey *rsa.PrivateKey
-	parser     *jwt.Parser
-	keyFunc    jwt.Keyfunc
+	algorithm    string
+	privateKey   *rsa.PrivateKey
+	parser       *jwt.Parser
+	keyFunc      jwt.Keyfunc
+	claimsIssuer string
 }
 
 // New constructs Auth instance
-func New(algorithm string, privateKey *rsa.PrivateKey) (*Auth, error) {
+func New(algorithm string, privateKey *rsa.PrivateKey, claimsIssuer string) (*Auth, error) {
 	if jwt.GetSigningMethod(algorithm) == nil {
 		return nil, fmt.Errorf("unknown algorithm: %s", algorithm)
 	}
@@ -27,15 +28,12 @@ func New(algorithm string, privateKey *rsa.PrivateKey) (*Auth, error) {
 		return &privateKey.PublicKey, nil
 	}
 
-	parser := &jwt.Parser{
-		ValidMethods: []string{algorithm},
-	}
-
 	a := Auth{
-		algorithm:  algorithm,
-		privateKey: privateKey,
-		parser:     parser,
-		keyFunc:    keyFunc,
+		algorithm:    algorithm,
+		privateKey:   privateKey,
+		parser:       jwt.NewParser(jwt.WithValidMethods([]string{algorithm})),
+		keyFunc:      keyFunc,
+		claimsIssuer: claimsIssuer,
 	}
 
 	return &a, nil

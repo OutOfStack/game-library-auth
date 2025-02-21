@@ -1,5 +1,3 @@
-version: '3'
-
 services:
 
   db:
@@ -7,13 +5,11 @@ services:
     image: postgres:16-alpine
     ports:
       - "5433:5432"
-    restart: always
+    restart: on-failure:5
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: temp_pwd
+      POSTGRES_USER: auth-user
+      POSTGRES_PASSWORD: auth-password
       POSTGRES_DB: auth
-    volumes:
-      - ~/pgdata:/var/lib/postgresql/data
 
   auth:
     container_name: game-library-auth
@@ -22,8 +18,7 @@ services:
       - "8001:8000"
       - "6061:6060"
     environment:
-      DB_HOST: db
-      DB_PASSWORD: temp_pwd
+      DB_DSN: postgres://auth-user:auth-password@db/auth?sslmode=disable
       APP_ADDRESS: 0.0.0.0:8000
       DEBUG_ADDRESS: 0.0.0.0:6060
     depends_on:
@@ -33,7 +28,6 @@ services:
     container_name: game-library-auth-mng
     image: game-library-auth-mng:latest
     environment:
-      DB_HOST: db
-      DB_PASSWORD: temp_pwd
+      DB_DSN: postgres://auth-user:auth-password@db/auth?sslmode=disable
     depends_on:
       - db

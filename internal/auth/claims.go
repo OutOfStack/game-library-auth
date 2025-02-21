@@ -18,10 +18,10 @@ type Claims struct {
 }
 
 // CreateClaims creates claims for user
-func CreateClaims(issuer string, user data.User, role string) jwt.Claims {
+func (a *Auth) CreateClaims(user data.User) jwt.Claims {
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    issuer,
+			Issuer:    a.claimsIssuer,
 			Subject:   user.ID.String(),
 			Audience:  jwt.ClaimStrings{"game_lib_svc"},
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(360 * time.Hour)),
@@ -29,7 +29,7 @@ func CreateClaims(issuer string, user data.User, role string) jwt.Claims {
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 		UserID:    user.ID.String(),
-		UserRole:  role,
+		UserRole:  string(user.Role),
 		Username:  user.Username,
 		Name:      user.Name,
 		AvatarURL: user.AvatarURL.String,

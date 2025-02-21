@@ -16,11 +16,7 @@ type Cfg struct {
 
 // DB represents settings related to database
 type DB struct {
-	Host       string `mapstructure:"DB_HOST"`
-	Name       string `mapstructure:"DB_NAME"`
-	User       string `mapstructure:"DB_USER"`
-	Password   string `mapstructure:"DB_PASSWORD"`
-	RequireSSL bool   `mapstructure:"DB_REQUIRESSL"`
+	DSN string `mapstructure:"DB_DSN"`
 }
 
 // Web represents settings related to web server

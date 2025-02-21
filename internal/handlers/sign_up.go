@@ -1,0 +1,108 @@
+package handlers
+
+import (
+	"database/sql"
+	"errors"
+	"net/http"
+
+	"github.com/OutOfStack/game-library-auth/internal/data"
+	"github.com/OutOfStack/game-library-auth/internal/web"
+	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
+)
+
+// SignUpHandler - handler for sign up endpoint
+func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
+	ctx, span := tracer.Start(c.Context(), "handlers.signUp")
+	defer span.End()
+
+	var signUp SignUpReq
+	if err := c.BodyParser(&signUp); err != nil {
+		a.log.Error("parsing data", zap.Error(err))
+		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+			Error: "Error parsing data",
+		})
+	}
+
+	log := a.log.With(zap.String("username", signUp.Name))
+	// validate
+	if fields, err := web.Validate(signUp); err != nil {
+		log.Info("validating sign up data", zap.Error(err))
+		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+			Error:  validationErrorMsg,
+			Fields: fields,
+		})
+	}
+
+	// check if such username already exists
+	_, err := a.storage.GetUserByUsername(ctx, signUp.Username)
+	// if err is ErrNotFound then continue
+	if err != nil && !errors.Is(err, data.ErrNotFound) {
+		log.Info("checking existence of user", zap.Error(err))
+		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+			Error: internalErrorMsg,
+		})
+	}
+	if err == nil {
+		log.Info("username already exists")
+		return c.Status(http.StatusConflict).JSON(web.ErrResp{
+			Error: "This username is already taken",
+		})
+	}
+
+	// get role
+	var userRole data.Role
+	if signUp.IsPublisher {
+		// check uniqueness of publisher name
+		exists, cErr := a.storage.CheckUserExists(ctx, signUp.Name, data.PublisherRoleName)
+		if cErr != nil {
+			log.Error("checking existence of publisher with name", zap.Error(cErr))
+			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+				Error: internalErrorMsg,
+			})
+		}
+		if exists {
+			log.Info("publisher already exists")
+			return c.Status(http.StatusConflict).JSON(web.ErrResp{
+				Error: "Publisher with this name already exists",
+			})
+		}
+		userRole = data.PublisherRoleName
+	} else {
+		userRole = data.UserRoleName
+	}
+
+	// hash password
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(signUp.Password), bcrypt.DefaultCost)
+	if err != nil {
+		log.Error("generating password hash", zap.Error(err))
+		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+			Error: internalErrorMsg,
+		})
+	}
+
+	usr := data.User{
+		ID:           uuid.New(),
+		Username:     signUp.Username,
+		Name:         signUp.Name,
+		PasswordHash: passwordHash,
+		Role:         userRole,
+		AvatarURL:    sql.NullString{String: signUp.AvatarURL, Valid: signUp.AvatarURL != ""},
+	}
+
+	// create new user
+	if err = a.storage.CreateUser(ctx, usr); err != nil {
+		log.Error("creating new user", zap.Error(err))
+		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+			Error: internalErrorMsg,
+		})
+	}
+
+	resp := SignUpResp{
+		ID: usr.ID,
+	}
+
+	return c.JSON(resp)
+}

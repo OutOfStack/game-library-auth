@@ -9,8 +9,8 @@ const (
 	configPath = "./app.env"
 )
 
-// Init reads config from provided file to specified config data structure
-func Init() (appconf.Cfg, error) {
+// Load reads config from provided file to specified config data structure
+func Load() (appconf.Cfg, error) {
 	var cfg appconf.Cfg
 	viper.SetConfigFile(configPath)
 

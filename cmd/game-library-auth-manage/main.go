@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	conf "github.com/OutOfStack/game-library-auth/pkg/config"
 	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
@@ -16,7 +15,7 @@ import (
 const migrationsDir string = "scripts/migrations"
 
 func main() {
-	cfg, err := conf.Init()
+	cfg, err := conf.Load()
 	if err != nil {
 		log.Fatalf("can't parse config: %v", err)
 	}
@@ -28,40 +27,28 @@ func main() {
 	flag.Parse()
 	switch flag.Arg(0) {
 	case "migrate":
-		db := connectDB(cfg.DB)
+		db := connectDB(cfg.DB.DSN)
 		defer db.Close()
 		applyMigrations(db, migrations)
 	case "rollback":
-		db := connectDB(cfg.DB)
+		db := connectDB(cfg.DB.DSN)
 		defer db.Close()
 		rollbackMigration(db, migrations)
-	case "seed":
-		db := connectDB(cfg.DB)
-		defer db.Close()
-		seed(db)
 	case "keygen":
 		keygen()
 	default:
 		fmt.Println("Unknown command, available commands:")
 		fmt.Println("migrate: applies all migrations to database")
 		fmt.Println("rollback: roll backs one last migration of database")
-		fmt.Println("seed: applies seed data (roles, admin user) to database")
 		fmt.Println("keygen: creates private/public key pair files")
 	}
 }
 
-func connectDB(conf appconf.DB) *sqlx.DB {
-	db, err := database.Open(database.Config{
-		Host:       conf.Host,
-		Name:       conf.Name,
-		User:       conf.User,
-		Password:   conf.Password,
-		RequireSSL: conf.RequireSSL,
-	})
+func connectDB(dsn string) *sqlx.DB {
+	db, err := database.New(dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("connected to host: %s, database: %s\n", conf.Host, conf.Name)
 
 	return db
 }
@@ -84,13 +71,6 @@ func rollbackMigration(db *sqlx.DB, migrations *migrate.FileMigrationSource) {
 	} else {
 		fmt.Println("Migration rollback complete")
 	}
-}
-
-func seed(db *sqlx.DB) {
-	if err := database.Seed(db); err != nil {
-		log.Fatalf("Error applying seeds: %v", err)
-	}
-	log.Println("Seed data successfully inserted")
 }
 
 func keygen() {
