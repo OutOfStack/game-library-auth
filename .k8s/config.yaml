@@ -6,7 +6,7 @@ metadata:
 data:
     APP_ADDRESS: "0.0.0.0:8000"
     DEBUG_ADDRESS: "0.0.0.0:6060"
-    APP_ALLOWEDCORSORIGIN: "https://_K8S_URL_"
+    APP_ALLOWEDCORSORIGIN: "https://_K8S_URL_,https://_UI_URL_"
     AUTH_PRIVATEKEYFILE: "/etc/gla/private"
     AUTH_ISSUER: "https://_K8S_URL_"
     ZIPKIN_REPORTERURL: "http://zipkin-service.game-library.svc.cluster.local.:9411/api/v2/spans"

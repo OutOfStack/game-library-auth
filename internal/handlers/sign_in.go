@@ -11,7 +11,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// SignInHandler - handler for sign in endpoint
+// SignInHandler godoc
+// @Summary      Sign in
+// @Description  Authenticate a user and return an access token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        signin body SignInReq true "User credentials"
+// @Success      200 {object} TokenResp
+// @Failure      400 {object} web.ErrResp
+// @Failure      401 {object} web.ErrResp
+// @Failure      500 {object} web.ErrResp
+// @Router       /signin [post]
 func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "handlers.signIn")
 	defer span.End()

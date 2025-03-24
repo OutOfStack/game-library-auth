@@ -13,7 +13,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// SignUpHandler - handler for sign up endpoint
+// SignUpHandler 	godoc
+// @Summary 		Register a new user
+// @Description 	Create a new user account with the provided information
+// @Tags  			auth
+// @Accept 			json
+// @Produce 		json
+// @Param 			signup body SignUpReq true "User signup information"
+// @Success			200 {object} SignUpResp "Successfully registered user"
+// @Failure 		400 {object} web.ErrResp "Invalid input data"
+// @Failure 		409 {object} web.ErrResp "Username or publisher name already exists"
+// @Failure 		500 {object} web.ErrResp "Internal server error"
+// @Router 			/signup [post]
 func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "handlers.signUp")
 	defer span.End()

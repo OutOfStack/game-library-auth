@@ -1,0 +1,229 @@
+basePath: /
+definitions:
+  handlers.SignInReq:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  handlers.SignUpReq:
+    properties:
+      avatarUrl:
+        type: string
+      confirmPassword:
+        type: string
+      isPublisher:
+        type: boolean
+      name:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      username:
+        type: string
+    required:
+    - name
+    - password
+    - username
+    type: object
+  handlers.SignUpResp:
+    properties:
+      id:
+        type: string
+    type: object
+  handlers.TokenResp:
+    properties:
+      accessToken:
+        type: string
+    type: object
+  handlers.UpdateProfileReq:
+    properties:
+      avatarUrl:
+        type: string
+      confirmNewPassword:
+        type: string
+      name:
+        type: string
+      newPassword:
+        minLength: 8
+        type: string
+      password:
+        type: string
+      userId:
+        type: string
+    required:
+    - userId
+    type: object
+  handlers.VerifyTokenReq:
+    properties:
+      token:
+        type: string
+    type: object
+  handlers.VerifyTokenResp:
+    properties:
+      valid:
+        type: boolean
+    type: object
+  web.ErrResp:
+    properties:
+      error:
+        type: string
+      fields:
+        items:
+          $ref: '#/definitions/web.FieldError'
+        type: array
+    type: object
+  web.FieldError:
+    properties:
+      error:
+        type: string
+      field:
+        type: string
+    type: object
+host: localhost:8001
+info:
+  contact: {}
+  description: API for game library auth service
+  termsOfService: http://swagger.io/terms/
+  title: Game library auth API
+  version: "0.1"
+paths:
+  /signin:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate a user and return an access token
+      parameters:
+      - description: User credentials
+        in: body
+        name: signin
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SignInReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.TokenResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+      summary: Sign in
+      tags:
+      - auth
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account with the provided information
+      parameters:
+      - description: User signup information
+        in: body
+        name: signup
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SignUpReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully registered user
+          schema:
+            $ref: '#/definitions/handlers.SignUpResp'
+        "400":
+          description: Invalid input data
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "409":
+          description: Username or publisher name already exists
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+      summary: Register a new user
+      tags:
+      - auth
+  /token/verify:
+    post:
+      consumes:
+      - application/json
+      description: Validates a JWT token and returns if it's valid
+      parameters:
+      - description: Token to verify
+        in: body
+        name: token
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.VerifyTokenReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.VerifyTokenResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+      summary: Verify JWT token
+      tags:
+      - auth
+  /update_profile:
+    post:
+      consumes:
+      - application/json
+      description: Updates the profile information of a user
+      parameters:
+      - description: Update profile parameters
+        in: body
+        name: profile
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateProfileReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns new access token
+          schema:
+            $ref: '#/definitions/handlers.TokenResp'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "401":
+          description: Invalid password
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+      summary: Update user profile
+      tags:
+      - auth
+schemes:
+- http
+swagger: "2.0"

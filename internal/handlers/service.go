@@ -3,10 +3,12 @@ package handlers
 import (
 	"fmt"
 
+	_ "github.com/OutOfStack/game-library-auth/docs" // swagger docs
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/data"
 	"github.com/OutOfStack/game-library-auth/pkg/crypto"
+	"github.com/gofiber/adaptor/v2"
 	"github.com/gofiber/contrib/otelfiber"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -14,6 +16,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/pprof"
 	rec "github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/jmoiron/sqlx"
+	swag "github.com/swaggo/http-swagger/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/zipkin"
 	"go.opentelemetry.io/otel/propagation"
@@ -85,6 +88,9 @@ func registerRoutes(app *fiber.App, authAPI *AuthAPI, checkAPI *CheckAPI) {
 	app.Post("/update_profile", authAPI.UpdateProfileHandler)
 
 	app.Post("/token/verify", authAPI.VerifyToken)
+
+	// swagger
+	app.Get("/swagger/*", adaptor.HTTPHandler(swag.Handler()))
 }
 
 func initTracer(reporterURL string) error {
