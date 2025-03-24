@@ -16,7 +16,7 @@ type SignInReq struct {
 	Password string `json:"password" validate:"required"`
 }
 
-// TokenResp describes response with JWT
+// TokenResp represents response with JWT
 type TokenResp struct {
 	AccessToken string `json:"accessToken"`
 }
@@ -46,12 +46,12 @@ type UpdateProfileReq struct {
 	ConfirmNewPassword *string `json:"confirmNewPassword"`
 }
 
-// VerifyToken is a request type for JWT verification
-type VerifyToken struct {
+// VerifyTokenReq represents verify JWT request
+type VerifyTokenReq struct {
 	Token string `json:"token" validate:"jwt"`
 }
 
-// VerifyTokenResp is a response type for JWT verification
+// VerifyTokenResp represents verify JWT response
 type VerifyTokenResp struct {
 	Valid bool `json:"valid"`
 }

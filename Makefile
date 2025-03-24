@@ -23,6 +23,22 @@ dockerrunauth:
 test:
 	go test -v -race ./...
 
+SWAG_PKG := github.com/swaggo/swag/cmd/swag@v1.16
+SWAG_BIN := $(shell go env GOPATH)/bin/swag
+generate:
+	@if \[ ! -f ${SWAG_BIN} \]; then \
+		echo "Installing swag..."; \
+    	go install ${SWAG_PKG}; \
+  	fi
+	@if \[ -f ${SWAG_BIN} \]; then \
+  		echo "Found swag at '$(SWAG_BIN)', generating documentation..."; \
+	else \
+    	echo "swag not found or the file does not exist"; \
+    	exit 1; \
+  	fi
+	${SWAG_BIN} init \
+	-d cmd/game-library-auth,internal/handlers,internal/web
+
 LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64
 LINT_BIN := $(shell go env GOPATH)/bin/golangci-lint
 lint:

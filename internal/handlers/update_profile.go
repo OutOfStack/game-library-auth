@@ -12,7 +12,19 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// UpdateProfileHandler - handler for update profile endpoint
+// UpdateProfileHandler	godoc
+// @Summary 			Update user profile
+// @Description 		Updates the profile information of a user
+// @Tags 				auth
+// @Accept 				json
+// @Produce 			json
+// @Param 				profile body UpdateProfileReq true "Update profile parameters"
+// @Success 			200 {object} TokenResp "Returns new access token"
+// @Failure 			400 {object} web.ErrResp "Bad request"
+// @Failure 			401 {object} web.ErrResp "Invalid password"
+// @Failure 			404 {object} web.ErrResp "User not found"
+// @Failure 			500 {object} web.ErrResp "Internal server error"
+// @Router 				/update_profile [post]
 func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "handlers.updateProfile")
 	defer span.End()
