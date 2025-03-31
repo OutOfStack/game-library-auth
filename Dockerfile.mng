@@ -1,4 +1,5 @@
-FROM golang:1.23-alpine3.20 as builder
+# build
+FROM golang:1.24-alpine3.21 as builder
 
 WORKDIR /tmp/game-library-auth-manage
 
@@ -12,14 +13,13 @@ COPY ./migrations ./out/migrations
 COPY ./scripts ./out/scripts
 COPY . .
 
-# build app
 RUN go build -o ./out/game-library-auth-manage cmd/game-library-auth-manage/main.go
 
-FROM alpine:3.20
+# run
+FROM alpine:3.21
 
 WORKDIR /app
 
-# copy built app into runnable container
 COPY --from=builder /tmp/game-library-auth-manage/out ./
 
 ENTRYPOINT ["./game-library-auth-manage"]

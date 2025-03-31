@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/OutOfStack/game-library-auth/internal/data"
+	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -50,7 +50,7 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 	// check if such username already exists
 	_, err := a.storage.GetUserByUsername(ctx, signUp.Username)
 	// if err is ErrNotFound then continue
-	if err != nil && !errors.Is(err, data.ErrNotFound) {
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		log.Info("checking existence of user", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
@@ -64,10 +64,10 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 	}
 
 	// get role
-	var userRole data.Role
+	var userRole = database.UserRoleName
 	if signUp.IsPublisher {
 		// check uniqueness of publisher name
-		exists, cErr := a.storage.CheckUserExists(ctx, signUp.Name, data.PublisherRoleName)
+		exists, cErr := a.storage.CheckUserExists(ctx, signUp.Name, database.PublisherRoleName)
 		if cErr != nil {
 			log.Error("checking existence of publisher with name", zap.Error(cErr))
 			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
@@ -80,9 +80,7 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 				Error: "Publisher with this name already exists",
 			})
 		}
-		userRole = data.PublisherRoleName
-	} else {
-		userRole = data.UserRoleName
+		userRole = database.PublisherRoleName
 	}
 
 	// hash password
@@ -94,7 +92,7 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	usr := data.User{
+	usr := database.User{
 		ID:           uuid.New(),
 		Username:     signUp.Username,
 		Name:         signUp.Name,

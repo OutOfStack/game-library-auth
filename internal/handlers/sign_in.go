@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/OutOfStack/game-library-auth/internal/data"
+	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -49,7 +49,7 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 	// fetch user
 	usr, err := a.storage.GetUserByUsername(ctx, signIn.Username)
 	if err != nil {
-		if errors.Is(err, data.ErrNotFound) {
+		if errors.Is(err, database.ErrNotFound) {
 			log.Info("username does not exist", zap.Error(err))
 			return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
 				Error: authErrorMsg,
