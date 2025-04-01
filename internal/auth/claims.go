@@ -3,7 +3,7 @@ package auth
 import (
 	"time"
 
-	"github.com/OutOfStack/game-library-auth/internal/data"
+	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -18,7 +18,7 @@ type Claims struct {
 }
 
 // CreateClaims creates claims for user
-func (a *Auth) CreateClaims(user data.User) jwt.Claims {
+func (a *Auth) CreateClaims(user database.User) jwt.Claims {
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    a.claimsIssuer,

@@ -6,7 +6,7 @@ import (
 	_ "github.com/OutOfStack/game-library-auth/docs" // swagger docs
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/auth"
-	"github.com/OutOfStack/game-library-auth/internal/data"
+	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/gofiber/adaptor/v2"
 	"github.com/gofiber/contrib/otelfiber"
@@ -60,7 +60,7 @@ func Service(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, error) 
 	}))
 
 	// register routes
-	authAPI := NewAuthAPI(log, a, data.NewRepo(db))
+	authAPI := NewAuthAPI(log, a, database.NewRepo(db))
 	checkAPI := NewCheckAPI(db)
 	registerRoutes(app, authAPI, checkAPI)
 

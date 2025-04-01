@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/OutOfStack/game-library-auth/internal/data"
+	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -67,7 +67,7 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 	// check if user exists
 	usr, err := a.storage.GetUserByID(ctx, params.UserID)
 	if err != nil {
-		if errors.Is(err, data.ErrNotFound) {
+		if errors.Is(err, database.ErrNotFound) {
 			return c.Status(http.StatusNotFound).JSON(web.ErrResp{
 				Error: "User does not exist",
 			})
