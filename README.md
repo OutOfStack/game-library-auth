@@ -15,7 +15,7 @@ This service is part of a game-library web application:
 - [Introduction](#introduction)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Features](#features)
+- [Tech Stack](#tech-stack)
 - [Configuration](#configuration)
 - [Documentation](#documentation)
 - [List of Make Commands](#list-of-make-commands)
@@ -60,7 +60,7 @@ After installation, you can use the following Make commands to develop the servi
 
 Refer to the [List of Make Commands](#list-of-make-commands) for a complete list of commands.
 
-## Features
+## Tech Stack
 
 - Data storage with PostgreSQL.
 - Tracing with Zipkin.
