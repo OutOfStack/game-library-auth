@@ -23,7 +23,10 @@ dockerrunauth:
 test:
 	go test -v -race ./...
 
-SWAG_PKG := github.com/swaggo/swag/cmd/swag@v1.16
+cover:
+	go test -cover -coverpkg=./... -coverprofile=coverage.out ./... && go tool cover -func=coverage.out
+
+SWAG_PKG := github.com/swaggo/swag/cmd/swag@v1.16.4
 SWAG_BIN := $(shell go env GOPATH)/bin/swag
 generate:
 	@if \[ ! -f ${SWAG_BIN} \]; then \
@@ -39,7 +42,7 @@ generate:
 	${SWAG_BIN} init \
 	-d cmd/game-library-auth,internal/handlers,internal/web
 
-LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64
+LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
 LINT_BIN := $(shell go env GOPATH)/bin/golangci-lint
 lint:
 	@if \[ ! -f ${LINT_BIN} \]; then \
@@ -66,11 +69,5 @@ rollback:
 keygen:
 	go run ./cmd/game-library-auth-manage/. keygen
 
-dockerbuildmng:
+dbuildmng:
 	docker build -f Dockerfile.mng -t game-library-auth-mng:latest .
-
-dockerrunmng-m:
-	docker compose run --rm mng migrate
-
-dockerrunmng-r:
-	docker compose run --rm mng rollback

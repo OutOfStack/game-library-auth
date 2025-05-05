@@ -1,28 +1,110 @@
 # game-library-auth
-Is an authentication service for game-library app
 
-### Usage with `Make`:
-    build           builds app
-    run             runs app
-    test            runs tests for the whole project
-    lint            runs golangci-lint
+## Introduction
 
-    dockerrunpg     runs postgres server with 'auth' db in docker container
-    migrate         applies all migrations to database
-    rollback        roll backs one last migration of database
+game-library-auth is an authentication service for the game-library web application. It is responsible for user authentication and authorization.
 
-    keygen          creates private/public key pair files
+This service is part of a game-library web application:
+- [game-library](https://github.com/OutOfStack/game-library) - main service for fetching, storing, and providing games data
+- current service handles authentication and authorization
+- [game-library-ui](https://github.com/OutOfStack/game-library-ui) - UI representation service
 
-    dockerbuildauth builds auth app docker image
-    dockerrunauth   runs auth app in docker container
-    dockerbuildmng  builds manage app docker image
-    dockerrunmng-m  applies migrations to database using docker manage image
-    dockerrunmng-r  rollbacks one last migration using docker manage image
 
-### Endpoints:
-    /signup         [POST]  - creates new user
-    /signin         [POST]  - checks user credentials and returns access token
-    /token/verify   [POST]  - checks validity of provided JWT
+## Table of Contents
 
-    /readiness      [GET]   - checks if app is ready
-    /liveness       [GET]   - checks if app is up
+- [Introduction](#introduction)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Tech Stack](#tech-stack)
+- [Configuration](#configuration)
+- [Documentation](#documentation)
+- [List of Make Commands](#list-of-make-commands)
+- [License](#license)
+
+## Installation
+
+Prerequisites: `go`, `Docker`, `Make`. To set up the service, follow these steps:
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/OutOfStack/game-library-auth.git
+   cd game-library-auth
+   ```
+
+2. Set up the database:
+   ```bash
+   make drunpg # runs postgres server with 'auth' db in docker container
+   make migrate # applies all migrations to database
+   ```
+
+3. Generate key pair for local JWT signing:
+   ```bash
+   make keygen # creates private/public key pair files
+   ```
+
+4. Build and run the service:
+   ```bash
+   make build
+   make run
+   ```
+
+Refer to the [List of Make Commands](#list-of-make-commands) for a complete list of commands.
+
+## Usage
+
+After installation, you can use the following Make commands to develop the service:
+
+- `make test`: Runs tests for the whole project.
+- `make generate`: Generates documentation for Swagger UI.
+- `make lint`: Runs golangci-lint for code analysis.
+
+Refer to the [List of Make Commands](#list-of-make-commands) for a complete list of commands.
+
+## Tech Stack
+
+- Data storage with PostgreSQL.
+- Tracing with Zipkin.
+- Log management with Graylog.
+- Code analysis with golangci-lint.
+- CI/CD with GitHub Actions and deploy to Kubernetes (microk8s) cluster.
+
+## Configuration
+
+- The service can be configured using [app.env](./app.env) or environment variables, described in [settings.go](./internal/appconf/settings.go)
+- CI/CD configs are in [./github/workflows/](./.github/workflows/)
+- k8s deployment configs are in [./k8s](./.k8s/)
+
+## Documentation
+
+API documentation is available via [Swagger UI](http://localhost:8001/swagger/index.html). To generate the documentation, run:
+```bash
+make generate
+```
+
+## List of Make Commands
+
+#### Main Commands
+    build      builds app
+    build-mng  builds manage app
+    run        runs app
+    test       runs tests for the whole project
+    generate   generates docs for Swagger UI
+    lint       runs golangci-lint
+    cover      outputs tests coverage
+
+#### Database Commands
+    drunpg     runs postgres server with 'auth' db in docker container
+    migrate    applies all migrations to database
+    rollback   roll backs one last migration of database
+
+#### Key Management
+    keygen     creates private/public key pair files
+
+#### Docker Commands
+    dbuildauth builds auth app docker image
+    dbuildmng  builds manage app docker image
+    drunauth   runs auth app in docker container
+
+## License
+
+[MIT License](./LICENSE.md)
