@@ -10,7 +10,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/server"
 	conf "github.com/OutOfStack/game-library-auth/pkg/config"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
-	lg "github.com/OutOfStack/game-library-auth/pkg/log"
+	zaplog "github.com/OutOfStack/game-library-auth/pkg/log"
 	"go.uber.org/zap"
 )
 
@@ -36,10 +36,7 @@ func run() error {
 	}
 
 	// init logger
-	logger, err := lg.InitLogger(cfg.Graylog.Address)
-	if err != nil {
-		log.Fatalf("can't init logger: %v", err)
-	}
+	logger := zaplog.New(cfg)
 	defer func() {
 		if err = logger.Sync(); err != nil {
 			log.Printf("can't sync logger: %v", err)

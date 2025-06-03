@@ -26,7 +26,7 @@ import (
 // @Failure 		500 {object} web.ErrResp "Internal server error"
 // @Router 			/signup [post]
 func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
-	ctx, span := tracer.Start(c.Context(), "handlers.signUp")
+	ctx, span := tracer.Start(c.Context(), "signUp")
 	defer span.End()
 
 	var signUp SignUpReq

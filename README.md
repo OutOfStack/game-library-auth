@@ -42,7 +42,9 @@ Prerequisites: `go`, `Docker`, `Make`. To set up the service, follow these steps
    make keygen # creates private/public key pair files
    ```
 
-4. Build and run the service:
+4. Create the `app.env` file based on `app.example.env` and update it with your local configuration settings.
+
+5. Build and run the service:
    ```bash
    make build
    make run

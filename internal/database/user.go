@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	tracer = otel.Tracer("")
+	tracer = otel.Tracer("db")
 )
 
 // Repo manages API for user access
@@ -28,7 +28,7 @@ func NewRepo(db *sqlx.DB) *Repo {
 
 // CreateUser inserts a new user into the database
 func (r *Repo) CreateUser(ctx context.Context, user User) error {
-	ctx, span := tracer.Start(ctx, "db.createUser")
+	ctx, span := tracer.Start(ctx, "createUser")
 	defer span.End()
 
 	const q = `INSERT INTO users
@@ -45,7 +45,7 @@ func (r *Repo) CreateUser(ctx context.Context, user User) error {
 
 // UpdateUser updates user
 func (r *Repo) UpdateUser(ctx context.Context, user User) error {
-	ctx, span := tracer.Start(ctx, "db.updateUser")
+	ctx, span := tracer.Start(ctx, "updateUser")
 	defer span.End()
 
 	const q = `UPDATE users
@@ -65,7 +65,7 @@ func (r *Repo) UpdateUser(ctx context.Context, user User) error {
 
 // GetUserByID returns user by id
 func (r *Repo) GetUserByID(ctx context.Context, userID string) (user User, err error) {
-	ctx, span := tracer.Start(ctx, "db.getUserByID")
+	ctx, span := tracer.Start(ctx, "getUserByID")
 	defer span.End()
 
 	const q = `SELECT id, username, name, password_hash, role, avatar_url, date_created, date_updated
@@ -84,7 +84,7 @@ func (r *Repo) GetUserByID(ctx context.Context, userID string) (user User, err e
 
 // GetUserByUsername returns user by username
 func (r *Repo) GetUserByUsername(ctx context.Context, username string) (user User, err error) {
-	ctx, span := tracer.Start(ctx, "db.getUserByUsername")
+	ctx, span := tracer.Start(ctx, "getUserByUsername")
 	defer span.End()
 
 	const q = `SELECT id, username, name, password_hash, role, avatar_url, date_created, date_updated
@@ -103,7 +103,7 @@ func (r *Repo) GetUserByUsername(ctx context.Context, username string) (user Use
 
 // CheckUserExists checks whether user with provided name and role exists
 func (r *Repo) CheckUserExists(ctx context.Context, name string, role Role) (bool, error) {
-	ctx, span := tracer.Start(ctx, "db.checkUserExists")
+	ctx, span := tracer.Start(ctx, "checkUserExists")
 	defer span.End()
 
 	const q = `SELECT EXISTS(
