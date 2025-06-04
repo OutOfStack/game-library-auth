@@ -42,7 +42,7 @@ generate:
 	${SWAG_BIN} init \
 	-d cmd/game-library-auth,internal/handlers,internal/web
 
-LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1
 LINT_BIN := $(shell go env GOPATH)/bin/golangci-lint
 lint:
 	@if \[ ! -f ${LINT_BIN} \]; then \

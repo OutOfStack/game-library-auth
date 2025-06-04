@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -29,7 +30,11 @@ func KeyGen() error {
 	if err != nil {
 		return fmt.Errorf("creating private key file: %w", err)
 	}
-	defer privateKeyFile.Close()
+	defer func() {
+		if cErr := privateKeyFile.Close(); cErr != nil {
+			log.Printf("can't close private key file: %v", cErr)
+		}
+	}()
 
 	// write private key to file
 	if err = pem.Encode(privateKeyFile, &privateKeyBlock); err != nil {
@@ -51,7 +56,11 @@ func KeyGen() error {
 	if err != nil {
 		return fmt.Errorf("creating public key file: %w", err)
 	}
-	defer publicKeyFile.Close()
+	defer func() {
+		if cErr := publicKeyFile.Close(); cErr != nil {
+			log.Printf("can't close public key file: %v", cErr)
+		}
+	}()
 
 	// write private key to file
 	if err = pem.Encode(publicKeyFile, publicKeyBlock); err != nil {

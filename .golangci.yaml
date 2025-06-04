@@ -1,23 +1,8 @@
-# Options for analysis running.
-run:
-  # Timeout for analysis, e.g. 30s, 5m.
-  # Default: 1m
-  timeout: 2m
-
+version: "2"
 output:
   formats:
-    - format: colored-line-number
+    text:
       path: stdout
-
-# All available settings of specific linters.
-linters-settings:
-  govet:
-    enable:
-      - shadow
-  goconst:
-    min-len: 3
-    min-occurrences: 2
-
 linters:
   enable:
     - asasalint
@@ -31,32 +16,25 @@ linters:
     - dogsled
     - dupword
     - durationcheck
-    - errcheck
     - errname
     - exhaustive
     - fatcontext
     - forcetypeassert
-    - gci
     - ginkgolinter
     - gocheckcompilerdirectives
     - gochecksumtype
     - goconst
     - gocritic
     - godox
-    - gofmt
     - goheader
-    - goimports
     - gomoddirectives
     - gomodguard
     - goprintffuncname
     - gosec
-    - gosimple
     - gosmopolitan
-    - govet
     - grouper
     - importas
     - inamedparam
-    - ineffassign
     - intrange
     - loggercheck
     - makezero
@@ -80,27 +58,53 @@ linters:
     - spancheck
     - sqlclosecheck
     - staticcheck
-    - stylecheck
     - testableexamples
     - testifylint
     - testpackage
     - thelper
     - tparallel
-    - typecheck
     - unconvert
     - unparam
-    - unused
-    - usetesting
     - usestdlibvars
+    - usetesting
     - wastedassign
     - whitespace
     - zerologlint
-
-issues:
-  exclude:
-    - G108 # pprof exposure. closed with auth
-    - G115 # Disable integer overflow conversion warnings
-  # Which dirs to skip: issues from them won't be reported.
-  # Can use regexp here: `generated.*`, regexp is applied on full path.
-  exclude-dirs:
-    - docs
+  settings:
+    goconst:
+      min-len: 3
+      min-occurrences: 2
+    govet:
+      enable:
+        - shadow
+  exclusions:
+    generated: lax
+    rules:
+      - path: (.+)\.go$
+        text: G108 # pprof exposure. closed with auth
+      - path: (.+)\.go$
+        text: G115  # integer overflow conversion warnings
+      - path: _test\.go
+        linters:
+          - gocyclo
+          - errcheck
+          - dupl
+          - gosec
+          - wsl
+          - goconst
+      - linters:
+        - revive # disable "should have a package comment"
+        text: "package comment"
+    paths:
+      - docs
+      - examples$
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - docs
+      - examples$

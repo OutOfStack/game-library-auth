@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// UpdateProfileHandler	godoc
+// UpdateProfileHandler godoc
 // @Summary 			Update user profile
 // @Description 		Updates the profile information of a user
 // @Tags 				auth

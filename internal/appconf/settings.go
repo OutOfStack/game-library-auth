@@ -12,6 +12,7 @@ type Cfg struct {
 	Auth    Auth    `mapstructure:",squash"`
 	Zipkin  Zipkin  `mapstructure:",squash"`
 	Graylog Graylog `mapstructure:",squash"`
+	Log     Log     `mapstructure:",squash"`
 }
 
 // DB represents settings related to database
@@ -43,4 +44,9 @@ type Zipkin struct {
 // Graylog represents settings related to Graylog integration
 type Graylog struct {
 	Address string `mapstructure:"GRAYLOG_ADDR"`
+}
+
+// Log represents settings for logging
+type Log struct {
+	Level string `mapstructure:"LOG_LEVEL"`
 }

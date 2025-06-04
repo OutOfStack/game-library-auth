@@ -1,42 +1,52 @@
 package log
 
 import (
-	"log"
 	"os"
 
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
+	gelf "github.com/snovichkov/zap-gelf"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/Graylog2/go-gelf.v2/gelf"
 )
 
-// InitLogger inits zap logger that writes to console and graylog.
-// If graylog isn't available, writes to console only
-func InitLogger(graylogAddress string) (*zap.Logger, error) {
+// New returns new zap logger instance
+func New(cfg appconf.Cfg) *zap.Logger {
+	// log level
+	logLevel := zap.InfoLevel
+	parsedLevel, lErr := zapcore.ParseLevel(cfg.Log.Level)
+	if lErr == nil {
+		logLevel = parsedLevel
+	}
+
+	// log format
 	encoderCfg := zap.NewProductionEncoderConfig()
 	encoderCfg.EncodeTime = zapcore.RFC3339TimeEncoder
 	encoderCfg.EncodeLevel = zapcore.CapitalLevelEncoder
 
+	// set console output
 	consoleWriter := zapcore.Lock(os.Stderr)
 	cores := []zapcore.Core{
-		zapcore.NewCore(zapcore.NewJSONEncoder(encoderCfg), consoleWriter, zap.InfoLevel),
+		zapcore.NewCore(zapcore.NewJSONEncoder(encoderCfg), consoleWriter, logLevel),
 	}
 
-	gelfWriter, err := gelf.NewTCPWriter(graylogAddress)
-	if err != nil {
-		log.Printf("can't create gelf writer: %v", err)
-	}
-	if gelfWriter != nil {
-		cores = append(cores,
-			zapcore.NewCore(
-				zapcore.NewJSONEncoder(encoderCfg),
-				zapcore.AddSync(gelfWriter),
-				zap.InfoLevel))
+	// set Graylog output
+	host, _ := os.Hostname()
+	gelfCore, gelfErr := gelf.NewCore(gelf.Addr(cfg.Graylog.Address), gelf.Host(host), gelf.Level(logLevel))
+	if gelfCore != nil {
+		cores = append(cores, gelfCore)
 	}
 
 	core := zapcore.NewTee(cores...)
 
 	logger := zap.New(core, zap.WithCaller(false)).With(zap.String("service", appconf.ServiceName))
 
-	return logger, nil
+	// log deferred errors if any
+	if lErr != nil {
+		logger.Error("parse log level", zap.Error(lErr), zap.String("level", cfg.Log.Level))
+	}
+	if gelfErr != nil {
+		logger.Error("create gelf logger", zap.Error(gelfErr))
+	}
+
+	return logger
 }

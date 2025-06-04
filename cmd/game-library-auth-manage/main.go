@@ -28,11 +28,19 @@ func main() {
 	switch flag.Arg(0) {
 	case "migrate":
 		db := connectDB(cfg.DB.DSN)
-		defer db.Close()
+		defer func() {
+			if dErr := db.Close(); dErr != nil {
+				log.Printf("can't close database: %v", err)
+			}
+		}()
 		applyMigrations(db, migrations)
 	case "rollback":
 		db := connectDB(cfg.DB.DSN)
-		defer db.Close()
+		defer func() {
+			if cErr := db.Close(); cErr != nil {
+				log.Printf("can't close database: %v", cErr)
+			}
+		}()
 		rollbackMigration(db, migrations)
 	case "keygen":
 		keygen()
