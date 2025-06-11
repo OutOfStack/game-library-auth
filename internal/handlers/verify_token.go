@@ -8,18 +8,18 @@ import (
 	"go.uber.org/zap"
 )
 
-// VerifyToken	godoc
-// @Summary 	Verify JWT token
-// @Description Validates a JWT token and returns if it's valid
-// @Tags 		auth
-// @Accept 		json
-// @Produce 	json
-// @Param 		token body VerifyTokenReq true "Token to verify"
-// @Success 	200 {object} VerifyTokenResp
-// @Failure 	400 {object} web.ErrResp
-// @Router 		/token/verify [post]
-func (a *AuthAPI) VerifyToken(c *fiber.Ctx) error {
-	_, span := tracer.Start(c.Context(), "handlers.verifyToken")
+// VerifyTokenHandler 	godoc
+// @Summary 			Verify JWT token
+// @Description 		Validates a JWT token and returns if it's valid
+// @Tags 				auth
+// @Accept 				json
+// @Produce 			json
+// @Param 				token body VerifyTokenReq true "Token to verify"
+// @Success 			200 {object} VerifyTokenResp
+// @Failure 			400 {object} web.ErrResp
+// @Router 				/token/verify [post]
+func (a *AuthAPI) VerifyTokenHandler(c *fiber.Ctx) error {
+	_, span := tracer.Start(c.Context(), "verifyToken")
 	defer span.End()
 
 	var verifyToken VerifyTokenReq

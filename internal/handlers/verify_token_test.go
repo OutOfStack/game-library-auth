@@ -65,7 +65,7 @@ func TestVerifyToken(t *testing.T) {
 				tt.setupMocks(mockAuth, mockStorage)
 			}
 
-			app.Post("/token/verify", authAPI.VerifyToken)
+			app.Post("/token/verify", authAPI.VerifyTokenHandler)
 
 			reqBody, _ := json.Marshal(tt.request)
 			req := httptest.NewRequest(http.MethodPost, "/token/verify", bytes.NewReader(reqBody))

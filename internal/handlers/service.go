@@ -26,7 +26,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var tracer = otel.Tracer(appconf.ServiceName)
+var tracer = otel.Tracer("api")
 
 // Service creates and configures auth app
 func Service(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, error) {
@@ -51,7 +51,7 @@ func Service(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, error) 
 
 	// apply middleware
 	app.Use(rec.New())
-	app.Use(otelfiber.Middleware(otelfiber.WithServerName(appconf.ServiceName + ".mw")))
+	app.Use(otelfiber.Middleware(otelfiber.WithServerName(appconf.ServiceName)))
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: cfg.Web.AllowedCORSOrigin,
@@ -87,7 +87,7 @@ func registerRoutes(app *fiber.App, authAPI *AuthAPI, checkAPI *CheckAPI) {
 	app.Post("/signup", authAPI.SignUpHandler)
 	app.Post("/update_profile", authAPI.UpdateProfileHandler)
 
-	app.Post("/token/verify", authAPI.VerifyToken)
+	app.Post("/token/verify", authAPI.VerifyTokenHandler)
 
 	// swagger
 	app.Get("/swagger/*", adaptor.HTTPHandler(swag.Handler()))
