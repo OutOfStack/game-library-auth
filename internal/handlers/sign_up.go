@@ -1,14 +1,12 @@
 package handlers
 
 import (
-	"database/sql"
 	"errors"
 	"net/http"
 
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -92,14 +90,7 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	usr := database.User{
-		ID:           uuid.New(),
-		Username:     signUp.Username,
-		Name:         signUp.Name,
-		PasswordHash: passwordHash,
-		Role:         userRole,
-		AvatarURL:    sql.NullString{String: signUp.AvatarURL, Valid: signUp.AvatarURL != ""},
-	}
+	usr := database.NewUser(signUp.Username, signUp.Name, passwordHash, userRole, signUp.AvatarURL)
 
 	// create new user
 	if err = a.storage.CreateUser(ctx, usr); err != nil {

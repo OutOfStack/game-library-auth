@@ -7,6 +7,11 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+const (
+	// GoogleAuthTokenProvider is google auth token provider
+	GoogleAuthTokenProvider = "google"
+)
+
 // Claims represent jwt claims
 type Claims struct {
 	jwt.RegisteredClaims

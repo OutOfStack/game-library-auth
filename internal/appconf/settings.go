@@ -34,6 +34,7 @@ type Auth struct {
 	PrivateKeyFile   string `mapstructure:"AUTH_PRIVATEKEYFILE"`
 	SigningAlgorithm string `mapstructure:"AUTH_SIGNINGALG"`
 	Issuer           string `mapstructure:"AUTH_ISSUER"`
+	GoogleClientID   string `mapstructure:"AUTH_GOOGLECLIENTID"`
 }
 
 // Zipkin represents settings related to zipkin trace storage

@@ -24,12 +24,32 @@ var (
 
 // User represents a user
 type User struct {
-	ID           uuid.UUID      `db:"id"`
-	Username     string         `db:"username"`
-	Name         string         `db:"name"`
-	PasswordHash []byte         `db:"password_hash"`
-	Role         Role           `db:"role"`
-	AvatarURL    sql.NullString `db:"avatar_url"`
-	DateCreated  time.Time      `db:"date_created"`
-	DateUpdated  sql.NullTime   `db:"date_updated"`
+	ID            uuid.UUID      `db:"id"`
+	Username      string         `db:"username"`
+	Name          string         `db:"name"`
+	PasswordHash  []byte         `db:"password_hash"`
+	Role          Role           `db:"role"`
+	AvatarURL     sql.NullString `db:"avatar_url"`
+	DateCreated   time.Time      `db:"date_created"`
+	DateUpdated   sql.NullTime   `db:"date_updated"`
+	OAuthProvider sql.NullString `db:"oauth_provider"`
+	OAuthID       sql.NullString `db:"oauth_id"`
+}
+
+// NewUser creates a new user
+func NewUser(username, name string, passwordHash []byte, role Role, avatarURL string) User {
+	return User{
+		ID:           uuid.New(),
+		Username:     username,
+		Name:         name,
+		PasswordHash: passwordHash,
+		Role:         role,
+		AvatarURL:    sql.NullString{String: avatarURL, Valid: avatarURL != ""},
+	}
+}
+
+// SetOAuthID sets oauth provider and oauth id
+func (u *User) SetOAuthID(provider string, oauthID string) {
+	u.OAuthProvider = sql.NullString{String: provider, Valid: true}
+	u.OAuthID = sql.NullString{String: oauthID, Valid: true}
 }

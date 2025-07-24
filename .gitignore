@@ -20,3 +20,6 @@ app.env
 # vendor/
 .vscode
 .idea
+
+# ai
+thinking.md

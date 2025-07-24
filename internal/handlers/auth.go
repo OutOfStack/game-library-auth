@@ -1,14 +1,15 @@
-//go:generate mockgen -source=auth.go -destination=mocks/auth.go -package=handlers_mocks
-
 package handlers
 
 import (
 	"context"
+	"errors"
 
+	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/golang-jwt/jwt/v4"
 	"go.uber.org/zap"
+	"google.golang.org/api/idtoken"
 )
 
 // Storage provides methods for working with repo
@@ -17,6 +18,7 @@ type Storage interface {
 	UpdateUser(ctx context.Context, user database.User) error
 	GetUserByID(ctx context.Context, userID string) (database.User, error)
 	GetUserByUsername(ctx context.Context, username string) (database.User, error)
+	GetUserByOAuth(ctx context.Context, provider string, oauthID string) (database.User, error)
 	CheckUserExists(ctx context.Context, name string, role database.Role) (bool, error)
 }
 
@@ -27,18 +29,31 @@ type Auth interface {
 	CreateClaims(user database.User) jwt.Claims
 }
 
+// GoogleTokenValidator provides methods for validating Google ID tokens
+type GoogleTokenValidator interface {
+	Validate(ctx context.Context, idToken string, audience string) (*idtoken.Payload, error)
+}
+
 // AuthAPI describes dependencies for auth endpoints
 type AuthAPI struct {
-	auth    Auth
-	storage Storage
-	log     *zap.Logger
+	googleOAuthClientID  string
+	log                  *zap.Logger
+	auth                 Auth
+	storage              Storage
+	googleTokenValidator GoogleTokenValidator
 }
 
 // NewAuthAPI return new instance of auth api
-func NewAuthAPI(log *zap.Logger, auth Auth, storage Storage) *AuthAPI {
-	return &AuthAPI{
-		auth:    auth,
-		storage: storage,
-		log:     log,
+func NewAuthAPI(log *zap.Logger, cfg *appconf.Cfg, auth Auth, storage Storage, googleTokenValidator GoogleTokenValidator) (*AuthAPI, error) {
+	if cfg.Auth.GoogleClientID == "" {
+		return nil, errors.New("google client id is empty")
 	}
+
+	return &AuthAPI{
+		googleOAuthClientID:  cfg.Auth.GoogleClientID,
+		auth:                 auth,
+		storage:              storage,
+		log:                  log,
+		googleTokenValidator: googleTokenValidator,
+	}, nil
 }

@@ -1,5 +1,10 @@
 basePath: /
 definitions:
+  handlers.GoogleOAuthRequest:
+    properties:
+      idToken:
+        type: string
+    type: object
   handlers.SignInReq:
     properties:
       password:
@@ -92,6 +97,36 @@ info:
   title: Game library auth API
   version: "0.1"
 paths:
+  /oauth/google:
+    post:
+      consumes:
+      - application/json
+      description: Handles Google OAuth 2.0 authentication
+      parameters:
+      - description: Google OAuth token
+        in: body
+        name: token
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.GoogleOAuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.TokenResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+      summary: Google OAuth sign in handler
+      tags:
+      - auth
   /signin:
     post:
       consumes:

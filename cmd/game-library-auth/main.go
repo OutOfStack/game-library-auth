@@ -39,7 +39,7 @@ func run() error {
 	logger := zaplog.New(cfg)
 	defer func() {
 		if err = logger.Sync(); err != nil {
-			log.Printf("can't sync logger: %v", err)
+			logger.Error("can't sync logger", zap.Error(err))
 		}
 	}()
 

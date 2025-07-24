@@ -12,7 +12,6 @@ import (
 
 // TestGenerateValidate tests GenerateToken and ValidateToken functions
 func TestGenerateValidate(t *testing.T) {
-	t.Logf("Testing generation and validation of JWT\n")
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatalf("Generating private key: %v", err)

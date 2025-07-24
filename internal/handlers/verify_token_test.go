@@ -58,7 +58,7 @@ func TestVerifyToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, mockStorage, authAPI, app, ctrl := setupTest(t)
+			mockAuth, mockStorage, _, authAPI, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {
