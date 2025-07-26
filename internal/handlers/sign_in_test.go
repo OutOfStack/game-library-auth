@@ -14,7 +14,6 @@ import (
 	mocks "github.com/OutOfStack/game-library-auth/internal/handlers/mocks"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -37,12 +36,7 @@ func TestSignInHandler(t *testing.T) {
 			},
 			setupMocks: func(mockAuth *mocks.MockAuth, mockStorage *mocks.MockStorage) {
 				passwordHash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-				user := database.User{
-					ID:           uuid.New(),
-					Username:     "testuser",
-					PasswordHash: passwordHash,
-					Role:         database.UserRoleName,
-				}
+				user := database.NewUser("testuser", "", passwordHash, database.UserRoleName, "")
 
 				mockStorage.EXPECT().
 					GetUserByUsername(gomock.Any(), "testuser").
@@ -85,12 +79,7 @@ func TestSignInHandler(t *testing.T) {
 			},
 			setupMocks: func(_ *mocks.MockAuth, mockStorage *mocks.MockStorage) {
 				passwordHash, _ := bcrypt.GenerateFromPassword([]byte("correctpassword"), bcrypt.DefaultCost)
-				user := database.User{
-					ID:           uuid.New(),
-					Username:     "testuser",
-					PasswordHash: passwordHash,
-					Role:         database.UserRoleName,
-				}
+				user := database.NewUser("testuser", "", passwordHash, database.UserRoleName, "")
 
 				mockStorage.EXPECT().
 					GetUserByUsername(gomock.Any(), "testuser").
@@ -125,12 +114,7 @@ func TestSignInHandler(t *testing.T) {
 			},
 			setupMocks: func(mockAuth *mocks.MockAuth, mockStorage *mocks.MockStorage) {
 				passwordHash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-				user := database.User{
-					ID:           uuid.New(),
-					Username:     "testuser",
-					PasswordHash: passwordHash,
-					Role:         database.UserRoleName,
-				}
+				user := database.NewUser("testuser", "", passwordHash, database.UserRoleName, "")
 
 				mockStorage.EXPECT().
 					GetUserByUsername(gomock.Any(), "testuser").
@@ -153,7 +137,7 @@ func TestSignInHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, mockStorage, authAPI, app, ctrl := setupTest(t)
+			mockAuth, mockStorage, _, authAPI, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {

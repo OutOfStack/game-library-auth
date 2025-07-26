@@ -41,7 +41,7 @@ func (a *CheckAPI) Readiness(c *fiber.Ctx) error {
 		host = unavailable
 	}
 	h.Host = host
-	err = a.db.Ping()
+	err = a.db.PingContext(c.Context())
 	if err != nil {
 		h.Status = "database not ready"
 		return c.Status(http.StatusInternalServerError).JSON(h)

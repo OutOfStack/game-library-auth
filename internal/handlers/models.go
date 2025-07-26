@@ -55,3 +55,15 @@ type VerifyTokenReq struct {
 type VerifyTokenResp struct {
 	Valid bool `json:"valid"`
 }
+
+// GoogleOAuthRequest represents Google OAuth request
+type GoogleOAuthRequest struct {
+	IDToken string `json:"idToken"`
+}
+
+type googleIDTokenClaims struct {
+	Sub     string `json:"sub"`
+	Email   string `json:"email"`
+	Name    string `json:"name"`
+	Picture string `json:"picture"`
+}

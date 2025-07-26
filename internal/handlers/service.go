@@ -1,11 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 
 	_ "github.com/OutOfStack/game-library-auth/docs" // swagger docs
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
-	"github.com/OutOfStack/game-library-auth/internal/auth"
+	auth_ "github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/gofiber/adaptor/v2"
@@ -24,12 +25,15 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	"go.uber.org/zap"
+	"google.golang.org/api/idtoken"
 )
 
 var tracer = otel.Tracer("api")
 
 // Service creates and configures auth app
 func Service(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, error) {
+	ctx := context.Background()
+
 	err := initTracer(cfg.Zipkin.ReporterURL)
 	if err != nil {
 		return nil, fmt.Errorf("init exporter: %w", err)
@@ -38,7 +42,7 @@ func Service(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, error) 
 	if err != nil {
 		return nil, fmt.Errorf("read private key file: %w", err)
 	}
-	a, err := auth.New(cfg.Auth.SigningAlgorithm, privateKey, cfg.Auth.Issuer)
+	auth, err := auth_.New(cfg.Auth.SigningAlgorithm, privateKey, cfg.Auth.Issuer)
 	if err != nil {
 		return nil, fmt.Errorf("create token service instance: %w", err)
 	}
@@ -59,8 +63,16 @@ func Service(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, error) 
 		AllowMethods: "POST, GET, OPTIONS",
 	}))
 
+	googleTokenValidator, err := idtoken.NewValidator(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create google token validator: %w", err)
+	}
+
 	// register routes
-	authAPI := NewAuthAPI(log, a, database.NewRepo(db))
+	authAPI, err := NewAuthAPI(log, &cfg, auth, database.NewRepo(db), googleTokenValidator)
+	if err != nil {
+		return nil, fmt.Errorf("create auth api: %w", err)
+	}
 	checkAPI := NewCheckAPI(db)
 	registerRoutes(app, authAPI, checkAPI)
 
@@ -86,6 +98,7 @@ func registerRoutes(app *fiber.App, authAPI *AuthAPI, checkAPI *CheckAPI) {
 	app.Post("/signin", authAPI.SignInHandler)
 	app.Post("/signup", authAPI.SignUpHandler)
 	app.Post("/update_profile", authAPI.UpdateProfileHandler)
+	app.Post("/oauth/google", authAPI.GoogleOAuthHandler)
 
 	app.Post("/token/verify", authAPI.VerifyTokenHandler)
 

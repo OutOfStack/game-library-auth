@@ -42,9 +42,12 @@ Prerequisites: `go`, `Docker`, `Make`. To set up the service, follow these steps
    make keygen # creates private/public key pair files
    ```
 
-4. Create the `app.env` file based on `app.example.env` and update it with your local configuration settings.
+4. Create the `app.env` file based on [app.example.env](./app.example.env) and update it with your local configuration settings.
 
-5. Build and run the service:
+5. Get Google API Client ID for Google OAuth and set it in [app.env](./app.env):
+   https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid
+
+6. Build and run the service:
    ```bash
    make build
    make run

@@ -32,10 +32,10 @@ func (r *Repo) CreateUser(ctx context.Context, user User) error {
 	defer span.End()
 
 	const q = `INSERT INTO users
-		(id, username, name, password_hash, role, avatar_url, date_created)
-		VALUES ($1, $2, $3, $4, $5, $6, NOW())`
+        (id, username, name, password_hash, role, avatar_url, oauth_provider, oauth_id, date_created)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`
 
-	_, err := r.db.ExecContext(ctx, q, user.ID, user.Username, user.Name, user.PasswordHash, user.Role, user.AvatarURL)
+	_, err := r.db.ExecContext(ctx, q, user.ID, user.Username, user.Name, user.PasswordHash, user.Role, user.AvatarURL, user.OAuthProvider, user.OAuthID)
 	if err != nil {
 		return fmt.Errorf("insert user: %w", err)
 	}
@@ -117,4 +117,23 @@ func (r *Repo) CheckUserExists(ctx context.Context, name string, role Role) (boo
 	}
 
 	return exists, nil
+}
+
+// GetUserByOAuth returns a user by oauth provider and oauth_id
+func (r *Repo) GetUserByOAuth(ctx context.Context, provider string, oauthID string) (User, error) {
+	ctx, span := tracer.Start(ctx, "getUserByOAuth")
+	defer span.End()
+
+	const q = `SELECT id, username, name, role, avatar_url, date_created, date_updated, oauth_provider, oauth_id
+        FROM users
+        WHERE oauth_provider = $1 AND oauth_id = $2`
+
+	var user User
+	if err := r.db.GetContext(ctx, &user, q, provider, oauthID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return User{}, ErrNotFound
+		}
+		return User{}, fmt.Errorf("select user (oauth): %w", err)
+	}
+	return user, nil
 }
