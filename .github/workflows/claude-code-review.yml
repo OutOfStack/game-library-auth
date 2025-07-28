@@ -11,10 +11,6 @@ on:
       - "**/*.md"
       - "Dockerfile*"
       - "Makefile"
-    paths-ignore:
-      - "docs/**"
-      - "**/mocks/**"
-      - "**/*_mock.go"
 
 jobs:
   claude-review:

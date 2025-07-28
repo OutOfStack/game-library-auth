@@ -35,5 +35,13 @@
 - DO NOT run any modifying `git` commands (i.e. `git add`, `git commit`, `git push`), only read commands allowed (i.e. `git status`, `git diff`, `git log`)
 - DO NOT delete files - notify me if files become redundant
 
-## Security
-- DO NOT examine files containing secrets (`.pem`, `.key`, `.env` (except for `app.example.env`), etc.)
+## File Ignoring Guidelines
+- DO NOT review or analyze files in the following directories:
+  - `docs/**` - documentation files
+  - `**/mocks/**` - generated mock files
+  - `vendor/**` - external dependencies
+- DO NOT review or analyze files matching these patterns:
+  - `**/*_mock.go` - mock files
+  - `**/*.gen.go` - generated files
+  - `*.pem`, `*.key`, `app.env` - data-sensitive files
+
