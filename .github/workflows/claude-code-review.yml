@@ -8,7 +8,6 @@ on:
       - "**/*.mod"
       - "**/*.yaml"
       - "**/*.yml"
-      - "**/*.md"
       - "Dockerfile*"
       - "Makefile"
 
@@ -45,19 +44,19 @@ jobs:
           
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            
-            Be constructive, concise and helpful in your feedback.
+            Review this Go PR focusing on:
+            - Compilation errors and critical bugs
+            - Security vulnerabilities
+            - Performance issues
+            - Code quality and Go best practices violations
+      
+            Be concise and specific. Provide code examples only when necessary.
 
           # Use sticky comments to reduce costs by reusing comments
           use_sticky_comment: true
           
           # Limit the number of turns to control costs
-          max_turns: 5
+          max_turns: 10
           
           # Optional: Customize review based on file types
           # direct_prompt: |
@@ -74,7 +73,7 @@ jobs:
           #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
           
           # Optional: Add specific tools for running tests or linting
-          # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
+          # allowed_tools: "Bash(make lint),Bash(make test)"
           
           # Optional: Skip review for certain conditions
           # if: |
