@@ -3,12 +3,18 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    paths:
+      - "**/*.go"
+      - "**/*.mod"
+      - "**/*.yaml"
+      - "**/*.yml"
+      - "**/*.md"
+      - "Dockerfile*"
+      - "Makefile"
+    paths-ignore:
+      - "docs/**"
+      - "**/mocks/**"
+      - "**/*_mock.go"
 
 jobs:
   claude-review:
@@ -19,6 +25,7 @@ jobs:
     #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
     
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
@@ -47,12 +54,14 @@ jobs:
             - Potential bugs or issues
             - Performance considerations
             - Security concerns
-            - Test coverage
             
-            Be constructive and helpful in your feedback.
+            Be constructive, concise and helpful in your feedback.
 
-          # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
-          # use_sticky_comment: true
+          # Use sticky comments to reduce costs by reusing comments
+          use_sticky_comment: true
+          
+          # Limit the number of turns to control costs
+          max_turns: 3
           
           # Optional: Customize review based on file types
           # direct_prompt: |
