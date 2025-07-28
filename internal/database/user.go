@@ -14,28 +14,28 @@ var (
 	tracer = otel.Tracer("db")
 )
 
-// Repo manages API for user access
-type Repo struct {
+// UserRepo manages API for user access
+type UserRepo struct {
 	db *sqlx.DB
 }
 
-// NewRepo constructs a Repo
-func NewRepo(db *sqlx.DB) *Repo {
-	return &Repo{
+// NewUserRepo constructs a user Repo
+func NewUserRepo(db *sqlx.DB) *UserRepo {
+	return &UserRepo{
 		db: db,
 	}
 }
 
 // CreateUser inserts a new user into the database
-func (r *Repo) CreateUser(ctx context.Context, user User) error {
+func (r *UserRepo) CreateUser(ctx context.Context, user User) error {
 	ctx, span := tracer.Start(ctx, "createUser")
 	defer span.End()
 
 	const q = `INSERT INTO users
-        (id, username, name, password_hash, role, avatar_url, oauth_provider, oauth_id, date_created)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`
+        (id, username, name, password_hash, role, oauth_provider, oauth_id, date_created)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`
 
-	_, err := r.db.ExecContext(ctx, q, user.ID, user.Username, user.Name, user.PasswordHash, user.Role, user.AvatarURL, user.OAuthProvider, user.OAuthID)
+	_, err := r.db.ExecContext(ctx, q, user.ID, user.Username, user.DisplayName, user.PasswordHash, user.Role, user.OAuthProvider, user.OAuthID)
 	if err != nil {
 		return fmt.Errorf("insert user: %w", err)
 	}
@@ -44,18 +44,17 @@ func (r *Repo) CreateUser(ctx context.Context, user User) error {
 }
 
 // UpdateUser updates user
-func (r *Repo) UpdateUser(ctx context.Context, user User) error {
+func (r *UserRepo) UpdateUser(ctx context.Context, user User) error {
 	ctx, span := tracer.Start(ctx, "updateUser")
 	defer span.End()
 
 	const q = `UPDATE users
 		SET name = COALESCE(NULLIF($2, ''), name),
-		avatar_url = COALESCE(NULLIF($3, ''), avatar_url),
-		password_hash = COALESCE(NULLIF($4, ''), password_hash),
+		password_hash = COALESCE(NULLIF($3, ''), password_hash),
 		date_updated = NOW()
 		WHERE id = $1`
 
-	_, err := r.db.ExecContext(ctx, q, user.ID, user.Name, user.AvatarURL, user.PasswordHash)
+	_, err := r.db.ExecContext(ctx, q, user.ID, user.DisplayName, user.PasswordHash)
 	if err != nil {
 		return fmt.Errorf("update user: %w", err)
 	}
@@ -64,11 +63,11 @@ func (r *Repo) UpdateUser(ctx context.Context, user User) error {
 }
 
 // GetUserByID returns user by id
-func (r *Repo) GetUserByID(ctx context.Context, userID string) (user User, err error) {
+func (r *UserRepo) GetUserByID(ctx context.Context, userID string) (user User, err error) {
 	ctx, span := tracer.Start(ctx, "getUserByID")
 	defer span.End()
 
-	const q = `SELECT id, username, name, password_hash, role, avatar_url, date_created, date_updated
+	const q = `SELECT id, username, name, password_hash, role, date_created, date_updated
 		FROM users
 		WHERE id = $1`
 
@@ -83,11 +82,11 @@ func (r *Repo) GetUserByID(ctx context.Context, userID string) (user User, err e
 }
 
 // GetUserByUsername returns user by username
-func (r *Repo) GetUserByUsername(ctx context.Context, username string) (user User, err error) {
+func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (user User, err error) {
 	ctx, span := tracer.Start(ctx, "getUserByUsername")
 	defer span.End()
 
-	const q = `SELECT id, username, name, password_hash, role, avatar_url, date_created, date_updated
+	const q = `SELECT id, username, name, password_hash, role, date_created, date_updated
 		FROM users
 		WHERE username = $1`
 
@@ -102,7 +101,7 @@ func (r *Repo) GetUserByUsername(ctx context.Context, username string) (user Use
 }
 
 // CheckUserExists checks whether user with provided name and role exists
-func (r *Repo) CheckUserExists(ctx context.Context, name string, role Role) (bool, error) {
+func (r *UserRepo) CheckUserExists(ctx context.Context, name string, role Role) (bool, error) {
 	ctx, span := tracer.Start(ctx, "checkUserExists")
 	defer span.End()
 
@@ -120,11 +119,11 @@ func (r *Repo) CheckUserExists(ctx context.Context, name string, role Role) (boo
 }
 
 // GetUserByOAuth returns a user by oauth provider and oauth_id
-func (r *Repo) GetUserByOAuth(ctx context.Context, provider string, oauthID string) (User, error) {
+func (r *UserRepo) GetUserByOAuth(ctx context.Context, provider string, oauthID string) (User, error) {
 	ctx, span := tracer.Start(ctx, "getUserByOAuth")
 	defer span.End()
 
-	const q = `SELECT id, username, name, role, avatar_url, date_created, date_updated, oauth_provider, oauth_id
+	const q = `SELECT id, username, name, role, oauth_provider, oauth_id, date_created, date_updated
         FROM users
         WHERE oauth_provider = $1 AND oauth_id = $2`
 

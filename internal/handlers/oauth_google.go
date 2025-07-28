@@ -40,13 +40,30 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 		return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{Error: "invalid token"})
 	}
 
-	user, err := a.storage.GetUserByOAuth(ctx, "google", claims.Sub)
+	user, err := a.userRepo.GetUserByOAuth(ctx, "google", claims.Sub)
+	// create user if not found
 	if errors.Is(err, database.ErrNotFound) {
-		user = database.NewUser(strings.SplitN(claims.Email, "@", 2)[0], claims.Name, nil, database.UserRoleName, claims.Picture)
+		user = database.NewUser(strings.SplitN(claims.Email, "@", 2)[0], claims.Name, nil, database.UserRoleName)
 		user.SetOAuthID(auth.GoogleAuthTokenProvider, claims.Sub)
 
-		if err = a.storage.CreateUser(ctx, user); err != nil {
-			a.log.Error("create user (google oauth)", zap.Error(err))
+		// check if such username already exists
+		_, err = a.userRepo.GetUserByUsername(ctx, user.Username)
+		if err != nil && !errors.Is(err, database.ErrNotFound) {
+			a.log.Error("get user", zap.String("username", user.Username), zap.Error(err))
+			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+				Error: internalErrorMsg,
+			})
+		}
+		if err == nil {
+			a.log.Error("user already exists", zap.String("username", user.Username))
+			return c.Status(http.StatusConflict).JSON(web.ErrResp{
+				Error: "Username already exists, please sign up with registration form",
+			})
+		}
+
+		// create user
+		if err = a.userRepo.CreateUser(ctx, user); err != nil {
+			a.log.Error("create user (google oauth)", zap.String("username", user.Username), zap.Error(err))
 			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 				Error: internalErrorMsg,
 			})
@@ -81,13 +98,11 @@ func (a *AuthAPI) verifyGoogleIDToken(ctx context.Context, token string) (*googl
 
 	email, _ := payload.Claims["email"].(string)
 	name, _ := payload.Claims["name"].(string)
-	picture, _ := payload.Claims["picture"].(string)
 
 	claims := &googleIDTokenClaims{
-		Sub:     payload.Subject,
-		Email:   email,
-		Name:    name,
-		Picture: picture,
+		Sub:   payload.Subject,
+		Email: email,
+		Name:  name,
 	}
 
 	if claims.Sub == "" || claims.Email == "" {

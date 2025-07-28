@@ -26,40 +26,36 @@ func TestUpdateProfileHandler(t *testing.T) {
 	userID := uuid.New().String()
 	oldPassword := "oldpassword"
 	newPassword := "newpassword"
-	newName := "Updated Name"
-	newAvatarURL := "https://example.com/avatar.jpg"
+	newName := "Updated DisplayName"
 
 	tests := []struct {
 		name           string
 		request        handlers.UpdateProfileReq
-		setupMocks     func(*mocks.MockAuth, *mocks.MockStorage)
+		setupMocks     func(*mocks.MockAuth, *mocks.MockUserRepo)
 		expectedStatus int
 		expectedResp   interface{}
 	}{
 		{
 			name: "successful update name and avatar",
 			request: handlers.UpdateProfileReq{
-				UserID:    userID,
-				Name:      &newName,
-				AvatarURL: &newAvatarURL,
+				UserID: userID,
+				Name:   &newName,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockStorage *mocks.MockStorage) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
 				user := database.User{
-					ID:       uuid.MustParse(userID),
-					Username: "testuser",
-					Name:     "Old Name",
+					ID:          uuid.MustParse(userID),
+					Username:    "testuser",
+					DisplayName: "Old DisplayName",
 				}
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					GetUserByID(gomock.Any(), userID).
 					Return(user, nil)
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					UpdateUser(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, updatedUser database.User) error {
-						assert.Equal(t, newName, updatedUser.Name)
-						assert.Equal(t, newAvatarURL, updatedUser.AvatarURL.String)
-						assert.True(t, updatedUser.AvatarURL.Valid)
+						assert.Equal(t, newName, updatedUser.DisplayName)
 						return nil
 					})
 
@@ -84,7 +80,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 				NewPassword:        &newPassword,
 				ConfirmNewPassword: &newPassword,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockStorage *mocks.MockStorage) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
 				passwordHash, _ := bcrypt.GenerateFromPassword([]byte(oldPassword), bcrypt.MinCost)
 				user := database.User{
 					ID:           uuid.MustParse(userID),
@@ -92,11 +88,11 @@ func TestUpdateProfileHandler(t *testing.T) {
 					PasswordHash: passwordHash,
 				}
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					GetUserByID(gomock.Any(), userID).
 					Return(user, nil)
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					UpdateUser(gomock.Any(), gomock.Any()).
 					Return(nil)
 
@@ -119,8 +115,8 @@ func TestUpdateProfileHandler(t *testing.T) {
 				UserID: userID,
 				Name:   &newName,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockStorage *mocks.MockStorage) {
-				mockStorage.EXPECT().
+			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+				mockUserRepo.EXPECT().
 					GetUserByID(gomock.Any(), userID).
 					Return(database.User{}, database.ErrNotFound)
 			},
@@ -137,7 +133,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 				NewPassword:        &newPassword,
 				ConfirmNewPassword: &newPassword,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockStorage *mocks.MockStorage) {
+			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
 				passwordHash, _ := bcrypt.GenerateFromPassword([]byte("differentpassword"), bcrypt.MinCost)
 				user := database.User{
 					ID:           uuid.MustParse(userID),
@@ -145,7 +141,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 					PasswordHash: passwordHash,
 				}
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					GetUserByID(gomock.Any(), userID).
 					Return(user, nil)
 			},
@@ -155,22 +151,22 @@ func TestUpdateProfileHandler(t *testing.T) {
 			},
 		},
 		{
-			name: "storage error on update",
+			name: "user repo error on update",
 			request: handlers.UpdateProfileReq{
 				UserID: userID,
 				Name:   &newName,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockStorage *mocks.MockStorage) {
+			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
 				user := database.User{
 					ID:       uuid.MustParse(userID),
 					Username: "testuser",
 				}
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					GetUserByID(gomock.Any(), userID).
 					Return(user, nil)
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					UpdateUser(gomock.Any(), gomock.Any()).
 					Return(errors.New("database error"))
 			},
@@ -183,11 +179,11 @@ func TestUpdateProfileHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, mockStorage, _, authAPI, app, ctrl := setupTest(t, nil)
+			mockAuth, mockUserRepo, _, authAPI, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(mockAuth, mockStorage)
+				tt.setupMocks(mockAuth, mockUserRepo)
 			}
 
 			app.Post("/update_profile", authAPI.UpdateProfileHandler)

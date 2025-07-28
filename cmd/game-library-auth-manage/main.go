@@ -4,44 +4,43 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 
-	conf "github.com/OutOfStack/game-library-auth/pkg/config"
 	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	"github.com/jmoiron/sqlx"
 	migrate "github.com/rubenv/sql-migrate"
 )
 
-const migrationsDir string = "scripts/migrations"
+const (
+	migrationsDir = "scripts/migrations"
+	dbDialect     = "postgres"
+)
 
 func main() {
-	cfg, err := conf.Load()
-	if err != nil {
-		log.Fatalf("can't parse config: %v", err)
-	}
+	dsn := os.Getenv("DB_DSN")
 
 	migrations := &migrate.FileMigrationSource{
 		Dir: migrationsDir,
 	}
 
 	flag.Parse()
+
 	switch flag.Arg(0) {
 	case "migrate":
-		db := connectDB(cfg.DB.DSN)
-		defer func() {
-			if dErr := db.Close(); dErr != nil {
-				log.Printf("can't close database: %v", err)
-			}
-		}()
-		applyMigrations(db, migrations)
+		if dsn == "" {
+			log.Fatal("DB_DSN environment variable is required")
+		}
+		if err := applyMigrations(dsn, migrations); err != nil {
+			log.Fatalf("Apply migrations error: %v", err)
+		}
 	case "rollback":
-		db := connectDB(cfg.DB.DSN)
-		defer func() {
-			if cErr := db.Close(); cErr != nil {
-				log.Printf("can't close database: %v", cErr)
-			}
-		}()
-		rollbackMigration(db, migrations)
+		if dsn == "" {
+			log.Fatal("DB_DSN environment variable is required")
+		}
+		if err := rollbackMigration(dsn, migrations); err != nil {
+			log.Fatalf("Rollback migration error: %v", err)
+		}
 	case "keygen":
 		keygen()
 	default:
@@ -61,24 +60,40 @@ func connectDB(dsn string) *sqlx.DB {
 	return db
 }
 
-func applyMigrations(db *sqlx.DB, migrations *migrate.FileMigrationSource) {
-	n, err := migrate.Exec(db.DB, "postgres", migrations, migrate.Up)
+func applyMigrations(dsn string, migrations *migrate.FileMigrationSource) error {
+	db := connectDB(dsn)
+	defer func() {
+		if cErr := db.Close(); cErr != nil {
+			log.Printf("can't close database: %v", cErr)
+		}
+	}()
+
+	n, err := migrate.Exec(db.DB, dbDialect, migrations, migrate.Up)
 	if err != nil {
-		log.Fatalf("Error applying migrations: %v.\nApplied %d migrations", err, n)
+		return fmt.Errorf("%v. Applied %d migrations", err, n)
 	}
 	fmt.Printf("Migration complete. Applied %d migrations\n", n)
+	return nil
 }
 
-func rollbackMigration(db *sqlx.DB, migrations *migrate.FileMigrationSource) {
-	n, err := migrate.ExecMax(db.DB, "postgres", migrations, migrate.Down, 1)
+func rollbackMigration(dsn string, migrations *migrate.FileMigrationSource) error {
+	db := connectDB(dsn)
+	defer func() {
+		if cErr := db.Close(); cErr != nil {
+			log.Printf("can't close database: %v", cErr)
+		}
+	}()
+
+	n, err := migrate.ExecMax(db.DB, dbDialect, migrations, migrate.Down, 1)
 	if err != nil {
-		log.Fatalf("Error rolling back last migration: %v", err)
+		return err
 	}
 	if n == 0 {
 		fmt.Println("There is no applied migrations to rollback")
 	} else {
 		fmt.Println("Migration rollback complete")
 	}
+	return nil
 }
 
 func keygen() {

@@ -69,7 +69,7 @@ func Service(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, error) 
 	}
 
 	// register routes
-	authAPI, err := NewAuthAPI(log, &cfg, auth, database.NewRepo(db), googleTokenValidator)
+	authAPI, err := NewAuthAPI(log, &cfg, auth, database.NewUserRepo(db), googleTokenValidator)
 	if err != nil {
 		return nil, fmt.Errorf("create auth api: %w", err)
 	}

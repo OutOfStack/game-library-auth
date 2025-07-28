@@ -61,7 +61,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			GoogleClientID: "test-client-id",
 		},
 	}
-	mockAuth, mockStorage, googleTokenValidator, authAPI, app, ctrl := setupTest(t, cfg)
+	mockAuth, mockUserRepo, googleTokenValidator, authAPI, app, ctrl := setupTest(t, cfg)
 	defer ctrl.Finish()
 
 	app.Post("/oauth/google", authAPI.GoogleOAuthHandler)
@@ -82,20 +82,23 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			Validate(gomock.Any(), "mock-google-id-token", "test-client-id").
 			Return(mockPayload, nil)
 
-		// Mock storage - user not found (new user)
-		mockStorage.EXPECT().
+		// Mock user repo - user not found (new user)
+		mockUserRepo.EXPECT().
 			GetUserByOAuth(gomock.Any(), "google", "google-sub-id").
 			Return(database.User{}, database.ErrNotFound)
 
+		// Mock username check - username not found (available)
+		mockUserRepo.EXPECT().
+			GetUserByUsername(gomock.Any(), "test").
+			Return(database.User{}, database.ErrNotFound)
+
 		// Mock user creation
-		mockStorage.EXPECT().
+		mockUserRepo.EXPECT().
 			CreateUser(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ interface{}, user database.User) error {
 				// Verify user data from Google OAuth
 				require.Equal(t, "test", user.Username) // Username is email part before @
-				require.Equal(t, "Test User", user.Name)
-				require.Equal(t, "https://example.com/avatar.jpg", user.AvatarURL.String)
-				require.True(t, user.AvatarURL.Valid)
+				require.Equal(t, "Test User", user.DisplayName)
 				require.Equal(t, "google", user.OAuthProvider.String)
 				require.Equal(t, "google-sub-id", user.OAuthID.String)
 				return nil
@@ -137,8 +140,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			"existing",
 			"Existing User",
 			nil,
-			database.UserRoleName,
-			"https://example.com/avatar.jpg")
+			database.UserRoleName)
 		existingUser.SetOAuthID(auth.GoogleAuthTokenProvider, "google-sub-id")
 
 		// Mock Google token validation
@@ -156,8 +158,8 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			Validate(gomock.Any(), "mock-google-id-token", "test-client-id").
 			Return(mockPayload, nil)
 
-		// Mock storage - user found
-		mockStorage.EXPECT().
+		// Mock user repo - user found
+		mockUserRepo.EXPECT().
 			GetUserByOAuth(gomock.Any(), "google", "google-sub-id").
 			Return(existingUser, nil)
 

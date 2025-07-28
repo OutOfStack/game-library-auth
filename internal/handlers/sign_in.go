@@ -47,7 +47,7 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 	}
 
 	// fetch user
-	usr, err := a.storage.GetUserByUsername(ctx, signIn.Username)
+	usr, err := a.userRepo.GetUserByUsername(ctx, signIn.Username)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
 			log.Info("username does not exist", zap.Error(err))

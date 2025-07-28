@@ -24,11 +24,10 @@ type TokenResp struct {
 // SignUpReq represents user sign up request
 type SignUpReq struct {
 	Username        string `json:"username" validate:"required"`
-	Name            string `json:"name" validate:"required"`
+	DisplayName     string `json:"name" validate:"required"`
 	Password        string `json:"password" validate:"required,min=8"`
 	ConfirmPassword string `json:"confirmPassword" validate:"eqfield=Password"`
 	IsPublisher     bool   `json:"isPublisher"`
-	AvatarURL       string `json:"avatarUrl" validate:"len=0|url"`
 }
 
 // SignUpResp represents sign up response
@@ -40,7 +39,6 @@ type SignUpResp struct {
 type UpdateProfileReq struct {
 	UserID             string  `json:"userId" validate:"uuid4,required"`
 	Name               *string `json:"name"`
-	AvatarURL          *string `json:"avatarUrl" validate:"omitempty,len=0|url"`
 	Password           *string `json:"password"`
 	NewPassword        *string `json:"newPassword" validate:"omitempty,min=8"`
 	ConfirmNewPassword *string `json:"confirmNewPassword"`
@@ -62,8 +60,7 @@ type GoogleOAuthRequest struct {
 }
 
 type googleIDTokenClaims struct {
-	Sub     string `json:"sub"`
-	Email   string `json:"email"`
-	Name    string `json:"name"`
-	Picture string `json:"picture"`
+	Sub   string `json:"sub"`
+	Email string `json:"email"`
+	Name  string `json:"name"`
 }

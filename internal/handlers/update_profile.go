@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	"errors"
 	"net/http"
 
@@ -65,7 +64,7 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 	}
 
 	// check if user exists
-	usr, err := a.storage.GetUserByID(ctx, params.UserID)
+	usr, err := a.userRepo.GetUserByID(ctx, params.UserID)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
 			return c.Status(http.StatusNotFound).JSON(web.ErrResp{
@@ -100,14 +99,11 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 	}
 
 	if params.Name != nil {
-		usr.Name = *params.Name
-	}
-	if params.AvatarURL != nil {
-		usr.AvatarURL = sql.NullString{String: *params.AvatarURL, Valid: *params.AvatarURL != ""}
+		usr.DisplayName = *params.Name
 	}
 
 	// update user
-	if err = a.storage.UpdateUser(ctx, usr); err != nil {
+	if err = a.userRepo.UpdateUser(ctx, usr); err != nil {
 		log.Error("update user", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,

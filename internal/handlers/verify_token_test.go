@@ -20,7 +20,7 @@ func TestVerifyToken(t *testing.T) {
 	tests := []struct {
 		name           string
 		request        handlers.VerifyTokenReq
-		setupMocks     func(*mocks.MockAuth, *mocks.MockStorage)
+		setupMocks     func(*mocks.MockAuth)
 		expectedStatus int
 		expectedResp   handlers.VerifyTokenResp
 	}{
@@ -29,7 +29,7 @@ func TestVerifyToken(t *testing.T) {
 			request: handlers.VerifyTokenReq{
 				Token: "valid.jwt.token",
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, _ *mocks.MockStorage) {
+			setupMocks: func(mockAuth *mocks.MockAuth) {
 				mockAuth.EXPECT().
 					ValidateToken("valid.jwt.token").
 					Return(auth.Claims{}, nil)
@@ -44,7 +44,7 @@ func TestVerifyToken(t *testing.T) {
 			request: handlers.VerifyTokenReq{
 				Token: "invalid.jwt.token",
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, _ *mocks.MockStorage) {
+			setupMocks: func(mockAuth *mocks.MockAuth) {
 				mockAuth.EXPECT().
 					ValidateToken("invalid.jwt.token").
 					Return(auth.Claims{}, errors.New("token validation error"))
@@ -58,11 +58,11 @@ func TestVerifyToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, mockStorage, _, authAPI, app, ctrl := setupTest(t, nil)
+			mockAuth, _, _, authAPI, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(mockAuth, mockStorage)
+				tt.setupMocks(mockAuth)
 			}
 
 			app.Post("/token/verify", authAPI.VerifyTokenHandler)

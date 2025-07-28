@@ -20,32 +20,32 @@ import (
 	idtoken "google.golang.org/api/idtoken"
 )
 
-// MockStorage is a mock of Storage interface.
-type MockStorage struct {
+// MockUserRepo is a mock of UserRepo interface.
+type MockUserRepo struct {
 	ctrl     *gomock.Controller
-	recorder *MockStorageMockRecorder
+	recorder *MockUserRepoMockRecorder
 	isgomock struct{}
 }
 
-// MockStorageMockRecorder is the mock recorder for MockStorage.
-type MockStorageMockRecorder struct {
-	mock *MockStorage
+// MockUserRepoMockRecorder is the mock recorder for MockUserRepo.
+type MockUserRepoMockRecorder struct {
+	mock *MockUserRepo
 }
 
-// NewMockStorage creates a new mock instance.
-func NewMockStorage(ctrl *gomock.Controller) *MockStorage {
-	mock := &MockStorage{ctrl: ctrl}
-	mock.recorder = &MockStorageMockRecorder{mock}
+// NewMockUserRepo creates a new mock instance.
+func NewMockUserRepo(ctrl *gomock.Controller) *MockUserRepo {
+	mock := &MockUserRepo{ctrl: ctrl}
+	mock.recorder = &MockUserRepoMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
+func (m *MockUserRepo) EXPECT() *MockUserRepoMockRecorder {
 	return m.recorder
 }
 
 // CheckUserExists mocks base method.
-func (m *MockStorage) CheckUserExists(ctx context.Context, name string, role database.Role) (bool, error) {
+func (m *MockUserRepo) CheckUserExists(ctx context.Context, name string, role database.Role) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CheckUserExists", ctx, name, role)
 	ret0, _ := ret[0].(bool)
@@ -54,13 +54,13 @@ func (m *MockStorage) CheckUserExists(ctx context.Context, name string, role dat
 }
 
 // CheckUserExists indicates an expected call of CheckUserExists.
-func (mr *MockStorageMockRecorder) CheckUserExists(ctx, name, role any) *gomock.Call {
+func (mr *MockUserRepoMockRecorder) CheckUserExists(ctx, name, role any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckUserExists", reflect.TypeOf((*MockStorage)(nil).CheckUserExists), ctx, name, role)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckUserExists", reflect.TypeOf((*MockUserRepo)(nil).CheckUserExists), ctx, name, role)
 }
 
 // CreateUser mocks base method.
-func (m *MockStorage) CreateUser(ctx context.Context, user database.User) error {
+func (m *MockUserRepo) CreateUser(ctx context.Context, user database.User) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateUser", ctx, user)
 	ret0, _ := ret[0].(error)
@@ -68,13 +68,13 @@ func (m *MockStorage) CreateUser(ctx context.Context, user database.User) error 
 }
 
 // CreateUser indicates an expected call of CreateUser.
-func (mr *MockStorageMockRecorder) CreateUser(ctx, user any) *gomock.Call {
+func (mr *MockUserRepoMockRecorder) CreateUser(ctx, user any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockStorage)(nil).CreateUser), ctx, user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockUserRepo)(nil).CreateUser), ctx, user)
 }
 
 // GetUserByID mocks base method.
-func (m *MockStorage) GetUserByID(ctx context.Context, userID string) (database.User, error) {
+func (m *MockUserRepo) GetUserByID(ctx context.Context, userID string) (database.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByID", ctx, userID)
 	ret0, _ := ret[0].(database.User)
@@ -83,13 +83,13 @@ func (m *MockStorage) GetUserByID(ctx context.Context, userID string) (database.
 }
 
 // GetUserByID indicates an expected call of GetUserByID.
-func (mr *MockStorageMockRecorder) GetUserByID(ctx, userID any) *gomock.Call {
+func (mr *MockUserRepoMockRecorder) GetUserByID(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByID", reflect.TypeOf((*MockStorage)(nil).GetUserByID), ctx, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByID", reflect.TypeOf((*MockUserRepo)(nil).GetUserByID), ctx, userID)
 }
 
 // GetUserByOAuth mocks base method.
-func (m *MockStorage) GetUserByOAuth(ctx context.Context, provider, oauthID string) (database.User, error) {
+func (m *MockUserRepo) GetUserByOAuth(ctx context.Context, provider, oauthID string) (database.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByOAuth", ctx, provider, oauthID)
 	ret0, _ := ret[0].(database.User)
@@ -98,13 +98,13 @@ func (m *MockStorage) GetUserByOAuth(ctx context.Context, provider, oauthID stri
 }
 
 // GetUserByOAuth indicates an expected call of GetUserByOAuth.
-func (mr *MockStorageMockRecorder) GetUserByOAuth(ctx, provider, oauthID any) *gomock.Call {
+func (mr *MockUserRepoMockRecorder) GetUserByOAuth(ctx, provider, oauthID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByOAuth", reflect.TypeOf((*MockStorage)(nil).GetUserByOAuth), ctx, provider, oauthID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByOAuth", reflect.TypeOf((*MockUserRepo)(nil).GetUserByOAuth), ctx, provider, oauthID)
 }
 
 // GetUserByUsername mocks base method.
-func (m *MockStorage) GetUserByUsername(ctx context.Context, username string) (database.User, error) {
+func (m *MockUserRepo) GetUserByUsername(ctx context.Context, username string) (database.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserByUsername", ctx, username)
 	ret0, _ := ret[0].(database.User)
@@ -113,13 +113,13 @@ func (m *MockStorage) GetUserByUsername(ctx context.Context, username string) (d
 }
 
 // GetUserByUsername indicates an expected call of GetUserByUsername.
-func (mr *MockStorageMockRecorder) GetUserByUsername(ctx, username any) *gomock.Call {
+func (mr *MockUserRepoMockRecorder) GetUserByUsername(ctx, username any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByUsername", reflect.TypeOf((*MockStorage)(nil).GetUserByUsername), ctx, username)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByUsername", reflect.TypeOf((*MockUserRepo)(nil).GetUserByUsername), ctx, username)
 }
 
 // UpdateUser mocks base method.
-func (m *MockStorage) UpdateUser(ctx context.Context, user database.User) error {
+func (m *MockUserRepo) UpdateUser(ctx context.Context, user database.User) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUser", ctx, user)
 	ret0, _ := ret[0].(error)
@@ -127,9 +127,9 @@ func (m *MockStorage) UpdateUser(ctx context.Context, user database.User) error 
 }
 
 // UpdateUser indicates an expected call of UpdateUser.
-func (mr *MockStorageMockRecorder) UpdateUser(ctx, user any) *gomock.Call {
+func (mr *MockUserRepoMockRecorder) UpdateUser(ctx, user any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockStorage)(nil).UpdateUser), ctx, user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockUserRepo)(nil).UpdateUser), ctx, user)
 }
 
 // MockAuth is a mock of Auth interface.

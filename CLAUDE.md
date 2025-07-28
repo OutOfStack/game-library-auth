@@ -32,8 +32,8 @@
 - If there are significant updates regarding what written in `README.md`, add it there
 
 ## Git Workflow Restrictions
-- DO NOT run `git stage` or `git commit`
+- DO NOT run any modifying `git` commands (i.e. `git add`, `git commit`, `git push`), only read commands allowed (i.e. `git status`, `git diff`, `git log`)
 - DO NOT delete files - notify me if files become redundant
 
 ## Security
-- DO NOT examine files containing secrets (`.pem`, `.key`, etc.)
+- DO NOT examine files containing secrets (`.pem`, `.key`, `.env` (except for `app.example.env`), etc.)

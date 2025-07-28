@@ -297,9 +297,6 @@ const docTemplate = `{
                 "username"
             ],
             "properties": {
-                "avatarUrl": {
-                    "type": "string"
-                },
                 "confirmPassword": {
                     "type": "string"
                 },
@@ -340,9 +337,6 @@ const docTemplate = `{
                 "userId"
             ],
             "properties": {
-                "avatarUrl": {
-                    "type": "string"
-                },
                 "confirmNewPassword": {
                     "type": "string"
                 },

@@ -17,8 +17,6 @@ definitions:
     type: object
   handlers.SignUpReq:
     properties:
-      avatarUrl:
-        type: string
       confirmPassword:
         type: string
       isPublisher:
@@ -47,8 +45,6 @@ definitions:
     type: object
   handlers.UpdateProfileReq:
     properties:
-      avatarUrl:
-        type: string
       confirmNewPassword:
         type: string
       name:
