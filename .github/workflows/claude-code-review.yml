@@ -57,7 +57,7 @@ jobs:
           use_sticky_comment: true
           
           # Limit the number of turns to control costs
-          max_turns: 3
+          max_turns: 5
           
           # Optional: Customize review based on file types
           # direct_prompt: |
