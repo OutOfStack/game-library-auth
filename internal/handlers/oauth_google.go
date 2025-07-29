@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/database"
@@ -41,23 +40,30 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 	}
 
 	user, err := a.userRepo.GetUserByOAuth(ctx, "google", claims.Sub)
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
+		a.log.Error("get user (google oauth)", zap.Error(err))
+		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+			Error: internalErrorMsg,
+		})
+	}
+
 	// create user if not found
 	if errors.Is(err, database.ErrNotFound) {
-		user = database.NewUser(strings.SplitN(claims.Email, "@", 2)[0], claims.Name, nil, database.UserRoleName)
+		user = database.NewUser(claims.Email, claims.Name, nil, database.UserRoleName)
 		user.SetOAuthID(auth.GoogleAuthTokenProvider, claims.Sub)
 
 		// check if such username already exists
 		_, err = a.userRepo.GetUserByUsername(ctx, user.Username)
-		if err != nil && !errors.Is(err, database.ErrNotFound) {
-			a.log.Error("get user", zap.String("username", user.Username), zap.Error(err))
-			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
-				Error: internalErrorMsg,
-			})
-		}
 		if err == nil {
 			a.log.Error("user already exists", zap.String("username", user.Username))
 			return c.Status(http.StatusConflict).JSON(web.ErrResp{
 				Error: "Username already exists, please sign up with registration form",
+			})
+		}
+		if !errors.Is(err, database.ErrNotFound) {
+			a.log.Error("get user", zap.String("username", user.Username), zap.Error(err))
+			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+				Error: internalErrorMsg,
 			})
 		}
 
@@ -68,11 +74,6 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 				Error: internalErrorMsg,
 			})
 		}
-	} else if err != nil {
-		a.log.Error("get user (google oauth)", zap.Error(err))
-		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
-			Error: internalErrorMsg,
-		})
 	}
 
 	// issue token

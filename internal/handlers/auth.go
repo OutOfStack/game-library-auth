@@ -16,6 +16,7 @@ import (
 type UserRepo interface {
 	CreateUser(ctx context.Context, user database.User) error
 	UpdateUser(ctx context.Context, user database.User) error
+	DeleteUser(ctx context.Context, userID string) error
 	GetUserByID(ctx context.Context, userID string) (database.User, error)
 	GetUserByUsername(ctx context.Context, username string) (database.User, error)
 	GetUserByOAuth(ctx context.Context, provider string, oauthID string) (database.User, error)

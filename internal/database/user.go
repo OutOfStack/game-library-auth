@@ -136,3 +136,18 @@ func (r *UserRepo) GetUserByOAuth(ctx context.Context, provider string, oauthID 
 	}
 	return user, nil
 }
+
+// DeleteUser deletes a user by user id
+func (r *UserRepo) DeleteUser(ctx context.Context, userID string) error {
+	ctx, span := tracer.Start(ctx, "deleteUser")
+	defer span.End()
+
+	const q = `DELETE FROM users WHERE id = $1`
+
+	_, err := r.db.ExecContext(ctx, q, userID)
+	if err != nil {
+		return fmt.Errorf("delete user %v: %w", userID, err)
+	}
+
+	return nil
+}

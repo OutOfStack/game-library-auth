@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	auth_ "github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/handlers"
 	mocks "github.com/OutOfStack/game-library-auth/internal/handlers/mocks"
@@ -30,18 +31,26 @@ func TestUpdateProfileHandler(t *testing.T) {
 
 	tests := []struct {
 		name           string
+		authHeader     string
 		request        handlers.UpdateProfileReq
 		setupMocks     func(*mocks.MockAuth, *mocks.MockUserRepo)
 		expectedStatus int
 		expectedResp   interface{}
 	}{
 		{
-			name: "successful update name and avatar",
+			name:       "successful update name",
+			authHeader: "Bearer valid-token",
 			request: handlers.UpdateProfileReq{
-				UserID: userID,
-				Name:   &newName,
+				Name: &newName,
 			},
 			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+				// Mock JWT validation
+				claims := auth_.Claims{UserID: userID}
+				mockAuth.EXPECT().
+					ValidateToken("valid-token").
+					Return(claims, nil).
+					AnyTimes()
+
 				user := database.User{
 					ID:          uuid.MustParse(userID),
 					Username:    "testuser",
@@ -73,14 +82,21 @@ func TestUpdateProfileHandler(t *testing.T) {
 			},
 		},
 		{
-			name: "successful update password",
+			name:       "successful update password",
+			authHeader: "Bearer valid-token",
 			request: handlers.UpdateProfileReq{
-				UserID:             userID,
 				Password:           &oldPassword,
 				NewPassword:        &newPassword,
 				ConfirmNewPassword: &newPassword,
 			},
 			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+				// Mock JWT validation
+				claims := auth_.Claims{UserID: userID}
+				mockAuth.EXPECT().
+					ValidateToken("valid-token").
+					Return(claims, nil).
+					AnyTimes()
+
 				passwordHash, _ := bcrypt.GenerateFromPassword([]byte(oldPassword), bcrypt.MinCost)
 				user := database.User{
 					ID:           uuid.MustParse(userID),
@@ -110,12 +126,19 @@ func TestUpdateProfileHandler(t *testing.T) {
 			},
 		},
 		{
-			name: "user not found",
+			name:       "user not found",
+			authHeader: "Bearer valid-token",
 			request: handlers.UpdateProfileReq{
-				UserID: userID,
-				Name:   &newName,
+				Name: &newName,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+				// Mock JWT validation
+				claims := auth_.Claims{UserID: userID}
+				mockAuth.EXPECT().
+					ValidateToken("valid-token").
+					Return(claims, nil).
+					AnyTimes()
+
 				mockUserRepo.EXPECT().
 					GetUserByID(gomock.Any(), userID).
 					Return(database.User{}, database.ErrNotFound)
@@ -126,14 +149,21 @@ func TestUpdateProfileHandler(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid current password",
+			name:       "invalid current password",
+			authHeader: "Bearer valid-token",
 			request: handlers.UpdateProfileReq{
-				UserID:             userID,
 				Password:           &oldPassword,
 				NewPassword:        &newPassword,
 				ConfirmNewPassword: &newPassword,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+				// Mock JWT validation
+				claims := auth_.Claims{UserID: userID}
+				mockAuth.EXPECT().
+					ValidateToken("valid-token").
+					Return(claims, nil).
+					AnyTimes()
+
 				passwordHash, _ := bcrypt.GenerateFromPassword([]byte("differentpassword"), bcrypt.MinCost)
 				user := database.User{
 					ID:           uuid.MustParse(userID),
@@ -151,12 +181,19 @@ func TestUpdateProfileHandler(t *testing.T) {
 			},
 		},
 		{
-			name: "user repo error on update",
+			name:       "user repo error on update",
+			authHeader: "Bearer valid-token",
 			request: handlers.UpdateProfileReq{
-				UserID: userID,
-				Name:   &newName,
+				Name: &newName,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+				// Mock JWT validation
+				claims := auth_.Claims{UserID: userID}
+				mockAuth.EXPECT().
+					ValidateToken("valid-token").
+					Return(claims, nil).
+					AnyTimes()
+
 				user := database.User{
 					ID:       uuid.MustParse(userID),
 					Username: "testuser",
@@ -175,6 +212,30 @@ func TestUpdateProfileHandler(t *testing.T) {
 				Error: internalErrorMsg,
 			},
 		},
+		{
+			name:       "missing authorization header",
+			authHeader: "",
+			request: handlers.UpdateProfileReq{
+				Name: &newName,
+			},
+			setupMocks:     func(_ *mocks.MockAuth, _ *mocks.MockUserRepo) {},
+			expectedStatus: http.StatusUnauthorized,
+			expectedResp: web.ErrResp{
+				Error: "Invalid or missing authorization token",
+			},
+		},
+		{
+			name:       "invalid authorization header format",
+			authHeader: "InvalidFormat",
+			request: handlers.UpdateProfileReq{
+				Name: &newName,
+			},
+			setupMocks:     func(_ *mocks.MockAuth, _ *mocks.MockUserRepo) {},
+			expectedStatus: http.StatusUnauthorized,
+			expectedResp: web.ErrResp{
+				Error: "Invalid or missing authorization token",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -191,6 +252,9 @@ func TestUpdateProfileHandler(t *testing.T) {
 			reqBody, _ := json.Marshal(tt.request)
 			req := httptest.NewRequest(http.MethodPost, "/update_profile", bytes.NewReader(reqBody))
 			req.Header.Set("Content-Type", "application/json")
+			if tt.authHeader != "" {
+				req.Header.Set("Authorization", tt.authHeader)
+			}
 
 			resp, err := app.Test(req)
 			require.NoError(t, err)

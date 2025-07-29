@@ -23,7 +23,7 @@ func setupTest(t *testing.T, cfg *appconf.Cfg) (*mocks.MockAuth, *mocks.MockUser
 	ctrl := gomock.NewController(t)
 	mockAuth := mocks.NewMockAuth(ctrl)
 	mockUserRepo := mocks.NewMockUserRepo(ctrl)
-	googleTokenValidator := mocks.NewMockGoogleTokenValidator(ctrl)
+	mockGoogleTokenValidator := mocks.NewMockGoogleTokenValidator(ctrl)
 
 	logger := zap.NewNop()
 	if cfg == nil {
@@ -33,8 +33,8 @@ func setupTest(t *testing.T, cfg *appconf.Cfg) (*mocks.MockAuth, *mocks.MockUser
 			},
 		}
 	}
-	authAPI, err := handlers.NewAuthAPI(logger, cfg, mockAuth, mockUserRepo, googleTokenValidator)
+	authAPI, err := handlers.NewAuthAPI(logger, cfg, mockAuth, mockUserRepo, mockGoogleTokenValidator)
 	require.NoError(t, err)
 
-	return mockAuth, mockUserRepo, googleTokenValidator, authAPI, fiber.New(), ctrl
+	return mockAuth, mockUserRepo, mockGoogleTokenValidator, authAPI, fiber.New(), ctrl
 }

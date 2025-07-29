@@ -15,7 +15,7 @@ import (
 )
 
 // @title Game library auth API
-// @version 0.1
+// @version 0.2
 // @description API for game library auth service
 // @termsOfService http://swagger.io/terms/
 

@@ -59,8 +59,8 @@ func Service(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, error) 
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: cfg.Web.AllowedCORSOrigin,
-		AllowHeaders: "Origin, Content-Type, Accept",
-		AllowMethods: "POST, GET, OPTIONS",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowMethods: "GET,POST,DELETE,PATCH,OPTIONS",
 	}))
 
 	googleTokenValidator, err := idtoken.NewValidator(ctx)
@@ -97,7 +97,8 @@ func registerRoutes(app *fiber.App, authAPI *AuthAPI, checkAPI *CheckAPI) {
 
 	app.Post("/signin", authAPI.SignInHandler)
 	app.Post("/signup", authAPI.SignUpHandler)
-	app.Post("/update_profile", authAPI.UpdateProfileHandler)
+	app.Patch("/account", authAPI.UpdateProfileHandler)
+	app.Delete("/account", authAPI.DeleteAccountHandler)
 	app.Post("/oauth/google", authAPI.GoogleOAuthHandler)
 
 	app.Post("/token/verify", authAPI.VerifyTokenHandler)

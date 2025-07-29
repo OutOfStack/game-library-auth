@@ -37,7 +37,6 @@ type SignUpResp struct {
 
 // UpdateProfileReq represents update profile request
 type UpdateProfileReq struct {
-	UserID             string  `json:"userId" validate:"uuid4,required"`
 	Name               *string `json:"name"`
 	Password           *string `json:"password"`
 	NewPassword        *string `json:"newPassword" validate:"omitempty,min=8"`
