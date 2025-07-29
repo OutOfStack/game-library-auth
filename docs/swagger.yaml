@@ -4,10 +4,14 @@ definitions:
     properties:
       idToken:
         type: string
+    required:
+    - idToken
     type: object
   handlers.SignInReq:
     properties:
       password:
+        maxLength: 64
+        minLength: 8
         type: string
       username:
         type: string
@@ -17,8 +21,6 @@ definitions:
     type: object
   handlers.SignUpReq:
     properties:
-      avatarUrl:
-        type: string
       confirmPassword:
         type: string
       isPublisher:
@@ -26,6 +28,7 @@ definitions:
       name:
         type: string
       password:
+        maxLength: 64
         minLength: 8
         type: string
       username:
@@ -47,21 +50,20 @@ definitions:
     type: object
   handlers.UpdateProfileReq:
     properties:
-      avatarUrl:
-        type: string
       confirmNewPassword:
+        maxLength: 64
+        minLength: 8
         type: string
       name:
         type: string
       newPassword:
+        maxLength: 64
         minLength: 8
         type: string
       password:
+        maxLength: 64
+        minLength: 8
         type: string
-      userId:
-        type: string
-    required:
-    - userId
     type: object
   handlers.VerifyTokenReq:
     properties:
@@ -95,8 +97,75 @@ info:
   description: API for game library auth service
   termsOfService: http://swagger.io/terms/
   title: Game library auth API
-  version: "0.1"
+  version: "0.2"
 paths:
+  /account:
+    delete:
+      description: Deletes a user account
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Successfully deleted account
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+      summary: Delete user account
+      tags:
+      - auth
+    patch:
+      consumes:
+      - application/json
+      description: Updates the profile information of a user
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Update profile parameters
+        in: body
+        name: profile
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateProfileReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns new access token
+          schema:
+            $ref: '#/definitions/handlers.TokenResp'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "401":
+          description: Invalid password or token
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+      summary: Update user profile
+      tags:
+      - auth
   /oauth/google:
     post:
       consumes:
@@ -219,44 +288,6 @@ paths:
           schema:
             $ref: '#/definitions/web.ErrResp'
       summary: Verify JWT token
-      tags:
-      - auth
-  /update_profile:
-    post:
-      consumes:
-      - application/json
-      description: Updates the profile information of a user
-      parameters:
-      - description: Update profile parameters
-        in: body
-        name: profile
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.UpdateProfileReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Returns new access token
-          schema:
-            $ref: '#/definitions/handlers.TokenResp'
-        "400":
-          description: Bad request
-          schema:
-            $ref: '#/definitions/web.ErrResp'
-        "401":
-          description: Invalid password
-          schema:
-            $ref: '#/definitions/web.ErrResp'
-        "404":
-          description: User not found
-          schema:
-            $ref: '#/definitions/web.ErrResp'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/web.ErrResp'
-      summary: Update user profile
       tags:
       - auth
 schemes:

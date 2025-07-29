@@ -35,7 +35,7 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	log := a.log.With(zap.String("username", signUp.Name))
+	log := a.log.With(zap.String("username", signUp.Username))
 	// validate
 	if fields, err := web.Validate(signUp); err != nil {
 		log.Info("validating sign up data", zap.Error(err))
@@ -46,10 +46,10 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 	}
 
 	// check if such username already exists
-	_, err := a.storage.GetUserByUsername(ctx, signUp.Username)
+	_, err := a.userRepo.GetUserByUsername(ctx, signUp.Username)
 	// if err is ErrNotFound then continue
 	if err != nil && !errors.Is(err, database.ErrNotFound) {
-		log.Info("checking existence of user", zap.Error(err))
+		log.Error("checking existence of user", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})
@@ -65,7 +65,7 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 	var userRole = database.UserRoleName
 	if signUp.IsPublisher {
 		// check uniqueness of publisher name
-		exists, cErr := a.storage.CheckUserExists(ctx, signUp.Name, database.PublisherRoleName)
+		exists, cErr := a.userRepo.CheckUserExists(ctx, signUp.DisplayName, database.PublisherRoleName)
 		if cErr != nil {
 			log.Error("checking existence of publisher with name", zap.Error(cErr))
 			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
@@ -90,10 +90,10 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	usr := database.NewUser(signUp.Username, signUp.Name, passwordHash, userRole, signUp.AvatarURL)
+	usr := database.NewUser(signUp.Username, signUp.DisplayName, passwordHash, userRole)
 
 	// create new user
-	if err = a.storage.CreateUser(ctx, usr); err != nil {
+	if err = a.userRepo.CreateUser(ctx, usr); err != nil {
 		log.Error("creating new user", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,

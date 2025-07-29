@@ -20,31 +20,31 @@ const (
 var (
 	// ErrNotFound is used when requested entity is not found
 	ErrNotFound = errors.New("not found")
+	// ErrUsernameExists is used when username already exists
+	ErrUsernameExists = errors.New("username already exists")
 )
 
 // User represents a user
 type User struct {
 	ID            uuid.UUID      `db:"id"`
 	Username      string         `db:"username"`
-	Name          string         `db:"name"`
+	DisplayName   string         `db:"name"`
 	PasswordHash  []byte         `db:"password_hash"`
 	Role          Role           `db:"role"`
-	AvatarURL     sql.NullString `db:"avatar_url"`
-	DateCreated   time.Time      `db:"date_created"`
-	DateUpdated   sql.NullTime   `db:"date_updated"`
 	OAuthProvider sql.NullString `db:"oauth_provider"`
 	OAuthID       sql.NullString `db:"oauth_id"`
+	DateCreated   time.Time      `db:"date_created"`
+	DateUpdated   sql.NullTime   `db:"date_updated"`
 }
 
 // NewUser creates a new user
-func NewUser(username, name string, passwordHash []byte, role Role, avatarURL string) User {
+func NewUser(username, name string, passwordHash []byte, role Role) User {
 	return User{
 		ID:           uuid.New(),
 		Username:     username,
-		Name:         name,
+		DisplayName:  name,
 		PasswordHash: passwordHash,
 		Role:         role,
-		AvatarURL:    sql.NullString{String: avatarURL, Valid: avatarURL != ""},
 	}
 }
 

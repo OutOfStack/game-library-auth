@@ -3,12 +3,13 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    paths:
+      - "**/*.go"
+      - "**/*.mod"
+      - "**/*.yaml"
+      - "**/*.yml"
+      - "Dockerfile*"
+      - "Makefile"
 
 jobs:
   claude-review:
@@ -19,6 +20,7 @@ jobs:
     #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
     
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: read
@@ -42,17 +44,19 @@ jobs:
           
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
-            
-            Be constructive and helpful in your feedback.
+            Review this Go PR focusing on:
+            - Compilation errors and critical bugs
+            - Security vulnerabilities
+            - Performance issues
+            - Code quality and Go best practices violations
+      
+            Only provide actionable feedback that requires changes. Do not comment on what is done correctly or add praise. Be concise and specific. Provide code examples only when necessary.
 
-          # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
-          # use_sticky_comment: true
+          # Use sticky comments to reduce costs by reusing comments
+          use_sticky_comment: true
+          
+          # Limit the number of turns to control costs
+          # max_turns: 10
           
           # Optional: Customize review based on file types
           # direct_prompt: |
@@ -69,7 +73,7 @@ jobs:
           #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
           
           # Optional: Add specific tools for running tests or linting
-          # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
+          # allowed_tools: "Bash(make lint),Bash(make test)"
           
           # Optional: Skip review for certain conditions
           # if: |

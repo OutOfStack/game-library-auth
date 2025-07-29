@@ -12,10 +12,11 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
-// Storage provides methods for working with repo
-type Storage interface {
+// UserRepo provides methods for working with user repo
+type UserRepo interface {
 	CreateUser(ctx context.Context, user database.User) error
 	UpdateUser(ctx context.Context, user database.User) error
+	DeleteUser(ctx context.Context, userID string) error
 	GetUserByID(ctx context.Context, userID string) (database.User, error)
 	GetUserByUsername(ctx context.Context, username string) (database.User, error)
 	GetUserByOAuth(ctx context.Context, provider string, oauthID string) (database.User, error)
@@ -39,12 +40,12 @@ type AuthAPI struct {
 	googleOAuthClientID  string
 	log                  *zap.Logger
 	auth                 Auth
-	storage              Storage
+	userRepo             UserRepo
 	googleTokenValidator GoogleTokenValidator
 }
 
 // NewAuthAPI return new instance of auth api
-func NewAuthAPI(log *zap.Logger, cfg *appconf.Cfg, auth Auth, storage Storage, googleTokenValidator GoogleTokenValidator) (*AuthAPI, error) {
+func NewAuthAPI(log *zap.Logger, cfg *appconf.Cfg, auth Auth, userRepo UserRepo, googleTokenValidator GoogleTokenValidator) (*AuthAPI, error) {
 	if cfg.Auth.GoogleClientID == "" {
 		return nil, errors.New("google client id is empty")
 	}
@@ -52,7 +53,7 @@ func NewAuthAPI(log *zap.Logger, cfg *appconf.Cfg, auth Auth, storage Storage, g
 	return &AuthAPI{
 		googleOAuthClientID:  cfg.Auth.GoogleClientID,
 		auth:                 auth,
-		storage:              storage,
+		userRepo:             userRepo,
 		log:                  log,
 		googleTokenValidator: googleTokenValidator,
 	}, nil

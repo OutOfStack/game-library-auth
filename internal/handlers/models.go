@@ -8,12 +8,15 @@ const (
 	internalErrorMsg   string = "Internal error"
 	validationErrorMsg string = "Validation error"
 	authErrorMsg       string = "Incorrect username or password"
+	invalidAuthToken   string = "Invalid or missing authorization token"
+
+	maxUsernameLen = 32
 )
 
 // SignInReq represents user sign in request
 type SignInReq struct {
 	Username string `json:"username" validate:"required"`
-	Password string `json:"password" validate:"required"`
+	Password string `json:"password" validate:"required,min=8,max=64"`
 }
 
 // TokenResp represents response with JWT
@@ -24,11 +27,10 @@ type TokenResp struct {
 // SignUpReq represents user sign up request
 type SignUpReq struct {
 	Username        string `json:"username" validate:"required"`
-	Name            string `json:"name" validate:"required"`
-	Password        string `json:"password" validate:"required,min=8"`
+	DisplayName     string `json:"name" validate:"required"`
+	Password        string `json:"password" validate:"required,min=8,max=64"`
 	ConfirmPassword string `json:"confirmPassword" validate:"eqfield=Password"`
 	IsPublisher     bool   `json:"isPublisher"`
-	AvatarURL       string `json:"avatarUrl" validate:"len=0|url"`
 }
 
 // SignUpResp represents sign up response
@@ -38,12 +40,10 @@ type SignUpResp struct {
 
 // UpdateProfileReq represents update profile request
 type UpdateProfileReq struct {
-	UserID             string  `json:"userId" validate:"uuid4,required"`
 	Name               *string `json:"name"`
-	AvatarURL          *string `json:"avatarUrl" validate:"omitempty,len=0|url"`
-	Password           *string `json:"password"`
-	NewPassword        *string `json:"newPassword" validate:"omitempty,min=8"`
-	ConfirmNewPassword *string `json:"confirmNewPassword"`
+	Password           *string `json:"password" validate:"omitempty,min=8,max=64"`
+	NewPassword        *string `json:"newPassword" validate:"omitempty,min=8,max=64"`
+	ConfirmNewPassword *string `json:"confirmNewPassword" validate:"omitempty,min=8,max=64"`
 }
 
 // VerifyTokenReq represents verify JWT request
@@ -58,12 +58,10 @@ type VerifyTokenResp struct {
 
 // GoogleOAuthRequest represents Google OAuth request
 type GoogleOAuthRequest struct {
-	IDToken string `json:"idToken"`
+	IDToken string `json:"idToken" validate:"required"`
 }
 
 type googleIDTokenClaims struct {
-	Sub     string `json:"sub"`
-	Email   string `json:"email"`
-	Name    string `json:"name"`
-	Picture string `json:"picture"`
+	Sub   string `json:"sub"`
+	Email string `json:"email"`
 }

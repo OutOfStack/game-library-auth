@@ -15,11 +15,10 @@ const (
 // Claims represent jwt claims
 type Claims struct {
 	jwt.RegisteredClaims
-	UserID    string `json:"user_id"`
-	UserRole  string `json:"user_role,omitempty"`
-	Username  string `json:"username,omitempty"`
-	Name      string `json:"name,omitempty"`
-	AvatarURL string `json:"avatar,omitempty"`
+	UserID   string `json:"user_id"`
+	UserRole string `json:"user_role,omitempty"`
+	Username string `json:"username,omitempty"`
+	Name     string `json:"name,omitempty"`
 }
 
 // CreateClaims creates claims for user
@@ -33,11 +32,10 @@ func (a *Auth) CreateClaims(user database.User) jwt.Claims {
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
-		UserID:    user.ID.String(),
-		UserRole:  string(user.Role),
-		Username:  user.Username,
-		Name:      user.Name,
-		AvatarURL: user.AvatarURL.String,
+		UserID:   user.ID.String(),
+		UserRole: string(user.Role),
+		Username: user.Username,
+		Name:     user.DisplayName,
 	}
 
 	return claims

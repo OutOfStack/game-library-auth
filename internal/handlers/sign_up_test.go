@@ -23,7 +23,7 @@ func TestSignUpHandler(t *testing.T) {
 	tests := []struct {
 		name           string
 		request        handlers.SignUpReq
-		setupMocks     func(*mocks.MockAuth, *mocks.MockStorage)
+		setupMocks     func(*mocks.MockAuth, *mocks.MockUserRepo)
 		expectedStatus int
 		expectedResp   interface{}
 	}{
@@ -31,21 +31,21 @@ func TestSignUpHandler(t *testing.T) {
 			name: "successful user signup",
 			request: handlers.SignUpReq{
 				Username:        "newuser",
-				Name:            "New User",
+				DisplayName:     "New User",
 				Password:        "password123",
 				ConfirmPassword: "password123",
 				IsPublisher:     false,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockStorage *mocks.MockStorage) {
-				mockStorage.EXPECT().
+			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+				mockUserRepo.EXPECT().
 					GetUserByUsername(gomock.Any(), "newuser").
 					Return(database.User{}, database.ErrNotFound)
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					CreateUser(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, user database.User) error {
 						assert.Equal(t, "newuser", user.Username)
-						assert.Equal(t, "New User", user.Name)
+						assert.Equal(t, "New User", user.DisplayName)
 						assert.Equal(t, database.UserRoleName, user.Role)
 						return nil
 					})
@@ -57,25 +57,25 @@ func TestSignUpHandler(t *testing.T) {
 			name: "successful publisher signup",
 			request: handlers.SignUpReq{
 				Username:        "newpublisher",
-				Name:            "Publisher Co",
+				DisplayName:     "Publisher Co",
 				Password:        "password123",
 				ConfirmPassword: "password123",
 				IsPublisher:     true,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockStorage *mocks.MockStorage) {
-				mockStorage.EXPECT().
+			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+				mockUserRepo.EXPECT().
 					GetUserByUsername(gomock.Any(), "newpublisher").
 					Return(database.User{}, database.ErrNotFound)
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					CheckUserExists(gomock.Any(), "Publisher Co", database.PublisherRoleName).
 					Return(false, nil)
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					CreateUser(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, user database.User) error {
 						assert.Equal(t, "newpublisher", user.Username)
-						assert.Equal(t, "Publisher Co", user.Name)
+						assert.Equal(t, "Publisher Co", user.DisplayName)
 						assert.Equal(t, database.PublisherRoleName, user.Role)
 						return nil
 					})
@@ -87,13 +87,13 @@ func TestSignUpHandler(t *testing.T) {
 			name: "username already exists",
 			request: handlers.SignUpReq{
 				Username:        "existinguser",
-				Name:            "Existing User",
+				DisplayName:     "Existing User",
 				Password:        "password123",
 				ConfirmPassword: "password123",
 				IsPublisher:     false,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockStorage *mocks.MockStorage) {
-				mockStorage.EXPECT().
+			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+				mockUserRepo.EXPECT().
 					GetUserByUsername(gomock.Any(), "existinguser").
 					Return(database.User{Username: "existinguser"}, nil)
 			},
@@ -106,17 +106,17 @@ func TestSignUpHandler(t *testing.T) {
 			name: "publisher name already exists",
 			request: handlers.SignUpReq{
 				Username:        "newpublisher",
-				Name:            "Existing Publisher",
+				DisplayName:     "Existing Publisher",
 				Password:        "password123",
 				ConfirmPassword: "password123",
 				IsPublisher:     true,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockStorage *mocks.MockStorage) {
-				mockStorage.EXPECT().
+			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+				mockUserRepo.EXPECT().
 					GetUserByUsername(gomock.Any(), "newpublisher").
 					Return(database.User{}, database.ErrNotFound)
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					CheckUserExists(gomock.Any(), "Existing Publisher", database.PublisherRoleName).
 					Return(true, nil)
 			},
@@ -129,17 +129,17 @@ func TestSignUpHandler(t *testing.T) {
 			name: "database error on create",
 			request: handlers.SignUpReq{
 				Username:        "newuser",
-				Name:            "New User",
+				DisplayName:     "New User",
 				Password:        "password123",
 				ConfirmPassword: "password123",
 				IsPublisher:     false,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockStorage *mocks.MockStorage) {
-				mockStorage.EXPECT().
+			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+				mockUserRepo.EXPECT().
 					GetUserByUsername(gomock.Any(), "newuser").
 					Return(database.User{}, database.ErrNotFound)
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					CreateUser(gomock.Any(), gomock.Any()).
 					Return(errors.New("database error"))
 			},
@@ -152,11 +152,11 @@ func TestSignUpHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, mockStorage, _, authAPI, app, ctrl := setupTest(t, nil)
+			mockAuth, mockUserRepo, _, authAPI, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(mockAuth, mockStorage)
+				tt.setupMocks(mockAuth, mockUserRepo)
 			}
 
 			app.Post("/signup", authAPI.SignUpHandler)

@@ -3,8 +3,8 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/database"
@@ -31,31 +31,53 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 	var req GoogleOAuthRequest
 	if err := c.BodyParser(&req); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
-		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{Error: "cannot parse request"})
+		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+			Error: "Cannot parse request",
+		})
 	}
 
 	claims, err := a.verifyGoogleIDToken(ctx, req.IDToken)
 	if err != nil {
 		a.log.Error("google token verify failed", zap.Error(err))
-		return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{Error: "invalid token"})
+		return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
+			Error: "Invalid token",
+		})
 	}
 
-	user, err := a.storage.GetUserByOAuth(ctx, "google", claims.Sub)
-	if errors.Is(err, database.ErrNotFound) {
-		user = database.NewUser(strings.SplitN(claims.Email, "@", 2)[0], claims.Name, nil, database.UserRoleName, claims.Picture)
-		user.SetOAuthID(auth.GoogleAuthTokenProvider, claims.Sub)
-
-		if err = a.storage.CreateUser(ctx, user); err != nil {
-			a.log.Error("create user (google oauth)", zap.Error(err))
-			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
-				Error: internalErrorMsg,
-			})
-		}
-	} else if err != nil {
+	user, err := a.userRepo.GetUserByOAuth(ctx, "google", claims.Sub)
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		a.log.Error("get user (google oauth)", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})
+	}
+
+	// create user if not found
+	if errors.Is(err, database.ErrNotFound) {
+		username, uErr := extractUsernameFromEmail(claims.Email)
+		if uErr != nil {
+			a.log.Error("extract username from email", zap.String("email", claims.Email), zap.Error(uErr))
+			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+				Error: "Invalid email",
+			})
+		}
+
+		user = database.NewUser(username, "", nil, database.UserRoleName)
+		user.SetOAuthID(auth.GoogleAuthTokenProvider, claims.Sub)
+
+		// create user
+		if err = a.userRepo.CreateUser(ctx, user); err != nil {
+			if errors.Is(err, database.ErrUsernameExists) {
+				a.log.Warn("username already exists during oauth", zap.String("username", user.Username))
+				return c.Status(http.StatusConflict).JSON(web.ErrResp{
+					Error: "Account setup incomplete. Please complete registration manually.",
+				})
+			}
+			a.log.Error("create user (google oauth)", zap.String("username", user.Username), zap.Error(err))
+			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+				Error: internalErrorMsg,
+			})
+		}
 	}
 
 	// issue token
@@ -76,18 +98,14 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 func (a *AuthAPI) verifyGoogleIDToken(ctx context.Context, token string) (*googleIDTokenClaims, error) {
 	payload, err := a.googleTokenValidator.Validate(ctx, token, a.googleOAuthClientID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("validate google token: %w", err)
 	}
 
 	email, _ := payload.Claims["email"].(string)
-	name, _ := payload.Claims["name"].(string)
-	picture, _ := payload.Claims["picture"].(string)
 
 	claims := &googleIDTokenClaims{
-		Sub:     payload.Subject,
-		Email:   email,
-		Name:    name,
-		Picture: picture,
+		Sub:   payload.Subject,
+		Email: email,
 	}
 
 	if claims.Sub == "" || claims.Email == "" {

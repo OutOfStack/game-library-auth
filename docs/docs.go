@@ -16,6 +16,107 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/account": {
+            "delete": {
+                "description": "Deletes a user account",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Delete user account",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successfully deleted account"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Updates the profile information of a user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Update user profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Update profile parameters",
+                        "name": "profile",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UpdateProfileReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Returns new access token",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.TokenResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid password or token",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    }
+                }
+            }
+        },
         "/oauth/google": {
             "post": {
                 "description": "Handles Google OAuth 2.0 authentication",
@@ -205,69 +306,14 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/update_profile": {
-            "post": {
-                "description": "Updates the profile information of a user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Update user profile",
-                "parameters": [
-                    {
-                        "description": "Update profile parameters",
-                        "name": "profile",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.UpdateProfileReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Returns new access token",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.TokenResp"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {
-                            "$ref": "#/definitions/web.ErrResp"
-                        }
-                    },
-                    "401": {
-                        "description": "Invalid password",
-                        "schema": {
-                            "$ref": "#/definitions/web.ErrResp"
-                        }
-                    },
-                    "404": {
-                        "description": "User not found",
-                        "schema": {
-                            "$ref": "#/definitions/web.ErrResp"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/web.ErrResp"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
         "handlers.GoogleOAuthRequest": {
             "type": "object",
+            "required": [
+                "idToken"
+            ],
             "properties": {
                 "idToken": {
                     "type": "string"
@@ -282,7 +328,9 @@ const docTemplate = `{
             ],
             "properties": {
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 8
                 },
                 "username": {
                     "type": "string"
@@ -297,9 +345,6 @@ const docTemplate = `{
                 "username"
             ],
             "properties": {
-                "avatarUrl": {
-                    "type": "string"
-                },
                 "confirmPassword": {
                     "type": "string"
                 },
@@ -311,6 +356,7 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string",
+                    "maxLength": 64,
                     "minLength": 8
                 },
                 "username": {
@@ -336,28 +382,24 @@ const docTemplate = `{
         },
         "handlers.UpdateProfileReq": {
             "type": "object",
-            "required": [
-                "userId"
-            ],
             "properties": {
-                "avatarUrl": {
-                    "type": "string"
-                },
                 "confirmNewPassword": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 8
                 },
                 "name": {
                     "type": "string"
                 },
                 "newPassword": {
                     "type": "string",
+                    "maxLength": 64,
                     "minLength": 8
                 },
                 "password": {
-                    "type": "string"
-                },
-                "userId": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 8
                 }
             }
         },
@@ -407,7 +449,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.1",
+	Version:          "0.2",
 	Host:             "localhost:8001",
 	BasePath:         "/",
 	Schemes:          []string{"http"},

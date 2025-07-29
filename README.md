@@ -99,8 +99,8 @@ make generate
 
 #### Database Commands
     drunpg     runs postgres server with 'auth' db in docker container
-    migrate    applies all migrations to database
-    rollback   roll backs one last migration of database
+    migrate    applies all migrations to database (requires DB_DSN environment variable)
+    rollback   roll backs one last migration of database (requires DB_DSN environment variable)
 
 #### Key Management
     keygen     creates private/public key pair files

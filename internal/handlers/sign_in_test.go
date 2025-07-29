@@ -24,7 +24,7 @@ func TestSignInHandler(t *testing.T) {
 	tests := []struct {
 		name           string
 		request        handlers.SignInReq
-		setupMocks     func(*mocks.MockAuth, *mocks.MockStorage)
+		setupMocks     func(*mocks.MockAuth, *mocks.MockUserRepo)
 		expectedStatus int
 		expectedResp   interface{}
 	}{
@@ -34,11 +34,11 @@ func TestSignInHandler(t *testing.T) {
 				Username: "testuser",
 				Password: "password123",
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockStorage *mocks.MockStorage) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
 				passwordHash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-				user := database.NewUser("testuser", "", passwordHash, database.UserRoleName, "")
+				user := database.NewUser("testuser", "", passwordHash, database.UserRoleName)
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					GetUserByUsername(gomock.Any(), "testuser").
 					Return(user, nil)
 
@@ -61,8 +61,8 @@ func TestSignInHandler(t *testing.T) {
 				Username: "nonexistent",
 				Password: "password123",
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockStorage *mocks.MockStorage) {
-				mockStorage.EXPECT().
+			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+				mockUserRepo.EXPECT().
 					GetUserByUsername(gomock.Any(), "nonexistent").
 					Return(database.User{}, database.ErrNotFound)
 			},
@@ -77,11 +77,11 @@ func TestSignInHandler(t *testing.T) {
 				Username: "testuser",
 				Password: "wrongpassword",
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockStorage *mocks.MockStorage) {
+			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
 				passwordHash, _ := bcrypt.GenerateFromPassword([]byte("correctpassword"), bcrypt.DefaultCost)
-				user := database.NewUser("testuser", "", passwordHash, database.UserRoleName, "")
+				user := database.NewUser("testuser", "", passwordHash, database.UserRoleName)
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					GetUserByUsername(gomock.Any(), "testuser").
 					Return(user, nil)
 			},
@@ -91,13 +91,13 @@ func TestSignInHandler(t *testing.T) {
 			},
 		},
 		{
-			name: "storage error",
+			name: "user repo error",
 			request: handlers.SignInReq{
 				Username: "testuser",
 				Password: "password123",
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockStorage *mocks.MockStorage) {
-				mockStorage.EXPECT().
+			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+				mockUserRepo.EXPECT().
 					GetUserByUsername(gomock.Any(), "testuser").
 					Return(database.User{}, errors.New("database error"))
 			},
@@ -112,11 +112,11 @@ func TestSignInHandler(t *testing.T) {
 				Username: "testuser",
 				Password: "password123",
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockStorage *mocks.MockStorage) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
 				passwordHash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-				user := database.NewUser("testuser", "", passwordHash, database.UserRoleName, "")
+				user := database.NewUser("testuser", "", passwordHash, database.UserRoleName)
 
-				mockStorage.EXPECT().
+				mockUserRepo.EXPECT().
 					GetUserByUsername(gomock.Any(), "testuser").
 					Return(user, nil)
 
@@ -137,11 +137,11 @@ func TestSignInHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, mockStorage, _, authAPI, app, ctrl := setupTest(t, nil)
+			mockAuth, mockUserRepo, _, authAPI, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(mockAuth, mockStorage)
+				tt.setupMocks(mockAuth, mockUserRepo)
 			}
 
 			app.Post("/signin", authAPI.SignInHandler)
