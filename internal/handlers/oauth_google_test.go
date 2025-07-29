@@ -235,7 +235,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 
 		err = json.Unmarshal(responseBody, &response)
 		require.NoError(t, err)
-		require.Equal(t, "Username already exists, please sign up with registration form", response.Error)
+		require.Equal(t, "Account setup incomplete. Please complete registration manually.", response.Error)
 	})
 
 	t.Run("invalid google token", func(t *testing.T) {
