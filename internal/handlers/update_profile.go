@@ -34,7 +34,7 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 	if err != nil {
 		a.log.Error("extracting user ID from JWT", zap.Error(err))
 		return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
-			Error: "Invalid or missing authorization token",
+			Error: invalidAuthToken,
 		})
 	}
 
@@ -87,7 +87,13 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	if params.Password != nil {
+	if params.Password != nil && usr.OAuthProvider.Valid {
+		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+			Error: "Cannot change password for OAuth provider users",
+		})
+	}
+
+	if params.Password != nil && len(usr.PasswordHash) > 0 {
 		// check password
 		if err = bcrypt.CompareHashAndPassword(usr.PasswordHash, []byte(*params.Password)); err != nil {
 			log.Info("invalid password", zap.Error(err))

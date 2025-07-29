@@ -5,12 +5,12 @@ import (
 )
 
 const (
-	internalErrorMsg      string = "Internal error"
-	validationErrorMsg    string = "Validation error"
-	authErrorMsg          string = "Incorrect username or password"
-	invalidTokenMsg       string = "Invalid token"
-	cannotParseRequestMsg string = "Cannot parse request"
-	usernameExistsMsg     string = "Username already exists, please sign up with registration form"
+	internalErrorMsg   string = "Internal error"
+	validationErrorMsg string = "Validation error"
+	authErrorMsg       string = "Incorrect username or password"
+	invalidAuthToken   string = "Invalid or missing authorization token"
+
+	maxUsernameLen = 32
 )
 
 // SignInReq represents user sign in request
@@ -58,11 +58,10 @@ type VerifyTokenResp struct {
 
 // GoogleOAuthRequest represents Google OAuth request
 type GoogleOAuthRequest struct {
-	IDToken string `json:"idToken"`
+	IDToken string `json:"idToken" validate:"required"`
 }
 
 type googleIDTokenClaims struct {
 	Sub   string `json:"sub"`
 	Email string `json:"email"`
-	Name  string `json:"name"`
 }

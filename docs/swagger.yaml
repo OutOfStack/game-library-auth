@@ -4,6 +4,8 @@ definitions:
     properties:
       idToken:
         type: string
+    required:
+    - idToken
     type: object
   handlers.SignInReq:
     properties:

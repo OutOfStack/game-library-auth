@@ -91,8 +91,8 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			CreateUser(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ interface{}, user database.User) error {
 				// Verify user data from Google OAuth
-				require.Equal(t, "test@example.com", user.Username) // Username is full email
-				require.Equal(t, "Test User", user.DisplayName)
+				require.Equal(t, "test", user.Username) // Username is extracted from email
+				require.Empty(t, user.DisplayName)      // No name stored for privacy
 				require.Equal(t, "google", user.OAuthProvider.String)
 				require.Equal(t, "google-sub-id", user.OAuthID.String)
 				return nil

@@ -311,6 +311,9 @@ const docTemplate = `{
     "definitions": {
         "handlers.GoogleOAuthRequest": {
             "type": "object",
+            "required": [
+                "idToken"
+            ],
             "properties": {
                 "idToken": {
                     "type": "string"

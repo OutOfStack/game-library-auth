@@ -72,7 +72,7 @@ func (r *UserRepo) GetUserByID(ctx context.Context, userID string) (user User, e
 	ctx, span := tracer.Start(ctx, "getUserByID")
 	defer span.End()
 
-	const q = `SELECT id, username, name, password_hash, role, date_created, date_updated
+	const q = `SELECT id, username, name, password_hash, role, oauth_provider, oauth_id, date_created, date_updated
 		FROM users
 		WHERE id = $1`
 

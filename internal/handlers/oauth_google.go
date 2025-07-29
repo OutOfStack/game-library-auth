@@ -32,7 +32,7 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
-			Error: cannotParseRequestMsg,
+			Error: "Cannot parse request",
 		})
 	}
 
@@ -40,7 +40,7 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 	if err != nil {
 		a.log.Error("google token verify failed", zap.Error(err))
 		return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
-			Error: invalidTokenMsg,
+			Error: "Invalid token",
 		})
 	}
 
@@ -54,7 +54,15 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 
 	// create user if not found
 	if errors.Is(err, database.ErrNotFound) {
-		user = database.NewUser(claims.Email, claims.Name, nil, database.UserRoleName)
+		username, uErr := extractUsernameFromEmail(claims.Email)
+		if uErr != nil {
+			a.log.Error("extract username from email", zap.String("email", claims.Email), zap.Error(uErr))
+			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+				Error: "Invalid email",
+			})
+		}
+
+		user = database.NewUser(username, "", nil, database.UserRoleName)
 		user.SetOAuthID(auth.GoogleAuthTokenProvider, claims.Sub)
 
 		// create user
@@ -62,7 +70,7 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 			if errors.Is(err, database.ErrUsernameExists) {
 				a.log.Warn("username already exists during oauth", zap.String("username", user.Username))
 				return c.Status(http.StatusConflict).JSON(web.ErrResp{
-					Error: usernameExistsMsg,
+					Error: "Username already exists, please sign up with registration form",
 				})
 			}
 			a.log.Error("create user (google oauth)", zap.String("username", user.Username), zap.Error(err))
@@ -94,12 +102,10 @@ func (a *AuthAPI) verifyGoogleIDToken(ctx context.Context, token string) (*googl
 	}
 
 	email, _ := payload.Claims["email"].(string)
-	name, _ := payload.Claims["name"].(string)
 
 	claims := &googleIDTokenClaims{
 		Sub:   payload.Subject,
 		Email: email,
-		Name:  name,
 	}
 
 	if claims.Sub == "" || claims.Email == "" {
