@@ -325,7 +325,9 @@
             ],
             "properties": {
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 8
                 },
                 "username": {
                     "type": "string"
@@ -351,6 +353,7 @@
                 },
                 "password": {
                     "type": "string",
+                    "maxLength": 64,
                     "minLength": 8
                 },
                 "username": {
@@ -378,17 +381,22 @@
             "type": "object",
             "properties": {
                 "confirmNewPassword": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 8
                 },
                 "name": {
                     "type": "string"
                 },
                 "newPassword": {
                     "type": "string",
+                    "maxLength": 64,
                     "minLength": 8
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 8
                 }
             }
         },

@@ -10,6 +10,8 @@ definitions:
   handlers.SignInReq:
     properties:
       password:
+        maxLength: 64
+        minLength: 8
         type: string
       username:
         type: string
@@ -26,6 +28,7 @@ definitions:
       name:
         type: string
       password:
+        maxLength: 64
         minLength: 8
         type: string
       username:
@@ -48,13 +51,18 @@ definitions:
   handlers.UpdateProfileReq:
     properties:
       confirmNewPassword:
+        maxLength: 64
+        minLength: 8
         type: string
       name:
         type: string
       newPassword:
+        maxLength: 64
         minLength: 8
         type: string
       password:
+        maxLength: 64
+        minLength: 8
         type: string
     type: object
   handlers.VerifyTokenReq:

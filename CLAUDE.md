@@ -20,9 +20,9 @@
 ## Build and Quality Checks
 - Run validation commands before completing work:
   - `make build` - compile the project
-  - `make test` - run all tests
+  - `go test -v -race ./... | grep -E "(FAIL:|RUN.*failed|panic:|error:)"` - run all tests
   - `make lint` - check code quality
-  - `make generate` - generate swagger files if there were updates in definitions
+  - `make generate | grep -E "(error:|warning:|failed)"` - generate swagger files and mocks if there were updates in definitions
 - Fix any issues found by these commands
 
 ## Documentation

@@ -328,7 +328,9 @@ const docTemplate = `{
             ],
             "properties": {
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 8
                 },
                 "username": {
                     "type": "string"
@@ -354,6 +356,7 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string",
+                    "maxLength": 64,
                     "minLength": 8
                 },
                 "username": {
@@ -381,17 +384,22 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "confirmNewPassword": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 8
                 },
                 "name": {
                     "type": "string"
                 },
                 "newPassword": {
                     "type": "string",
+                    "maxLength": 64,
                     "minLength": 8
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 8
                 }
             }
         },
