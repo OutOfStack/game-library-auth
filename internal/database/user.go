@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"go.opentelemetry.io/otel"
 )
 
@@ -37,6 +38,10 @@ func (r *UserRepo) CreateUser(ctx context.Context, user User) error {
 
 	_, err := r.db.ExecContext(ctx, q, user.ID, user.Username, user.DisplayName, user.PasswordHash, user.Role, user.OAuthProvider, user.OAuthID)
 	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return ErrUsernameExists
+		}
 		return fmt.Errorf("insert user: %w", err)
 	}
 
@@ -75,7 +80,7 @@ func (r *UserRepo) GetUserByID(ctx context.Context, userID string) (user User, e
 		if errors.Is(err, sql.ErrNoRows) {
 			return User{}, ErrNotFound
 		}
-		return User{}, fmt.Errorf("select user %v: %w", userID, err)
+		return User{}, fmt.Errorf("select user by id: %w", err)
 	}
 
 	return user, nil
@@ -94,7 +99,7 @@ func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (user
 		if errors.Is(err, sql.ErrNoRows) {
 			return User{}, ErrNotFound
 		}
-		return User{}, fmt.Errorf("select user %s: %w", username, err)
+		return User{}, fmt.Errorf("select user by username: %w", err)
 	}
 
 	return user, nil
@@ -112,7 +117,7 @@ func (r *UserRepo) CheckUserExists(ctx context.Context, name string, role Role) 
 
 	var exists bool
 	if err := r.db.GetContext(ctx, &exists, q, name, role); err != nil {
-		return false, fmt.Errorf("select publisher with name %s: %w", name, err)
+		return false, fmt.Errorf("check user exists: %w", err)
 	}
 
 	return exists, nil
@@ -146,7 +151,7 @@ func (r *UserRepo) DeleteUser(ctx context.Context, userID string) error {
 
 	_, err := r.db.ExecContext(ctx, q, userID)
 	if err != nil {
-		return fmt.Errorf("delete user %v: %w", userID, err)
+		return fmt.Errorf("delete user: %w", err)
 	}
 
 	return nil

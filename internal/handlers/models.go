@@ -5,9 +5,12 @@ import (
 )
 
 const (
-	internalErrorMsg   string = "Internal error"
-	validationErrorMsg string = "Validation error"
-	authErrorMsg       string = "Incorrect username or password"
+	internalErrorMsg      string = "Internal error"
+	validationErrorMsg    string = "Validation error"
+	authErrorMsg          string = "Incorrect username or password"
+	invalidTokenMsg       string = "Invalid token"
+	cannotParseRequestMsg string = "Cannot parse request"
+	usernameExistsMsg     string = "Username already exists, please sign up with registration form"
 )
 
 // SignInReq represents user sign in request

@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
@@ -30,13 +31,17 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 	var req GoogleOAuthRequest
 	if err := c.BodyParser(&req); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
-		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{Error: "cannot parse request"})
+		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+			Error: cannotParseRequestMsg,
+		})
 	}
 
 	claims, err := a.verifyGoogleIDToken(ctx, req.IDToken)
 	if err != nil {
 		a.log.Error("google token verify failed", zap.Error(err))
-		return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{Error: "invalid token"})
+		return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
+			Error: invalidTokenMsg,
+		})
 	}
 
 	user, err := a.userRepo.GetUserByOAuth(ctx, "google", claims.Sub)
@@ -52,23 +57,14 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 		user = database.NewUser(claims.Email, claims.Name, nil, database.UserRoleName)
 		user.SetOAuthID(auth.GoogleAuthTokenProvider, claims.Sub)
 
-		// check if such username already exists
-		_, err = a.userRepo.GetUserByUsername(ctx, user.Username)
-		if err == nil {
-			a.log.Error("user already exists", zap.String("username", user.Username))
-			return c.Status(http.StatusConflict).JSON(web.ErrResp{
-				Error: "Username already exists, please sign up with registration form",
-			})
-		}
-		if !errors.Is(err, database.ErrNotFound) {
-			a.log.Error("get user", zap.String("username", user.Username), zap.Error(err))
-			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
-				Error: internalErrorMsg,
-			})
-		}
-
 		// create user
 		if err = a.userRepo.CreateUser(ctx, user); err != nil {
+			if errors.Is(err, database.ErrUsernameExists) {
+				a.log.Warn("username already exists during oauth", zap.String("username", user.Username))
+				return c.Status(http.StatusConflict).JSON(web.ErrResp{
+					Error: usernameExistsMsg,
+				})
+			}
 			a.log.Error("create user (google oauth)", zap.String("username", user.Username), zap.Error(err))
 			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 				Error: internalErrorMsg,
@@ -94,7 +90,7 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 func (a *AuthAPI) verifyGoogleIDToken(ctx context.Context, token string) (*googleIDTokenClaims, error) {
 	payload, err := a.googleTokenValidator.Validate(ctx, token, a.googleOAuthClientID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("validate google token: %w", err)
 	}
 
 	email, _ := payload.Claims["email"].(string)

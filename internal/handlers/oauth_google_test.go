@@ -86,11 +86,6 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			GetUserByOAuth(gomock.Any(), "google", "google-sub-id").
 			Return(database.User{}, database.ErrNotFound)
 
-		// Mock username check - username not found (available)
-		mockUserRepo.EXPECT().
-			GetUserByUsername(gomock.Any(), "test@example.com").
-			Return(database.User{}, database.ErrNotFound)
-
 		// Mock user creation
 		mockUserRepo.EXPECT().
 			CreateUser(gomock.Any(), gomock.Any()).
@@ -213,11 +208,10 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			GetUserByOAuth(gomock.Any(), "google", "new-google-sub-id").
 			Return(database.User{}, database.ErrNotFound)
 
-		// Mock username check - username already exists
-		existingUser := database.NewUser("conflict@example.com", "Existing User", nil, database.UserRoleName)
+		// Mock user creation - username already exists (constraint violation)
 		mockUserRepo.EXPECT().
-			GetUserByUsername(gomock.Any(), "conflict@example.com").
-			Return(existingUser, nil)
+			CreateUser(gomock.Any(), gomock.Any()).
+			Return(database.ErrUsernameExists)
 
 		reqBody := handlers.GoogleOAuthRequest{
 			IDToken: "mock-google-id-token",
