@@ -81,7 +81,7 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 				Error: "User does not exist",
 			})
 		}
-		log.Info("checking existence of user", zap.Error(err))
+		log.Error("checking existence of user", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})

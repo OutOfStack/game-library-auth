@@ -49,7 +49,7 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 	_, err := a.userRepo.GetUserByUsername(ctx, signUp.Username)
 	// if err is ErrNotFound then continue
 	if err != nil && !errors.Is(err, database.ErrNotFound) {
-		log.Info("checking existence of user", zap.Error(err))
+		log.Error("checking existence of user", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})

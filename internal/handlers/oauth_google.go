@@ -70,7 +70,7 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 			if errors.Is(err, database.ErrUsernameExists) {
 				a.log.Warn("username already exists during oauth", zap.String("username", user.Username))
 				return c.Status(http.StatusConflict).JSON(web.ErrResp{
-					Error: "Username already exists, please sign up with registration form",
+					Error: "Account setup incomplete. Please complete registration manually.",
 				})
 			}
 			a.log.Error("create user (google oauth)", zap.String("username", user.Username), zap.Error(err))

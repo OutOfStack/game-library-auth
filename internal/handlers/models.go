@@ -16,7 +16,7 @@ const (
 // SignInReq represents user sign in request
 type SignInReq struct {
 	Username string `json:"username" validate:"required"`
-	Password string `json:"password" validate:"required"`
+	Password string `json:"password" validate:"required,min=8,max=64"`
 }
 
 // TokenResp represents response with JWT
@@ -28,7 +28,7 @@ type TokenResp struct {
 type SignUpReq struct {
 	Username        string `json:"username" validate:"required"`
 	DisplayName     string `json:"name" validate:"required"`
-	Password        string `json:"password" validate:"required,min=8"`
+	Password        string `json:"password" validate:"required,min=8,max=64"`
 	ConfirmPassword string `json:"confirmPassword" validate:"eqfield=Password"`
 	IsPublisher     bool   `json:"isPublisher"`
 }
@@ -41,9 +41,9 @@ type SignUpResp struct {
 // UpdateProfileReq represents update profile request
 type UpdateProfileReq struct {
 	Name               *string `json:"name"`
-	Password           *string `json:"password"`
-	NewPassword        *string `json:"newPassword" validate:"omitempty,min=8"`
-	ConfirmNewPassword *string `json:"confirmNewPassword"`
+	Password           *string `json:"password" validate:"omitempty,min=8,max=64"`
+	NewPassword        *string `json:"newPassword" validate:"omitempty,min=8,max=64"`
+	ConfirmNewPassword *string `json:"confirmNewPassword" validate:"omitempty,min=8,max=64"`
 }
 
 // VerifyTokenReq represents verify JWT request
