@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	conf "github.com/OutOfStack/game-library-auth/pkg/config"
 	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	"github.com/jmoiron/sqlx"
@@ -18,18 +19,29 @@ const (
 )
 
 func main() {
-	dsn := os.Getenv("DB_DSN")
+	var fromFile bool
+	flag.BoolVar(&fromFile, "from-file", false, "read dsn from config file instead of environment variable")
+	flag.Parse()
+
+	var dsn string
+	if fromFile {
+		cfg, err := conf.Load()
+		if err != nil {
+			log.Fatal("read config file:", err)
+		}
+		dsn = cfg.DB.DSN
+	} else {
+		dsn = os.Getenv("DB_DSN")
+	}
 
 	migrations := &migrate.FileMigrationSource{
 		Dir: migrationsDir,
 	}
 
-	flag.Parse()
-
 	switch flag.Arg(0) {
 	case "migrate":
 		if dsn == "" {
-			log.Fatal("DB_DSN environment variable is required")
+			log.Fatal("DB_DSN environment or config variable is required")
 		}
 		if err := applyMigrations(dsn, migrations); err != nil {
 			log.Fatalf("Apply migrations error: %v", err)

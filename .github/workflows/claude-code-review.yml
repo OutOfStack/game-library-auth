@@ -44,7 +44,7 @@ jobs:
           
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
-            Review this Go PR focusing on:
+            Review this PR focusing on:
             - Compilation errors and critical bugs
             - Security vulnerabilities
             - Performance issues
