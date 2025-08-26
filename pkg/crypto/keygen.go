@@ -62,7 +62,7 @@ func KeyGen() error {
 		}
 	}()
 
-	// write private key to file
+	// write public key to file
 	if err = pem.Encode(publicKeyFile, publicKeyBlock); err != nil {
 		return fmt.Errorf("writing public key file: %w", err)
 	}

@@ -59,6 +59,8 @@ spec:
                 envFrom:
                   - secretRef:
                         name: game-library-auth-dbconfig
+                  - secretRef:
+                        name: game-library-auth
                   - configMapRef:
                         name: game-library-auth-config
                 imagePullPolicy: Always

@@ -28,7 +28,7 @@ cover:
 
 SWAG_PKG := github.com/swaggo/swag/cmd/swag@v1.16.4
 SWAG_BIN := $(shell go env GOPATH)/bin/swag
-MOCKGEN_PKG := go.uber.org/mock/mockgen@v0.5
+MOCKGEN_PKG := go.uber.org/mock/mockgen@v0.6
 MOCKGEN_BIN := $(shell go env GOPATH)/bin/mockgen
 generate:
 	@if \[ ! -f ${SWAG_BIN} \]; then \
@@ -56,7 +56,7 @@ generate:
   	fi
 	${MOCKGEN_BIN} -source=internal/handlers/auth.go -destination=internal/handlers/mocks/auth.go -package=handlers_mocks
 
-LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1
+LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4
 LINT_BIN := $(shell go env GOPATH)/bin/golangci-lint
 lint:
 	@if \[ ! -f ${LINT_BIN} \]; then \
@@ -74,11 +74,11 @@ lint:
 ### Manage service
 # apply all migrations
 migrate:
-	go run ./cmd/game-library-auth-manage/. migrate
+	go run ./cmd/game-library-auth-manage/. -from-file migrate
 
 # rollback last migration
 rollback:
-	go run ./cmd/game-library-auth-manage/. rollback
+	go run ./cmd/game-library-auth-manage/. -from-file rollback
 
 keygen:
 	go run ./cmd/game-library-auth-manage/. keygen
