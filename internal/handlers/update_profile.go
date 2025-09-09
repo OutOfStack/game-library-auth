@@ -15,6 +15,7 @@ import (
 // @Summary 			Update user profile
 // @Description 		Updates the profile information of a user
 // @Tags 				auth
+// @Security     		Bearer
 // @Accept 				json
 // @Produce 			json
 // @Param 				Authorization header string true "Bearer token"

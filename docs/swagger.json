@@ -8,7 +8,7 @@
         "title": "Game library auth API",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {},
-        "version": "0.2"
+        "version": "0.3"
     },
     "host": "localhost:8001",
     "basePath": "/",
@@ -51,6 +51,11 @@
                 }
             },
             "patch": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Updates the profile information of a user",
                 "consumes": [
                     "application/json"
@@ -140,7 +145,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "User credentials",
                         "schema": {
                             "$ref": "#/definitions/handlers.TokenResp"
                         }
@@ -153,6 +158,52 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/resend-verification": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Resends email verification code to the user's email address",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Resend email verification code",
+                "responses": {
+                    "204": {
+                        "description": "Successfully resent verification email"
+                    },
+                    "400": {
+                        "description": "User email is already verified",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or missing authorization token",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "429": {
+                        "description": "Too many resend requests",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/web.ErrResp"
                         }
@@ -238,9 +289,9 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successfully registered user",
+                        "description": "User credentials",
                         "schema": {
-                            "$ref": "#/definitions/handlers.SignUpResp"
+                            "$ref": "#/definitions/handlers.TokenResp"
                         }
                     },
                     "400": {
@@ -303,6 +354,75 @@
                     }
                 }
             }
+        },
+        "/verify-email": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Verifies user email address using the code sent via email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Verify email address using verification code",
+                "parameters": [
+                    {
+                        "description": "Email verification code",
+                        "name": "verification",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VerifyEmailReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.TokenResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input data",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or missing authorization token",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "410": {
+                        "description": "Verification code has expired",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -345,6 +465,9 @@
                 "confirmPassword": {
                     "type": "string"
                 },
+                "email": {
+                    "type": "string"
+                },
                 "isPublisher": {
                     "type": "boolean"
                 },
@@ -357,14 +480,6 @@
                     "minLength": 8
                 },
                 "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "handlers.SignUpResp": {
-            "type": "object",
-            "properties": {
-                "id": {
                     "type": "string"
                 }
             }
@@ -397,6 +512,17 @@
                     "type": "string",
                     "maxLength": 64,
                     "minLength": 8
+                }
+            }
+        },
+        "handlers.VerifyEmailReq": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
                 }
             }
         },

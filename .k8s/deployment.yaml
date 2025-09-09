@@ -61,6 +61,8 @@ spec:
                         name: game-library-auth-dbconfig
                   - secretRef:
                         name: game-library-auth
+                  - secretRef:
+                        name: game-library-auth-email-sender
                   - configMapRef:
                         name: game-library-auth-config
                 imagePullPolicy: Always

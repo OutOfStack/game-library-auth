@@ -12,3 +12,6 @@ data:
     ZIPKIN_REPORTERURL: "http://zipkin-service.game-library.svc.cluster.local.:9411/api/v2/spans"
     GRAYLOG_ADDR: "graylog-service.game-library.svc.cluster.local.:12201"
     LOG_LEVEL: "INFO"
+    EMAIL_SENDER_EMAIL_VERIFICATION_ENABLED: "false"
+    EMAIL_SENDER_API_TIMEOUT: "5s"
+    EMAIL_SENDER_EMAIL_FROM: "no-reply@_K8S_URL_"

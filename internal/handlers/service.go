@@ -7,6 +7,7 @@ import (
 	_ "github.com/OutOfStack/game-library-auth/docs" // swagger docs
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	auth_ "github.com/OutOfStack/game-library-auth/internal/auth"
+	"github.com/OutOfStack/game-library-auth/internal/client/mailersend"
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/gofiber/adaptor/v2"
@@ -63,13 +64,24 @@ func Service(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, error) 
 		AllowMethods: "GET,POST,DELETE,PATCH,OPTIONS",
 	}))
 
+	// create google token validator
 	googleTokenValidator, err := idtoken.NewValidator(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("create google token validator: %w", err)
 	}
 
+	// create email sender
+	emailSender, err := mailersend.NewClient(mailersend.Config{
+		APIToken:  cfg.EmailSender.APIToken,
+		FromEmail: cfg.EmailSender.EmailFrom,
+		Timeout:   cfg.EmailSender.APITimeout,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create mailersend client: %w", err)
+	}
+
 	// register routes
-	authAPI, err := NewAuthAPI(log, &cfg, auth, database.NewUserRepo(db), googleTokenValidator)
+	authAPI, err := NewAuthAPI(log, &cfg, auth, database.NewUserRepo(db), googleTokenValidator, emailSender)
 	if err != nil {
 		return nil, fmt.Errorf("create auth api: %w", err)
 	}
@@ -101,6 +113,8 @@ func registerRoutes(app *fiber.App, authAPI *AuthAPI, checkAPI *CheckAPI) {
 	app.Delete("/account", authAPI.DeleteAccountHandler)
 	app.Post("/oauth/google", authAPI.GoogleOAuthHandler)
 
+	app.Post("/verify-email", authAPI.VerifyEmailHandler)
+	app.Post("/resend-verification", authAPI.ResendVerificationEmailHandler)
 	app.Post("/token/verify", authAPI.VerifyTokenHandler)
 
 	// swagger

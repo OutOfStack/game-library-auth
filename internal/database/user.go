@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"go.opentelemetry.io/otel"
@@ -33,13 +34,13 @@ func (r *UserRepo) CreateUser(ctx context.Context, user User) error {
 	defer span.End()
 
 	const q = `INSERT INTO users
-        (id, username, name, password_hash, role, oauth_provider, oauth_id, date_created)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`
+        (id, username, name, email, email_verified, password_hash, role, oauth_provider, oauth_id, date_created)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`
 
-	_, err := r.db.ExecContext(ctx, q, user.ID, user.Username, user.DisplayName, user.PasswordHash, user.Role, user.OAuthProvider, user.OAuthID)
+	_, err := r.db.ExecContext(ctx, q, user.ID, user.Username, user.DisplayName, user.Email, user.EmailVerified, user.PasswordHash, user.Role, user.OAuthProvider, user.OAuthID)
 	if err != nil {
 		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+		if errors.As(err, &pqErr) && pqErr.Code == pgUniqueViolationCode {
 			return ErrUsernameExists
 		}
 		return fmt.Errorf("insert user: %w", err)
@@ -72,7 +73,7 @@ func (r *UserRepo) GetUserByID(ctx context.Context, userID string) (user User, e
 	ctx, span := tracer.Start(ctx, "getUserByID")
 	defer span.End()
 
-	const q = `SELECT id, username, name, password_hash, role, oauth_provider, oauth_id, date_created, date_updated
+	const q = `SELECT id, username, name, email, email_verified, password_hash, role, oauth_provider, oauth_id, date_created, date_updated
 		FROM users
 		WHERE id = $1`
 
@@ -91,7 +92,7 @@ func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (user
 	ctx, span := tracer.Start(ctx, "getUserByUsername")
 	defer span.End()
 
-	const q = `SELECT id, username, name, password_hash, role, date_created, date_updated
+	const q = `SELECT id, username, name, email, email_verified, password_hash, role, oauth_provider, oauth_id, date_created, date_updated
 		FROM users
 		WHERE username = $1`
 
@@ -128,7 +129,7 @@ func (r *UserRepo) GetUserByOAuth(ctx context.Context, provider string, oauthID 
 	ctx, span := tracer.Start(ctx, "getUserByOAuth")
 	defer span.End()
 
-	const q = `SELECT id, username, name, role, oauth_provider, oauth_id, date_created, date_updated
+	const q = `SELECT id, username, name, email, email_verified, role, oauth_provider, oauth_id, date_created, date_updated
         FROM users
         WHERE oauth_provider = $1 AND oauth_id = $2`
 
@@ -152,6 +153,42 @@ func (r *UserRepo) DeleteUser(ctx context.Context, userID string) error {
 	_, err := r.db.ExecContext(ctx, q, userID)
 	if err != nil {
 		return fmt.Errorf("delete user: %w", err)
+	}
+
+	return nil
+}
+
+// GetUserByEmail gets user by email address
+func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	ctx, span := tracer.Start(ctx, "getUserByEmail")
+	defer span.End()
+
+	const q = `SELECT id, username, name, email, email_verified, password_hash, role, oauth_provider, oauth_id, date_created, date_updated
+		FROM users
+		WHERE email = $1`
+
+	var user User
+	if err := r.db.GetContext(ctx, &user, q, email); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return User{}, ErrNotFound
+		}
+		return User{}, fmt.Errorf("select user by email: %w", err)
+	}
+	return user, nil
+}
+
+// UpdateUserEmail updates user email and verification status
+func (r *UserRepo) UpdateUserEmail(ctx context.Context, userID uuid.UUID, email string, verified bool) error {
+	ctx, span := tracer.Start(ctx, "updateUserEmail")
+	defer span.End()
+
+	const q = `UPDATE users
+        SET email = $2, email_verified = $3, date_updated = NOW()
+        WHERE id = $1`
+
+	_, err := r.db.ExecContext(ctx, q, userID, email, verified)
+	if err != nil {
+		return fmt.Errorf("update user email: %w", err)
 	}
 
 	return nil

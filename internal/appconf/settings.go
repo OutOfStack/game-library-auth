@@ -7,12 +7,13 @@ const ServiceName = "game-library-auth"
 
 // Cfg - app configuration
 type Cfg struct {
-	DB      DB      `mapstructure:",squash"`
-	Web     Web     `mapstructure:",squash"`
-	Auth    Auth    `mapstructure:",squash"`
-	Zipkin  Zipkin  `mapstructure:",squash"`
-	Graylog Graylog `mapstructure:",squash"`
-	Log     Log     `mapstructure:",squash"`
+	DB          DB          `mapstructure:",squash"`
+	Web         Web         `mapstructure:",squash"`
+	Auth        Auth        `mapstructure:",squash"`
+	Zipkin      Zipkin      `mapstructure:",squash"`
+	Graylog     Graylog     `mapstructure:",squash"`
+	Log         Log         `mapstructure:",squash"`
+	EmailSender EmailSender `mapstructure:",squash"`
 }
 
 // DB represents settings related to database
@@ -50,4 +51,12 @@ type Graylog struct {
 // Log represents settings for logging
 type Log struct {
 	Level string `mapstructure:"LOG_LEVEL"`
+}
+
+// EmailSender represents settings for email sending service
+type EmailSender struct {
+	EmailVerificationEnabled bool          `mapstructure:"EMAIL_SENDER_EMAIL_VERIFICATION_ENABLED"`
+	APIToken                 string        `mapstructure:"EMAIL_SENDER_API_TOKEN"`
+	EmailFrom                string        `mapstructure:"EMAIL_SENDER_EMAIL_FROM"`
+	APITimeout               time.Duration `mapstructure:"EMAIL_SENDER_API_TIMEOUT"`
 }
