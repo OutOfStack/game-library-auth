@@ -33,7 +33,7 @@ func (a *AuthAPI) VerifyEmailHandler(c *fiber.Ctx) error {
 	if err != nil {
 		a.log.Error("get claims", zap.Error(err))
 		return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
-			Error: invalidAuthToken,
+			Error: invalidAuthTokenMsg,
 		})
 	}
 
@@ -79,7 +79,7 @@ func (a *AuthAPI) VerifyEmailHandler(c *fiber.Ctx) error {
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
 			return c.Status(http.StatusNotFound).JSON(web.ErrResp{
-				Error: "No verification code found for this email",
+				Error: invalidOrExpiredVrfCodeMsg,
 			})
 		}
 		a.log.Error("get email verification", zap.Error(err))
@@ -93,16 +93,19 @@ func (a *AuthAPI) VerifyEmailHandler(c *fiber.Ctx) error {
 		// clear expired verification without marking as verified
 		if err = a.userRepo.SetEmailVerificationUsed(ctx, verification.ID, false); err != nil {
 			a.log.Error("clear expired verification", zap.Error(err))
+			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+				Error: internalErrorMsg,
+			})
 		}
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
-			Error: "Verification code has expired",
+			Error: invalidOrExpiredVrfCodeMsg,
 		})
 	}
 
 	// validate code
 	if err = bcrypt.CompareHashAndPassword([]byte(verification.CodeHash.String), []byte(req.Code)); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
-			Error: "Invalid verification code",
+			Error: invalidOrExpiredVrfCodeMsg,
 		})
 	}
 
@@ -117,6 +120,9 @@ func (a *AuthAPI) VerifyEmailHandler(c *fiber.Ctx) error {
 	// mark verification record as used and verified
 	if err = a.userRepo.SetEmailVerificationUsed(ctx, verification.ID, true); err != nil {
 		a.log.Error("mark email verification as used", zap.Error(err))
+		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+			Error: internalErrorMsg,
+		})
 	}
 
 	// generate JWT token
@@ -124,7 +130,7 @@ func (a *AuthAPI) VerifyEmailHandler(c *fiber.Ctx) error {
 	jwtClaims := a.auth.CreateClaims(user)
 	tokenStr, err := a.auth.GenerateToken(jwtClaims)
 	if err != nil {
-		a.log.Error("generating token", zap.Error(err))
+		a.log.Error("generating user token", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})

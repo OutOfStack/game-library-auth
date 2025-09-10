@@ -34,7 +34,7 @@ func (r *UserRepo) GetEmailVerificationByUserID(ctx context.Context, userID uuid
 
 	const q = `SELECT id, user_id, email, verification_code, expires_at, message_id, date_created
         FROM email_verifications
-        WHERE user_id = $1 AND verified_at IS NULL
+        WHERE user_id = $1 AND verified_at IS NULL AND verification_code IS NOT NULL
         ORDER BY date_created DESC
         LIMIT 1`
 

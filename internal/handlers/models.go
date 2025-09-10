@@ -6,10 +6,11 @@ import (
 )
 
 const (
-	internalErrorMsg   string = "Internal error"
-	validationErrorMsg string = "Validation error"
-	authErrorMsg       string = "Incorrect username or password"
-	invalidAuthToken   string = "Invalid or missing authorization token"
+	internalErrorMsg           = "Internal error"
+	validationErrorMsg         = "Validation error"
+	authErrorMsg               = "Incorrect username or password"
+	invalidAuthTokenMsg        = "Invalid or missing authorization token"
+	invalidOrExpiredVrfCodeMsg = "Invalid or expired verification code"
 
 	maxUsernameLen = 32
 
@@ -62,7 +63,7 @@ type VerifyTokenResp struct {
 
 // VerifyEmailReq represents email verification request with 6-digit code
 type VerifyEmailReq struct {
-	Code string `json:"code" validate:"required"`
+	Code string `json:"code" validate:"required,len=6"`
 }
 
 // GoogleOAuthRequest represents Google OAuth request
