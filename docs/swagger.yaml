@@ -345,7 +345,7 @@ paths:
           schema:
             $ref: '#/definitions/handlers.TokenResp'
         "400":
-          description: Invalid input data
+          description: Invalid or expired verification code
           schema:
             $ref: '#/definitions/web.ErrResp'
         "401":
@@ -354,10 +354,6 @@ paths:
             $ref: '#/definitions/web.ErrResp'
         "404":
           description: User not found
-          schema:
-            $ref: '#/definitions/web.ErrResp'
-        "410":
-          description: Verification code has expired
           schema:
             $ref: '#/definitions/web.ErrResp'
         "500":

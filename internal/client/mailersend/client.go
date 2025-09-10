@@ -26,12 +26,12 @@ var (
 
 // Client represents MailerSend client
 type Client struct {
-	client                *mailersend.Mailersend
-	fromEmail             string
-	fromName              string
-	timeout               time.Duration
-	emailVerificationHTML string
-	emailVerificationText string
+	client               *mailersend.Mailersend
+	fromEmail            string
+	fromName             string
+	timeout              time.Duration
+	verificationHTMLTmpl *template.Template
+	verificationTextTmpl *template.Template
 }
 
 // Config represents MailerSend client configuration
@@ -45,24 +45,33 @@ type Config struct {
 func NewClient(cfg Config) (*Client, error) {
 	ms := mailersend.NewMailersend(cfg.APIToken)
 
-	// Load templates during client creation
-	htmlTemplate, err := templateFS.ReadFile("templates/email_verification.html")
+	htmlTemplateContent, err := templateFS.ReadFile("templates/email_verification.html")
 	if err != nil {
 		return nil, fmt.Errorf("load HTML template: %w", err)
 	}
 
-	textTemplate, err := templateFS.ReadFile("templates/email_verification.txt")
+	textTemplateContent, err := templateFS.ReadFile("templates/email_verification.txt")
 	if err != nil {
 		return nil, fmt.Errorf("load text template: %w", err)
 	}
 
+	htmlTmpl, err := template.New("email").Parse(string(htmlTemplateContent))
+	if err != nil {
+		return nil, fmt.Errorf("parse HTML template: %w", err)
+	}
+
+	textTmpl, err := template.New("email").Parse(string(textTemplateContent))
+	if err != nil {
+		return nil, fmt.Errorf("parse text template: %w", err)
+	}
+
 	return &Client{
-		client:                ms,
-		fromEmail:             cfg.FromEmail,
-		fromName:              "Game Library",
-		timeout:               cfg.Timeout,
-		emailVerificationHTML: string(htmlTemplate),
-		emailVerificationText: string(textTemplate),
+		client:               ms,
+		fromEmail:            cfg.FromEmail,
+		fromName:             "Game Library",
+		timeout:              cfg.Timeout,
+		verificationHTMLTmpl: htmlTmpl,
+		verificationTextTmpl: textTmpl,
 	}, nil
 }
 
@@ -81,11 +90,11 @@ func (c *Client) SendEmailVerification(ctx context.Context, req SendEmailVerific
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
-	htmlContent, err := c.fillTemplate(c.emailVerificationHTML, req)
+	htmlContent, err := c.fillTemplate(c.verificationHTMLTmpl, req)
 	if err != nil {
 		return "", fmt.Errorf("fill HTML template: %w", err)
 	}
-	textContent, err := c.fillTemplate(c.emailVerificationText, req)
+	textContent, err := c.fillTemplate(c.verificationTextTmpl, req)
 	if err != nil {
 		return "", fmt.Errorf("fill text template: %w", err)
 	}
@@ -129,14 +138,9 @@ func (c *Client) SendEmailVerification(ctx context.Context, req SendEmailVerific
 }
 
 // fillTemplate fills template placeholders
-func (c *Client) fillTemplate(templateStr string, req SendEmailVerificationRequest) (string, error) {
-	tmpl, err := template.New("email").Parse(templateStr)
-	if err != nil {
-		return "", fmt.Errorf("parse template: %w", err)
-	}
-
+func (c *Client) fillTemplate(tmpl *template.Template, req SendEmailVerificationRequest) (string, error) {
 	var buf bytes.Buffer
-	if err = tmpl.Execute(&buf, req); err != nil {
+	if err := tmpl.Execute(&buf, req); err != nil {
 		return "", fmt.Errorf("execute template: %w", err)
 	}
 

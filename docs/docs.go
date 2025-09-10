@@ -395,7 +395,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid input data",
+                        "description": "Invalid or expired verification code",
                         "schema": {
                             "$ref": "#/definitions/web.ErrResp"
                         }
@@ -408,12 +408,6 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "User not found",
-                        "schema": {
-                            "$ref": "#/definitions/web.ErrResp"
-                        }
-                    },
-                    "410": {
-                        "description": "Verification code has expired",
                         "schema": {
                             "$ref": "#/definitions/web.ErrResp"
                         }

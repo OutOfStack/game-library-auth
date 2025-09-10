@@ -141,24 +141,32 @@ func (a *AuthAPI) sendVerificationEmail(ctx context.Context, userID uuid.UUID, e
 	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return fmt.Errorf("get verification record: %w", err)
 	}
-	// if code was sent after resend cooldown, resend
 	if err == nil {
 		// if sent before resend cooldown, don't resend
+		// if sent after resend cooldown, resend
 		if time.Since(record.DateCreated) < resendVerificationCodeCooldown {
 			return errTooManyRequests
 		}
+
+		// mark verification as used
+		if err = a.userRepo.SetEmailVerificationUsed(ctx, record.ID, false); err != nil {
+			a.log.Error("clear verification", zap.Error(err))
+		}
 	}
 
+	// create new verification record
 	recordID, code, err := a.createEmailVerificationRecord(ctx, userID, email)
 	if err != nil {
 		return fmt.Errorf("create verification record: %w", err)
 	}
 
+	// send verification email
 	messageID, err := a.sendVerificationEmailWithRetry(ctx, email, username, code)
 	if err != nil {
 		return fmt.Errorf("send verification email: %w", err)
 	}
 
+	// set message id
 	err = a.userRepo.SetEmailVerificationMessageID(ctx, recordID, messageID)
 	if err != nil {
 		return fmt.Errorf("set email verification message_id: %w", err)

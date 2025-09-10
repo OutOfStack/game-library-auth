@@ -7,7 +7,6 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -21,10 +20,9 @@ import (
 // @Produce      json
 // @Param        verification body VerifyEmailReq true "Email verification code"
 // @Success      200 {object} TokenResp
-// @Failure      400 {object} web.ErrResp "Invalid input data"
+// @Failure      400 {object} web.ErrResp "Invalid or expired verification code"
 // @Failure      401 {object} web.ErrResp "Invalid or missing authorization token"
 // @Failure      404 {object} web.ErrResp "User not found"
-// @Failure      410 {object} web.ErrResp "Verification code has expired"
 // @Failure      500 {object} web.ErrResp "Internal server error"
 // @Router       /verify-email [post]
 func (a *AuthAPI) VerifyEmailHandler(c *fiber.Ctx) error {
@@ -96,7 +94,7 @@ func (a *AuthAPI) VerifyEmailHandler(c *fiber.Ctx) error {
 		if err = a.userRepo.SetEmailVerificationUsed(ctx, verification.ID, false); err != nil {
 			a.log.Error("clear expired verification", zap.Error(err))
 		}
-		return c.Status(http.StatusGone).JSON(web.ErrResp{
+		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 			Error: "Verification code has expired",
 		})
 	}
@@ -126,7 +124,7 @@ func (a *AuthAPI) VerifyEmailHandler(c *fiber.Ctx) error {
 	jwtClaims := a.auth.CreateClaims(user)
 	tokenStr, err := a.auth.GenerateToken(jwtClaims)
 	if err != nil {
-		log.Error("generating token", zap.Error(err))
+		a.log.Error("generating token", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})

@@ -23,3 +23,7 @@ app.env
 
 # ai
 thinking.md
+.claude/
+
+# certs
+*.pem

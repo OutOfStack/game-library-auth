@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -55,19 +54,6 @@ func (a *AuthAPI) ResendVerificationEmailHandler(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 			Error: "User does not have an email address",
 		})
-	}
-
-	// get verification record by user ID
-	verification, err := a.userRepo.GetEmailVerificationByUserID(ctx, user.ID)
-	if err != nil && !errors.Is(err, database.ErrNotFound) {
-		a.log.Error("get email verification", zap.Error(err))
-		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
-			Error: internalErrorMsg,
-		})
-	}
-	// mark existing verification as used
-	if err = a.userRepo.SetEmailVerificationUsed(ctx, verification.ID, false); err != nil {
-		a.log.Error("clear previous verification", zap.Error(err))
 	}
 
 	// resend verification email

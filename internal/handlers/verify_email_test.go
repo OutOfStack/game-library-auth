@@ -88,7 +88,7 @@ func TestVerifyEmailHandler(t *testing.T) {
 				mockUserRepo.EXPECT().GetEmailVerificationByUserID(gomock.Any(), userID).Return(verification, nil)
 				mockUserRepo.EXPECT().SetEmailVerificationUsed(gomock.Any(), verification.ID, false).Return(nil)
 			},
-			expectedStatus: http.StatusGone,
+			expectedStatus: http.StatusBadRequest,
 			expectedResp:   web.ErrResp{Error: "Verification code has expired"},
 		},
 		{
