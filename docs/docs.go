@@ -407,7 +407,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "User not found",
+                        "description": "Verification code is not found",
                         "schema": {
                             "$ref": "#/definitions/web.ErrResp"
                         }

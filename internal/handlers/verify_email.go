@@ -22,7 +22,7 @@ import (
 // @Success      200 {object} TokenResp
 // @Failure      400 {object} web.ErrResp "Invalid or expired verification code"
 // @Failure      401 {object} web.ErrResp "Invalid or missing authorization token"
-// @Failure      404 {object} web.ErrResp "User not found"
+// @Failure      404 {object} web.ErrResp "Verification code is not found"
 // @Failure      500 {object} web.ErrResp "Internal server error"
 // @Router       /verify-email [post]
 func (a *AuthAPI) VerifyEmailHandler(c *fiber.Ctx) error {
@@ -78,8 +78,8 @@ func (a *AuthAPI) VerifyEmailHandler(c *fiber.Ctx) error {
 	verification, err := a.userRepo.GetEmailVerificationByUserID(ctx, user.ID)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
-			return c.Status(http.StatusNotFound).JSON(web.ErrResp{
-				Error: invalidOrExpiredVrfCodeMsg,
+			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+				Error: "Verification code is not found",
 			})
 		}
 		a.log.Error("get email verification", zap.Error(err))
