@@ -12,7 +12,9 @@ CREATE TABLE email_verifications (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_email_verifications_user_id ON email_verifications(user_id, date_created DESC);
+CREATE INDEX email_verifications_user_id_pending_verification_idx
+    ON email_verifications (user_id, date_created DESC)
+    WHERE verified_at IS NULL AND verification_code IS NOT NULL;
 
 -- +migrate Down
 DROP TABLE IF EXISTS email_verifications;
