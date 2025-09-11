@@ -79,7 +79,7 @@ func (a *AuthAPI) VerifyEmailHandler(c *fiber.Ctx) error {
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
-				Error: "Verification code is not found",
+				Error: invalidOrExpiredVrfCodeMsg,
 			})
 		}
 		a.log.Error("get email verification", zap.Error(err))
