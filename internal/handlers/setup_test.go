@@ -17,7 +17,7 @@ const (
 	authErrorMsg     string = "Incorrect username or password"
 )
 
-func setupTest(t *testing.T, cfg *appconf.Cfg) (*mocks.MockAuth, *mocks.MockUserRepo, *mocks.MockGoogleTokenValidator, *handlers.AuthAPI, *fiber.App, *gomock.Controller) {
+func setupTest(t *testing.T, cfg *appconf.Cfg) (*mocks.MockAuth, *mocks.MockUserRepo, *mocks.MockGoogleTokenValidator, *mocks.MockEmailSender, *handlers.AuthAPI, *fiber.App, *gomock.Controller) {
 	t.Helper()
 
 	ctrl := gomock.NewController(t)
@@ -33,8 +33,9 @@ func setupTest(t *testing.T, cfg *appconf.Cfg) (*mocks.MockAuth, *mocks.MockUser
 			},
 		}
 	}
-	authAPI, err := handlers.NewAuthAPI(logger, cfg, mockAuth, mockUserRepo, mockGoogleTokenValidator)
+	mockEmailSender := mocks.NewMockEmailSender(ctrl)
+	authAPI, err := handlers.NewAuthAPI(logger, cfg, mockAuth, mockUserRepo, mockGoogleTokenValidator, mockEmailSender)
 	require.NoError(t, err)
 
-	return mockAuth, mockUserRepo, mockGoogleTokenValidator, authAPI, fiber.New(), ctrl
+	return mockAuth, mockUserRepo, mockGoogleTokenValidator, mockEmailSender, authAPI, fiber.New(), ctrl
 }

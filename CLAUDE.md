@@ -6,6 +6,7 @@
 ## Code Documentation
 - Write comments for all exported functions and structs
 - Do NOT use periods (`.`) at the end of comments unless there are several sentences
+- Start comments with a lower-case letter unless it's a new sentence, a title or a method/struct name
 
 # Code practices:
 - DO NOT use env variables unless it is specified, for dynamic configuring refer to previously read README.md in order to find out how configuration works
@@ -21,7 +22,7 @@
 - Run validation commands before completing work:
   - `make build` - compile the project
   - `go test -v -race ./... | grep -E "(FAIL:|RUN.*failed|panic:|error:)"` - run all tests
-  - `make lint` - check code quality
+  - `make lint` - check code quality; for gci and format errors use `goimports`
   - `make generate | grep -E "(error:|warning:|failed)"` - generate swagger files and mocks if there were updates in definitions
 - Fix any issues found by these commands
 

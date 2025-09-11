@@ -54,6 +54,11 @@ const docTemplate = `{
                 }
             },
             "patch": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Updates the profile information of a user",
                 "consumes": [
                     "application/json"
@@ -143,7 +148,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "User credentials",
                         "schema": {
                             "$ref": "#/definitions/handlers.TokenResp"
                         }
@@ -156,6 +161,52 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/resend-verification": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Resends email verification code to the user's email address",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Resend email verification code",
+                "responses": {
+                    "204": {
+                        "description": "Successfully resent verification email"
+                    },
+                    "400": {
+                        "description": "User email is already verified",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or missing authorization token",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "429": {
+                        "description": "Too many resend requests",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/web.ErrResp"
                         }
@@ -241,9 +292,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successfully registered user",
+                        "description": "User credentials",
                         "schema": {
-                            "$ref": "#/definitions/handlers.SignUpResp"
+                            "$ref": "#/definitions/handlers.TokenResp"
                         }
                     },
                     "400": {
@@ -306,6 +357,69 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/verify-email": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Verifies user email address using the code sent via email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Verify email address using verification code",
+                "parameters": [
+                    {
+                        "description": "Email verification code",
+                        "name": "verification",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.VerifyEmailReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.TokenResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or expired verification code",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or missing authorization token",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "404": {
+                        "description": "Verification code is not found",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -348,6 +462,9 @@ const docTemplate = `{
                 "confirmPassword": {
                     "type": "string"
                 },
+                "email": {
+                    "type": "string"
+                },
                 "isPublisher": {
                     "type": "boolean"
                 },
@@ -360,14 +477,6 @@ const docTemplate = `{
                     "minLength": 8
                 },
                 "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "handlers.SignUpResp": {
-            "type": "object",
-            "properties": {
-                "id": {
                     "type": "string"
                 }
             }
@@ -400,6 +509,17 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 64,
                     "minLength": 8
+                }
+            }
+        },
+        "handlers.VerifyEmailReq": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
                 }
             }
         },
@@ -449,7 +569,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.2",
+	Version:          "0.3",
 	Host:             "localhost:8001",
 	BasePath:         "/",
 	Schemes:          []string{"http"},

@@ -13,6 +13,6 @@ alter table users add constraint fk_role foreign key (role_id) references roles(
 
 -- +migrate Down
 alter table users
-drop constraint fk_role;
+    drop constraint if exists fk_role;
 
-drop table roles;
+drop table if exists roles;

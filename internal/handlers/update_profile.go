@@ -15,6 +15,7 @@ import (
 // @Summary 			Update user profile
 // @Description 		Updates the profile information of a user
 // @Tags 				auth
+// @Security     		Bearer
 // @Accept 				json
 // @Produce 			json
 // @Param 				Authorization header string true "Bearer token"
@@ -34,7 +35,7 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 	if err != nil {
 		a.log.Error("extracting user ID from JWT", zap.Error(err))
 		return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
-			Error: invalidAuthToken,
+			Error: invalidAuthTokenMsg,
 		})
 	}
 

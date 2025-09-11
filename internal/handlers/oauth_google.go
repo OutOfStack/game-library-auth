@@ -20,7 +20,7 @@ import (
 // @Accept 			  json
 // @Produce 		  json
 // @Param 			  token body GoogleOAuthRequest true "Google OAuth token"
-// @Success 		  200 {object} TokenResp
+// @Success 		  200 {object} TokenResp "User credentials"
 // @Failure 		  400 {object} web.ErrResp
 // @Failure 		  401 {object} web.ErrResp
 // @Router 			  /oauth/google [post]
@@ -64,6 +64,7 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 
 		user = database.NewUser(username, "", nil, database.UserRoleName)
 		user.SetOAuthID(auth.GoogleAuthTokenProvider, claims.Sub)
+		user.SetEmail(claims.Email, true)
 
 		// create user
 		if err = a.userRepo.CreateUser(ctx, user); err != nil {

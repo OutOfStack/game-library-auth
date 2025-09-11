@@ -52,7 +52,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 					AnyTimes()
 
 				user := database.User{
-					ID:          uuid.MustParse(userID),
+					ID:          userID,
 					Username:    "testuser",
 					DisplayName: "Old DisplayName",
 				}
@@ -99,7 +99,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 
 				passwordHash, _ := bcrypt.GenerateFromPassword([]byte(oldPassword), bcrypt.MinCost)
 				user := database.User{
-					ID:           uuid.MustParse(userID),
+					ID:           userID,
 					Username:     "testuser",
 					PasswordHash: passwordHash,
 				}
@@ -166,7 +166,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 
 				passwordHash, _ := bcrypt.GenerateFromPassword([]byte("differentpassword"), bcrypt.MinCost)
 				user := database.User{
-					ID:           uuid.MustParse(userID),
+					ID:           userID,
 					Username:     "testuser",
 					PasswordHash: passwordHash,
 				}
@@ -195,7 +195,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 					AnyTimes()
 
 				user := database.User{
-					ID:       uuid.MustParse(userID),
+					ID:       userID,
 					Username: "testuser",
 				}
 
@@ -240,7 +240,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, mockUserRepo, _, authAPI, app, ctrl := setupTest(t, nil)
+			mockAuth, mockUserRepo, _, _, authAPI, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {

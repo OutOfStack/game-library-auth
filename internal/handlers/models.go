@@ -1,16 +1,25 @@
 package handlers
 
 import (
-	"github.com/google/uuid"
+	"errors"
+	"time"
 )
 
 const (
-	internalErrorMsg   string = "Internal error"
-	validationErrorMsg string = "Validation error"
-	authErrorMsg       string = "Incorrect username or password"
-	invalidAuthToken   string = "Invalid or missing authorization token"
+	internalErrorMsg           = "Internal error"
+	validationErrorMsg         = "Validation error"
+	authErrorMsg               = "Incorrect username or password"
+	invalidAuthTokenMsg        = "Invalid or missing authorization token"
+	invalidOrExpiredVrfCodeMsg = "Invalid or expired verification code"
 
 	maxUsernameLen = 32
+
+	verificationCodeTTL            = 24 * time.Hour
+	resendVerificationCodeCooldown = 60 * time.Second
+)
+
+var (
+	errTooManyRequests = errors.New("too many requests")
 )
 
 // SignInReq represents user sign in request
@@ -28,14 +37,10 @@ type TokenResp struct {
 type SignUpReq struct {
 	Username        string `json:"username" validate:"required"`
 	DisplayName     string `json:"name" validate:"required"`
+	Email           string `json:"email" validate:"omitempty,email"`
 	Password        string `json:"password" validate:"required,min=8,max=64"`
 	ConfirmPassword string `json:"confirmPassword" validate:"eqfield=Password"`
 	IsPublisher     bool   `json:"isPublisher"`
-}
-
-// SignUpResp represents sign up response
-type SignUpResp struct {
-	ID uuid.UUID `json:"id"`
 }
 
 // UpdateProfileReq represents update profile request
@@ -54,6 +59,11 @@ type VerifyTokenReq struct {
 // VerifyTokenResp represents verify JWT response
 type VerifyTokenResp struct {
 	Valid bool `json:"valid"`
+}
+
+// VerifyEmailReq represents email verification request with 6-digit code
+type VerifyEmailReq struct {
+	Code string `json:"code" validate:"required,len=6"`
 }
 
 // GoogleOAuthRequest represents Google OAuth request

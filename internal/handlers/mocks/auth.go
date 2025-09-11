@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	auth "github.com/OutOfStack/game-library-auth/internal/auth"
+	mailersend "github.com/OutOfStack/game-library-auth/internal/client/mailersend"
 	database "github.com/OutOfStack/game-library-auth/internal/database"
 	jwt "github.com/golang-jwt/jwt/v4"
 	gomock "go.uber.org/mock/gomock"
@@ -59,6 +60,20 @@ func (mr *MockUserRepoMockRecorder) CheckUserExists(ctx, name, role any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckUserExists", reflect.TypeOf((*MockUserRepo)(nil).CheckUserExists), ctx, name, role)
 }
 
+// CreateEmailVerification mocks base method.
+func (m *MockUserRepo) CreateEmailVerification(ctx context.Context, verification database.EmailVerification) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateEmailVerification", ctx, verification)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateEmailVerification indicates an expected call of CreateEmailVerification.
+func (mr *MockUserRepoMockRecorder) CreateEmailVerification(ctx, verification any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEmailVerification", reflect.TypeOf((*MockUserRepo)(nil).CreateEmailVerification), ctx, verification)
+}
+
 // CreateUser mocks base method.
 func (m *MockUserRepo) CreateUser(ctx context.Context, user database.User) error {
 	m.ctrl.T.Helper()
@@ -85,6 +100,36 @@ func (m *MockUserRepo) DeleteUser(ctx context.Context, userID string) error {
 func (mr *MockUserRepoMockRecorder) DeleteUser(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockUserRepo)(nil).DeleteUser), ctx, userID)
+}
+
+// GetEmailVerificationByUserID mocks base method.
+func (m *MockUserRepo) GetEmailVerificationByUserID(ctx context.Context, userID string) (database.EmailVerification, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEmailVerificationByUserID", ctx, userID)
+	ret0, _ := ret[0].(database.EmailVerification)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEmailVerificationByUserID indicates an expected call of GetEmailVerificationByUserID.
+func (mr *MockUserRepoMockRecorder) GetEmailVerificationByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEmailVerificationByUserID", reflect.TypeOf((*MockUserRepo)(nil).GetEmailVerificationByUserID), ctx, userID)
+}
+
+// GetUserByEmail mocks base method.
+func (m *MockUserRepo) GetUserByEmail(ctx context.Context, email string) (database.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserByEmail", ctx, email)
+	ret0, _ := ret[0].(database.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserByEmail indicates an expected call of GetUserByEmail.
+func (mr *MockUserRepoMockRecorder) GetUserByEmail(ctx, email any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByEmail", reflect.TypeOf((*MockUserRepo)(nil).GetUserByEmail), ctx, email)
 }
 
 // GetUserByID mocks base method.
@@ -130,6 +175,48 @@ func (m *MockUserRepo) GetUserByUsername(ctx context.Context, username string) (
 func (mr *MockUserRepoMockRecorder) GetUserByUsername(ctx, username any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByUsername", reflect.TypeOf((*MockUserRepo)(nil).GetUserByUsername), ctx, username)
+}
+
+// SetEmailVerificationMessageID mocks base method.
+func (m *MockUserRepo) SetEmailVerificationMessageID(ctx context.Context, verificationID, messageID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetEmailVerificationMessageID", ctx, verificationID, messageID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetEmailVerificationMessageID indicates an expected call of SetEmailVerificationMessageID.
+func (mr *MockUserRepoMockRecorder) SetEmailVerificationMessageID(ctx, verificationID, messageID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEmailVerificationMessageID", reflect.TypeOf((*MockUserRepo)(nil).SetEmailVerificationMessageID), ctx, verificationID, messageID)
+}
+
+// SetEmailVerificationUsed mocks base method.
+func (m *MockUserRepo) SetEmailVerificationUsed(ctx context.Context, id string, verified bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetEmailVerificationUsed", ctx, id, verified)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetEmailVerificationUsed indicates an expected call of SetEmailVerificationUsed.
+func (mr *MockUserRepoMockRecorder) SetEmailVerificationUsed(ctx, id, verified any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEmailVerificationUsed", reflect.TypeOf((*MockUserRepo)(nil).SetEmailVerificationUsed), ctx, id, verified)
+}
+
+// SetUserEmailVerified mocks base method.
+func (m *MockUserRepo) SetUserEmailVerified(ctx context.Context, userID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetUserEmailVerified", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetUserEmailVerified indicates an expected call of SetUserEmailVerified.
+func (mr *MockUserRepoMockRecorder) SetUserEmailVerified(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUserEmailVerified", reflect.TypeOf((*MockUserRepo)(nil).SetUserEmailVerified), ctx, userID)
 }
 
 // UpdateUser mocks base method.
@@ -251,4 +338,43 @@ func (m *MockGoogleTokenValidator) Validate(ctx context.Context, idToken, audien
 func (mr *MockGoogleTokenValidatorMockRecorder) Validate(ctx, idToken, audience any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockGoogleTokenValidator)(nil).Validate), ctx, idToken, audience)
+}
+
+// MockEmailSender is a mock of EmailSender interface.
+type MockEmailSender struct {
+	ctrl     *gomock.Controller
+	recorder *MockEmailSenderMockRecorder
+	isgomock struct{}
+}
+
+// MockEmailSenderMockRecorder is the mock recorder for MockEmailSender.
+type MockEmailSenderMockRecorder struct {
+	mock *MockEmailSender
+}
+
+// NewMockEmailSender creates a new mock instance.
+func NewMockEmailSender(ctrl *gomock.Controller) *MockEmailSender {
+	mock := &MockEmailSender{ctrl: ctrl}
+	mock.recorder = &MockEmailSenderMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockEmailSender) EXPECT() *MockEmailSenderMockRecorder {
+	return m.recorder
+}
+
+// SendEmailVerification mocks base method.
+func (m *MockEmailSender) SendEmailVerification(ctx context.Context, req mailersend.SendEmailVerificationRequest) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendEmailVerification", ctx, req)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SendEmailVerification indicates an expected call of SendEmailVerification.
+func (mr *MockEmailSenderMockRecorder) SendEmailVerification(ctx, req any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendEmailVerification", reflect.TypeOf((*MockEmailSender)(nil).SendEmailVerification), ctx, req)
 }

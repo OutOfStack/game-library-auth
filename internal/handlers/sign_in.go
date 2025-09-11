@@ -69,6 +69,13 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 		})
 	}
 
+	// send verification code to email if user has unverified email
+	if usr.Email.Valid && !usr.EmailVerified {
+		if err = a.sendVerificationEmail(ctx, usr.ID, usr.Email.String, usr.Username); err != nil {
+			log.Error("sending verification email on signin", zap.Error(err))
+		}
+	}
+
 	// create claims
 	claims := a.auth.CreateClaims(usr)
 
