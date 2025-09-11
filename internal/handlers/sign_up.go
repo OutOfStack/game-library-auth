@@ -155,7 +155,7 @@ func (a *AuthAPI) sendVerificationEmail(ctx context.Context, userID uuid.UUID, e
 	}
 
 	// create new verification record
-	recordID, code, err := a.createEmailVerificationRecord(ctx, userID, email)
+	recordID, code, err := a.createEmailVerificationRecord(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("create verification record: %w", err)
 	}
@@ -176,7 +176,7 @@ func (a *AuthAPI) sendVerificationEmail(ctx context.Context, userID uuid.UUID, e
 }
 
 // createEmailVerificationRecord creates a new email verification record and returns verification record id and code
-func (a *AuthAPI) createEmailVerificationRecord(ctx context.Context, userID uuid.UUID, email string) (uuid.UUID, string, error) {
+func (a *AuthAPI) createEmailVerificationRecord(ctx context.Context, userID uuid.UUID) (uuid.UUID, string, error) {
 	code, err := generate6DigitCode()
 	if err != nil {
 		return uuid.Nil, "", fmt.Errorf("generate verification code: %w", err)
