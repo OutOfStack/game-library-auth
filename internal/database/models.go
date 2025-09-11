@@ -70,7 +70,6 @@ func (u *User) SetEmail(email string, verified bool) {
 type EmailVerification struct {
 	ID          uuid.UUID      `db:"id"`
 	UserID      uuid.UUID      `db:"user_id"`
-	Email       string         `db:"email"`
 	CodeHash    sql.NullString `db:"verification_code"`
 	ExpiresAt   time.Time      `db:"expires_at"`
 	MessageID   sql.NullString `db:"message_id"`
@@ -78,11 +77,10 @@ type EmailVerification struct {
 }
 
 // NewEmailVerification creates a new email verification record
-func NewEmailVerification(userID uuid.UUID, email, codeHash string, expiresAt time.Time) EmailVerification {
+func NewEmailVerification(userID uuid.UUID, codeHash string, expiresAt time.Time) EmailVerification {
 	return EmailVerification{
 		ID:        uuid.New(),
 		UserID:    userID,
-		Email:     email,
 		CodeHash:  sql.NullString{String: codeHash, Valid: codeHash != ""},
 		ExpiresAt: expiresAt,
 	}

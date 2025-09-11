@@ -48,10 +48,10 @@ func TestVerifyEmailHandler(t *testing.T) {
 				user.SetEmail("test@example.com", false)
 				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID.String()).Return(user, nil)
 
-				verification := database.NewEmailVerification(userID, "test@example.com", string(codeHash), time.Now().Add(1*time.Hour))
+				verification := database.NewEmailVerification(userID, string(codeHash), time.Now().Add(1*time.Hour))
 				mockUserRepo.EXPECT().GetEmailVerificationByUserID(gomock.Any(), userID).Return(verification, nil)
 
-				mockUserRepo.EXPECT().UpdateUserEmail(gomock.Any(), userID, "test@example.com", true).Return(nil)
+				mockUserRepo.EXPECT().SetUserEmailVerified(gomock.Any(), userID).Return(nil)
 				mockUserRepo.EXPECT().SetEmailVerificationUsed(gomock.Any(), verification.ID, true).Return(nil)
 
 				mockAuth.EXPECT().CreateClaims(gomock.Any()).Return(jwt.MapClaims{})
@@ -84,7 +84,7 @@ func TestVerifyEmailHandler(t *testing.T) {
 				user.SetEmail("test@example.com", false)
 				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID.String()).Return(user, nil)
 
-				verification := database.NewEmailVerification(userID, "test@example.com", string(codeHash), time.Now().Add(-1*time.Hour))
+				verification := database.NewEmailVerification(userID, string(codeHash), time.Now().Add(-1*time.Hour))
 				mockUserRepo.EXPECT().GetEmailVerificationByUserID(gomock.Any(), userID).Return(verification, nil)
 				mockUserRepo.EXPECT().SetEmailVerificationUsed(gomock.Any(), verification.ID, false).Return(nil)
 			},

@@ -177,18 +177,18 @@ func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (User, erro
 	return user, nil
 }
 
-// UpdateUserEmail updates user email and verification status
-func (r *UserRepo) UpdateUserEmail(ctx context.Context, userID uuid.UUID, email string, verified bool) error {
-	ctx, span := tracer.Start(ctx, "updateUserEmail")
+// SetUserEmailVerified sets user email as verified
+func (r *UserRepo) SetUserEmailVerified(ctx context.Context, userID uuid.UUID) error {
+	ctx, span := tracer.Start(ctx, "setUserEmailVerified")
 	defer span.End()
 
 	const q = `UPDATE users
-        SET email = $2, email_verified = $3, date_updated = NOW()
+        SET email_verified = TRUE, date_updated = NOW()
         WHERE id = $1`
 
-	_, err := r.db.ExecContext(ctx, q, userID, email, verified)
+	_, err := r.db.ExecContext(ctx, q, userID)
 	if err != nil {
-		return fmt.Errorf("update user email: %w", err)
+		return fmt.Errorf("set user email verified: %w", err)
 	}
 
 	return nil

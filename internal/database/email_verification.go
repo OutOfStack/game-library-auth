@@ -16,10 +16,10 @@ func (r *UserRepo) CreateEmailVerification(ctx context.Context, verification Ema
 	defer span.End()
 
 	const q = `INSERT INTO email_verifications
-        (id, user_id, email, verification_code, expires_at, date_created)
-        VALUES ($1, $2, $3, $4, $5, NOW())`
+        (id, user_id, verification_code, expires_at, date_created)
+        VALUES ($1, $2, $3, $4, NOW())`
 
-	_, err := r.db.ExecContext(ctx, q, verification.ID, verification.UserID, verification.Email, verification.CodeHash, verification.ExpiresAt)
+	_, err := r.db.ExecContext(ctx, q, verification.ID, verification.UserID, verification.CodeHash, verification.ExpiresAt)
 	if err != nil {
 		return fmt.Errorf("insert email verification: %w", err)
 	}
@@ -32,7 +32,7 @@ func (r *UserRepo) GetEmailVerificationByUserID(ctx context.Context, userID uuid
 	ctx, span := tracer.Start(ctx, "getEmailVerificationByUserID")
 	defer span.End()
 
-	const q = `SELECT id, user_id, email, verification_code, expires_at, message_id, date_created
+	const q = `SELECT id, user_id, verification_code, expires_at, message_id, date_created
         FROM email_verifications
         WHERE user_id = $1 AND verified_at IS NULL AND verification_code IS NOT NULL
         ORDER BY date_created DESC

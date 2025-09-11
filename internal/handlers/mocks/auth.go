@@ -206,6 +206,20 @@ func (mr *MockUserRepoMockRecorder) SetEmailVerificationUsed(ctx, id, verified a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEmailVerificationUsed", reflect.TypeOf((*MockUserRepo)(nil).SetEmailVerificationUsed), ctx, id, verified)
 }
 
+// SetUserEmailVerified mocks base method.
+func (m *MockUserRepo) SetUserEmailVerified(ctx context.Context, userID uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetUserEmailVerified", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetUserEmailVerified indicates an expected call of SetUserEmailVerified.
+func (mr *MockUserRepoMockRecorder) SetUserEmailVerified(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUserEmailVerified", reflect.TypeOf((*MockUserRepo)(nil).SetUserEmailVerified), ctx, userID)
+}
+
 // UpdateUser mocks base method.
 func (m *MockUserRepo) UpdateUser(ctx context.Context, user database.User) error {
 	m.ctrl.T.Helper()
@@ -218,20 +232,6 @@ func (m *MockUserRepo) UpdateUser(ctx context.Context, user database.User) error
 func (mr *MockUserRepoMockRecorder) UpdateUser(ctx, user any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockUserRepo)(nil).UpdateUser), ctx, user)
-}
-
-// UpdateUserEmail mocks base method.
-func (m *MockUserRepo) UpdateUserEmail(ctx context.Context, userID uuid.UUID, email string, verified bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUserEmail", ctx, userID, email, verified)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateUserEmail indicates an expected call of UpdateUserEmail.
-func (mr *MockUserRepoMockRecorder) UpdateUserEmail(ctx, userID, email, verified any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserEmail", reflect.TypeOf((*MockUserRepo)(nil).UpdateUserEmail), ctx, userID, email, verified)
 }
 
 // MockAuth is a mock of Auth interface.

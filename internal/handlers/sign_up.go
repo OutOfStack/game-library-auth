@@ -189,7 +189,7 @@ func (a *AuthAPI) createEmailVerificationRecord(ctx context.Context, userID uuid
 	}
 
 	expiresAt := time.Now().Add(verificationCodeTTL)
-	verification := database.NewEmailVerification(userID, email, string(codeHash), expiresAt)
+	verification := database.NewEmailVerification(userID, string(codeHash), expiresAt)
 
 	if err = a.userRepo.CreateEmailVerification(ctx, verification); err != nil {
 		return uuid.Nil, "", err

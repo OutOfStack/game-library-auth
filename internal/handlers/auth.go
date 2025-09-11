@@ -24,7 +24,7 @@ type UserRepo interface {
 	GetUserByEmail(ctx context.Context, email string) (database.User, error)
 	GetUserByOAuth(ctx context.Context, provider string, oauthID string) (database.User, error)
 	CheckUserExists(ctx context.Context, name string, role database.Role) (bool, error)
-	UpdateUserEmail(ctx context.Context, userID uuid.UUID, email string, verified bool) error
+	SetUserEmailVerified(ctx context.Context, userID uuid.UUID) error
 
 	CreateEmailVerification(ctx context.Context, verification database.EmailVerification) error
 	GetEmailVerificationByUserID(ctx context.Context, userID uuid.UUID) (database.EmailVerification, error)

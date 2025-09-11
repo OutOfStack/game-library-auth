@@ -2,7 +2,6 @@
 CREATE TABLE email_verifications (
     id                  UUID DEFAULT gen_random_uuid(),
     user_id             UUID NOT NULL,
-    email               VARCHAR(255) NOT NULL,
     verification_code   VARCHAR(64),
     expires_at          TIMESTAMP NOT NULL,
     message_id          VARCHAR(64),
