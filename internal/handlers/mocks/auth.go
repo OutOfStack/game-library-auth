@@ -17,7 +17,6 @@ import (
 	mailersend "github.com/OutOfStack/game-library-auth/internal/client/mailersend"
 	database "github.com/OutOfStack/game-library-auth/internal/database"
 	jwt "github.com/golang-jwt/jwt/v4"
-	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
 	idtoken "google.golang.org/api/idtoken"
 )
@@ -104,7 +103,7 @@ func (mr *MockUserRepoMockRecorder) DeleteUser(ctx, userID any) *gomock.Call {
 }
 
 // GetEmailVerificationByUserID mocks base method.
-func (m *MockUserRepo) GetEmailVerificationByUserID(ctx context.Context, userID uuid.UUID) (database.EmailVerification, error) {
+func (m *MockUserRepo) GetEmailVerificationByUserID(ctx context.Context, userID string) (database.EmailVerification, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEmailVerificationByUserID", ctx, userID)
 	ret0, _ := ret[0].(database.EmailVerification)
@@ -179,7 +178,7 @@ func (mr *MockUserRepoMockRecorder) GetUserByUsername(ctx, username any) *gomock
 }
 
 // SetEmailVerificationMessageID mocks base method.
-func (m *MockUserRepo) SetEmailVerificationMessageID(ctx context.Context, verificationID uuid.UUID, messageID string) error {
+func (m *MockUserRepo) SetEmailVerificationMessageID(ctx context.Context, verificationID, messageID string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetEmailVerificationMessageID", ctx, verificationID, messageID)
 	ret0, _ := ret[0].(error)
@@ -193,7 +192,7 @@ func (mr *MockUserRepoMockRecorder) SetEmailVerificationMessageID(ctx, verificat
 }
 
 // SetEmailVerificationUsed mocks base method.
-func (m *MockUserRepo) SetEmailVerificationUsed(ctx context.Context, id uuid.UUID, verified bool) error {
+func (m *MockUserRepo) SetEmailVerificationUsed(ctx context.Context, id string, verified bool) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetEmailVerificationUsed", ctx, id, verified)
 	ret0, _ := ret[0].(error)
@@ -207,7 +206,7 @@ func (mr *MockUserRepoMockRecorder) SetEmailVerificationUsed(ctx, id, verified a
 }
 
 // SetUserEmailVerified mocks base method.
-func (m *MockUserRepo) SetUserEmailVerified(ctx context.Context, userID uuid.UUID) error {
+func (m *MockUserRepo) SetUserEmailVerified(ctx context.Context, userID string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetUserEmailVerified", ctx, userID)
 	ret0, _ := ret[0].(error)

@@ -77,16 +77,13 @@ func extractUsernameFromEmail(email string) (string, error) {
 }
 
 // generate6DigitCode generates a secure random 6-digit verification code
-func generate6DigitCode() (string, error) {
+func generate6DigitCode() string {
 	const codeLength = 6
-	const maxVal = 9
+	const maxVal = 10
 	var code string
 	for range codeLength {
-		n, err := rand.Int(rand.Reader, big.NewInt(maxVal))
-		if err != nil {
-			return "", fmt.Errorf("generate random digit: %w", err)
-		}
+		n, _ := rand.Int(rand.Reader, big.NewInt(maxVal))
 		code += n.String()
 	}
-	return code, nil
+	return code
 }

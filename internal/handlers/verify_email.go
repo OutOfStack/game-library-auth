@@ -111,7 +111,7 @@ func (a *AuthAPI) VerifyEmailHandler(c *fiber.Ctx) error {
 
 	// update user email and mark as verified
 	if err = a.userRepo.SetUserEmailVerified(ctx, verification.UserID); err != nil {
-		a.log.Error("update user email", zap.String("userID", verification.UserID.String()), zap.Error(err))
+		a.log.Error("update user email", zap.String("userID", verification.UserID), zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})

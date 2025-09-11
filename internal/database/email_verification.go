@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // CreateEmailVerification creates a new email verification record
@@ -28,7 +26,7 @@ func (r *UserRepo) CreateEmailVerification(ctx context.Context, verification Ema
 }
 
 // GetEmailVerificationByUserID gets email verification by user ID (most recent unused)
-func (r *UserRepo) GetEmailVerificationByUserID(ctx context.Context, userID uuid.UUID) (EmailVerification, error) {
+func (r *UserRepo) GetEmailVerificationByUserID(ctx context.Context, userID string) (EmailVerification, error) {
 	ctx, span := tracer.Start(ctx, "getEmailVerificationByUserID")
 	defer span.End()
 
@@ -49,7 +47,7 @@ func (r *UserRepo) GetEmailVerificationByUserID(ctx context.Context, userID uuid
 }
 
 // SetEmailVerificationMessageID sets the message_id for an email verification record
-func (r *UserRepo) SetEmailVerificationMessageID(ctx context.Context, id uuid.UUID, messageID string) error {
+func (r *UserRepo) SetEmailVerificationMessageID(ctx context.Context, id string, messageID string) error {
 	ctx, span := tracer.Start(ctx, "setEmailVerificationMessageID")
 	defer span.End()
 
@@ -64,7 +62,7 @@ func (r *UserRepo) SetEmailVerificationMessageID(ctx context.Context, id uuid.UU
 }
 
 // SetEmailVerificationUsed sets email verification as used by clearing code hash and optionally setting verified_at
-func (r *UserRepo) SetEmailVerificationUsed(ctx context.Context, id uuid.UUID, verified bool) error {
+func (r *UserRepo) SetEmailVerificationUsed(ctx context.Context, id string, verified bool) error {
 	ctx, span := tracer.Start(ctx, "setEmailVerificationUsed")
 	defer span.End()
 

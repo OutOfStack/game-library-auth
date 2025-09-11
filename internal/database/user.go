@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"go.opentelemetry.io/otel"
@@ -178,7 +177,7 @@ func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (User, erro
 }
 
 // SetUserEmailVerified sets user email as verified
-func (r *UserRepo) SetUserEmailVerified(ctx context.Context, userID uuid.UUID) error {
+func (r *UserRepo) SetUserEmailVerified(ctx context.Context, userID string) error {
 	ctx, span := tracer.Start(ctx, "setUserEmailVerified")
 	defer span.End()
 

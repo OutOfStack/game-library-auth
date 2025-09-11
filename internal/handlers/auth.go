@@ -9,7 +9,6 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/client/mailersend"
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"google.golang.org/api/idtoken"
 )
@@ -24,12 +23,12 @@ type UserRepo interface {
 	GetUserByEmail(ctx context.Context, email string) (database.User, error)
 	GetUserByOAuth(ctx context.Context, provider string, oauthID string) (database.User, error)
 	CheckUserExists(ctx context.Context, name string, role database.Role) (bool, error)
-	SetUserEmailVerified(ctx context.Context, userID uuid.UUID) error
+	SetUserEmailVerified(ctx context.Context, userID string) error
 
 	CreateEmailVerification(ctx context.Context, verification database.EmailVerification) error
-	GetEmailVerificationByUserID(ctx context.Context, userID uuid.UUID) (database.EmailVerification, error)
-	SetEmailVerificationMessageID(ctx context.Context, verificationID uuid.UUID, messageID string) error
-	SetEmailVerificationUsed(ctx context.Context, id uuid.UUID, verified bool) error
+	GetEmailVerificationByUserID(ctx context.Context, userID string) (database.EmailVerification, error)
+	SetEmailVerificationMessageID(ctx context.Context, verificationID string, messageID string) error
+	SetEmailVerificationUsed(ctx context.Context, id string, verified bool) error
 }
 
 // Auth provides authentication methods

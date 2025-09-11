@@ -12,7 +12,6 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -131,7 +130,7 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 }
 
 // sendVerificationEmail sends verification email. Returns errTooManyRequests if email was sent recently
-func (a *AuthAPI) sendVerificationEmail(ctx context.Context, userID uuid.UUID, email, username string) error {
+func (a *AuthAPI) sendVerificationEmail(ctx context.Context, userID string, email, username string) error {
 	if a.disableEmailSender {
 		return nil
 	}
@@ -176,23 +175,20 @@ func (a *AuthAPI) sendVerificationEmail(ctx context.Context, userID uuid.UUID, e
 }
 
 // createEmailVerificationRecord creates a new email verification record and returns verification record id and code
-func (a *AuthAPI) createEmailVerificationRecord(ctx context.Context, userID uuid.UUID) (uuid.UUID, string, error) {
-	code, err := generate6DigitCode()
-	if err != nil {
-		return uuid.Nil, "", fmt.Errorf("generate verification code: %w", err)
-	}
+func (a *AuthAPI) createEmailVerificationRecord(ctx context.Context, userID string) (string, string, error) {
+	code := generate6DigitCode()
 
 	// hash the code
 	codeHash, err := bcrypt.GenerateFromPassword([]byte(code), bcrypt.DefaultCost)
 	if err != nil {
-		return uuid.Nil, "", fmt.Errorf("hash verification code: %w", err)
+		return "", "", fmt.Errorf("hash verification code: %w", err)
 	}
 
 	expiresAt := time.Now().Add(verificationCodeTTL)
 	verification := database.NewEmailVerification(userID, string(codeHash), expiresAt)
 
 	if err = a.userRepo.CreateEmailVerification(ctx, verification); err != nil {
-		return uuid.Nil, "", err
+		return "", "", err
 	}
 
 	return verification.ID, code, nil

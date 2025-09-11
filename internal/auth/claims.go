@@ -27,13 +27,13 @@ func (a *Auth) CreateClaims(user database.User) jwt.Claims {
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    a.claimsIssuer,
-			Subject:   user.ID.String(),
+			Subject:   user.ID,
 			Audience:  jwt.ClaimStrings{"game_lib_svc"},
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(360 * time.Hour)),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
-		UserID:        user.ID.String(),
+		UserID:        user.ID,
 		UserRole:      string(user.Role),
 		Username:      user.Username,
 		Name:          user.DisplayName,

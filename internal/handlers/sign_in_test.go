@@ -44,7 +44,7 @@ func TestSignInHandler(t *testing.T) {
 
 				mockAuth.EXPECT().
 					CreateClaims(gomock.Eq(user)).
-					Return(jwt.MapClaims{"sub": user.ID.String()})
+					Return(jwt.MapClaims{"sub": user.ID})
 
 				mockAuth.EXPECT().
 					GenerateToken(gomock.Any()).
@@ -122,7 +122,7 @@ func TestSignInHandler(t *testing.T) {
 
 				mockAuth.EXPECT().
 					CreateClaims(gomock.Eq(user)).
-					Return(jwt.MapClaims{"sub": user.ID.String()})
+					Return(jwt.MapClaims{"sub": user.ID})
 
 				mockAuth.EXPECT().
 					GenerateToken(gomock.Any()).

@@ -21,7 +21,7 @@ import (
 const invalidAuthToken = "Invalid or missing authorization token"
 
 func TestResendVerificationEmailHandler(t *testing.T) {
-	userID := uuid.New()
+	userID := uuid.New().String()
 
 	tests := []struct {
 		name                     string
@@ -36,15 +36,15 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 			authHeader:               "Bearer valid-token",
 			emailVerificationEnabled: true,
 			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo, mockEmailSender *mocks.MockEmailSender) {
-				claims := auth.Claims{UserID: userID.String()}
+				claims := auth.Claims{UserID: userID}
 				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
 
 				user := database.User{ID: userID, Username: "testuser"}
 				user.SetEmail("test@example.com", false)
-				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID.String()).Return(user, nil)
+				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID).Return(user, nil)
 
 				// Mock the verification flow
-				verification := database.EmailVerification{ID: uuid.New()}
+				verification := database.EmailVerification{ID: uuid.New().String()}
 				mockUserRepo.EXPECT().GetEmailVerificationByUserID(gomock.Any(), userID).Return(verification, nil).AnyTimes()
 				mockUserRepo.EXPECT().SetEmailVerificationUsed(gomock.Any(), verification.ID, false).Return(nil).AnyTimes()
 				mockUserRepo.EXPECT().CreateEmailVerification(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -59,12 +59,12 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 			authHeader:               "Bearer valid-token",
 			emailVerificationEnabled: true,
 			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo, _ *mocks.MockEmailSender) {
-				claims := auth.Claims{UserID: userID.String()}
+				claims := auth.Claims{UserID: userID}
 				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
 
 				user := database.User{ID: userID, Username: "testuser"}
 				user.SetEmail("test@example.com", true)
-				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID.String()).Return(user, nil)
+				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID).Return(user, nil)
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedResp:   web.ErrResp{Error: "Email is already verified"},
@@ -80,10 +80,10 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 			authHeader:               "Bearer valid-token",
 			emailVerificationEnabled: true,
 			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo, _ *mocks.MockEmailSender) {
-				claims := auth.Claims{UserID: userID.String()}
+				claims := auth.Claims{UserID: userID}
 				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
 
-				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID.String()).Return(database.User{}, database.ErrNotFound)
+				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID).Return(database.User{}, database.ErrNotFound)
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedResp:   web.ErrResp{Error: internalErrorMsg},
@@ -93,12 +93,12 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 			authHeader:               "Bearer valid-token",
 			emailVerificationEnabled: true,
 			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo, _ *mocks.MockEmailSender) {
-				claims := auth.Claims{UserID: userID.String()}
+				claims := auth.Claims{UserID: userID}
 				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
 
 				user := database.User{ID: userID, Username: "testuser"}
 				// User has no email set (Email.Valid is false)
-				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID.String()).Return(user, nil)
+				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID).Return(user, nil)
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedResp:   web.ErrResp{Error: "User does not have an email address"},
@@ -108,14 +108,14 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 			authHeader:               "Bearer valid-token",
 			emailVerificationEnabled: true,
 			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo, mockEmailSender *mocks.MockEmailSender) {
-				claims := auth.Claims{UserID: userID.String()}
+				claims := auth.Claims{UserID: userID}
 				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
 
 				user := database.User{ID: userID, Username: "testuser"}
 				user.SetEmail("test@example.com", false)
-				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID.String()).Return(user, nil)
+				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID).Return(user, nil)
 
-				verification := database.EmailVerification{ID: uuid.New()}
+				verification := database.EmailVerification{ID: uuid.New().String()}
 				mockUserRepo.EXPECT().GetEmailVerificationByUserID(gomock.Any(), userID).Return(verification, nil).AnyTimes()
 				mockUserRepo.EXPECT().SetEmailVerificationUsed(gomock.Any(), verification.ID, false).Return(nil).AnyTimes()
 				mockUserRepo.EXPECT().CreateEmailVerification(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -129,10 +129,10 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 			authHeader:               "Bearer valid-token",
 			emailVerificationEnabled: true,
 			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo, _ *mocks.MockEmailSender) {
-				claims := auth.Claims{UserID: userID.String()}
+				claims := auth.Claims{UserID: userID}
 				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
 
-				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID.String()).Return(database.User{}, errors.New("database connection failed"))
+				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID).Return(database.User{}, errors.New("database connection failed"))
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedResp:   web.ErrResp{Error: internalErrorMsg},
