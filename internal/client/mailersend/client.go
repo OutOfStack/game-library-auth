@@ -139,8 +139,13 @@ func (c *Client) SendEmailVerification(ctx context.Context, req SendEmailVerific
 
 // fillTemplate fills template placeholders
 func (c *Client) fillTemplate(tmpl *template.Template, req SendEmailVerificationRequest) (string, error) {
+	sanitizedReq := SendEmailVerificationRequest{
+		Email:            template.HTMLEscapeString(req.Email),
+		Username:         template.HTMLEscapeString(req.Username),
+		VerificationCode: req.VerificationCode,
+	}
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, req); err != nil {
+	if err := tmpl.Execute(&buf, sanitizedReq); err != nil {
 		return "", fmt.Errorf("execute template: %w", err)
 	}
 
