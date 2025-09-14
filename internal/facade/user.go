@@ -18,7 +18,7 @@ import (
 func (p *Provider) SignUp(ctx context.Context, username, displayName, email, password string, isPublisher bool) (model.User, error) {
 	// check if user exists
 	if _, err := p.userRepo.GetUserByUsername(ctx, username); err == nil {
-		return model.User{}, SignUpUsernameExistsErr
+		return model.User{}, ErrSignUpUsernameExists
 	} else if !errors.Is(err, database.ErrNotFound) {
 		p.log.Error("check username exists", zap.String("username", username), zap.Error(err))
 		return model.User{}, err
@@ -33,7 +33,7 @@ func (p *Provider) SignUp(ctx context.Context, username, displayName, email, pas
 			return model.User{}, err
 		}
 		if exists {
-			return model.User{}, SignUpPublisherNameExistsErr
+			return model.User{}, ErrSignUpPublisherNameExists
 		}
 		userRole = database.PublisherRoleName
 	}
@@ -54,7 +54,7 @@ func (p *Provider) SignUp(ctx context.Context, username, displayName, email, pas
 	if err = p.userRepo.CreateUser(ctx, usr); err != nil {
 		p.log.Error("create user", zap.String("username", username), zap.Error(err))
 		if errors.Is(err, database.ErrUsernameExists) {
-			return model.User{}, SignUpUsernameExistsErr
+			return model.User{}, ErrSignUpUsernameExists
 		}
 		return model.User{}, err
 	}
@@ -75,7 +75,7 @@ func (p *Provider) SignIn(ctx context.Context, username, password string) (model
 	usr, err := p.userRepo.GetUserByUsername(ctx, username)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
-			return model.User{}, SignInInvalidCredentialsErr
+			return model.User{}, ErrSignInInvalidCredentials
 		}
 		p.log.Error("get user by username", zap.String("username", username), zap.Error(err))
 		return model.User{}, err
@@ -83,7 +83,7 @@ func (p *Provider) SignIn(ctx context.Context, username, password string) (model
 
 	// check password
 	if err = bcrypt.CompareHashAndPassword(usr.PasswordHash, []byte(password)); err != nil {
-		return model.User{}, SignInInvalidCredentialsErr
+		return model.User{}, ErrSignInInvalidCredentials
 	}
 
 	// send verification code to email if user has unverified email
@@ -110,7 +110,7 @@ func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string) (mode
 	username, uErr := extractUsernameFromEmail(email)
 	if uErr != nil {
 		p.log.Error("extract username from email", zap.String("email", email), zap.Error(uErr))
-		return model.User{}, InvalidEmailErr
+		return model.User{}, ErrInvalidEmail
 	}
 
 	// create user
@@ -121,7 +121,7 @@ func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string) (mode
 	if err = p.userRepo.CreateUser(ctx, user); err != nil {
 		if errors.Is(err, database.ErrUsernameExists) {
 			p.log.Warn("username already exists during oauth", zap.String("username", user.Username))
-			return model.User{}, OAutSignInConflictErr
+			return model.User{}, ErrOAuthSignInConflict
 		}
 		p.log.Error("create user (google oauth)", zap.String("username", user.Username), zap.Error(err))
 		return model.User{}, err
@@ -136,7 +136,7 @@ func (p *Provider) UpdateUserProfile(ctx context.Context, userID string, params 
 	usr, err := p.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
-			return model.User{}, UpdateProfileUserNotFoundErr
+			return model.User{}, ErrUpdateProfileUserNotFound
 		}
 		p.log.Error("get user by id", zap.String("userID", userID), zap.Error(err))
 		return model.User{}, err
@@ -145,12 +145,10 @@ func (p *Provider) UpdateUserProfile(ctx context.Context, userID string, params 
 	// update password if provided
 	if params.Password != nil {
 		if usr.OAuthProvider.Valid {
-			return model.User{}, UpdateProfileNotAllowedErr
+			return model.User{}, ErrUpdateProfileNotAllowed
 		}
-		if len(usr.PasswordHash) > 0 {
-			if err = bcrypt.CompareHashAndPassword(usr.PasswordHash, []byte(*params.Password)); err != nil {
-				return model.User{}, UpdateProfileInvalidPasswordErr
-			}
+		if err = bcrypt.CompareHashAndPassword(usr.PasswordHash, []byte(*params.Password)); err != nil {
+			return model.User{}, ErrUpdateProfileInvalidPassword
 		}
 		passwordHash, gErr := bcrypt.GenerateFromPassword([]byte(*params.NewPassword), bcrypt.DefaultCost)
 		if gErr != nil {

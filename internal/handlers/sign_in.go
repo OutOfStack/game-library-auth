@@ -48,7 +48,7 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 	user, err := a.userFacade.SignIn(ctx, signIn.Username, signIn.Password)
 	if err != nil {
 		switch {
-		case errors.Is(err, facade.SignInInvalidCredentialsErr):
+		case errors.Is(err, facade.ErrSignInInvalidCredentials):
 			log.Info("invalid username or password", zap.Error(err))
 			return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
 				Error: authErrorMsg,

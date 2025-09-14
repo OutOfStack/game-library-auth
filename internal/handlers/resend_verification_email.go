@@ -37,11 +37,11 @@ func (a *AuthAPI) ResendVerificationEmailHandler(c *fiber.Ctx) error {
 	// resend verification email
 	if err = a.userFacade.ResendVerificationEmail(ctx, claims.UserID); err != nil {
 		switch {
-		case errors.Is(err, facade.VerifyEmailAlreadyVerifiedErr):
+		case errors.Is(err, facade.ErrVerifyEmailAlreadyVerified):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 				Error: "Email is already verified",
 			})
-		case errors.Is(err, facade.ResendVerificationNoEmailErr):
+		case errors.Is(err, facade.ErrResendVerificationNoEmail):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 				Error: "User does not have an email address",
 			})

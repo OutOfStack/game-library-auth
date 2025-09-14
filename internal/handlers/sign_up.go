@@ -48,12 +48,12 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 	user, err := a.userFacade.SignUp(ctx, signUp.Username, signUp.DisplayName, signUp.Email, signUp.Password, signUp.IsPublisher)
 	if err != nil {
 		switch {
-		case errors.Is(err, facade.SignUpUsernameExistsErr):
+		case errors.Is(err, facade.ErrSignUpUsernameExists):
 			log.Info("username already exists")
 			return c.Status(http.StatusConflict).JSON(web.ErrResp{
 				Error: "This username is already taken",
 			})
-		case errors.Is(err, facade.SignUpPublisherNameExistsErr):
+		case errors.Is(err, facade.ErrSignUpPublisherNameExists):
 			log.Info("publisher already exists")
 			return c.Status(http.StatusConflict).JSON(web.ErrResp{
 				Error: "Publisher with this name already exists",

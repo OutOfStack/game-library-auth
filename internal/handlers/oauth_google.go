@@ -48,11 +48,11 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 	user, err := a.userFacade.GoogleOAuth(ctx, googleClaims.Sub, googleClaims.Email)
 	if err != nil {
 		switch {
-		case errors.Is(err, facade.InvalidEmailErr):
+		case errors.Is(err, facade.ErrInvalidEmail):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 				Error: "Invalid email",
 			})
-		case errors.Is(err, facade.OAutSignInConflictErr):
+		case errors.Is(err, facade.ErrOAuthSignInConflict):
 			return c.Status(http.StatusConflict).JSON(web.ErrResp{
 				Error: "Account setup incomplete. Please complete registration manually.",
 			})

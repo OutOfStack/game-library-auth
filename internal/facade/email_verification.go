@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/client/mailersend"
@@ -22,21 +23,21 @@ func (p *Provider) VerifyEmail(ctx context.Context, userID string, code string) 
 	user, err := p.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
-			return model.User{}, VerifyEmailUserNotFoundErr
+			return model.User{}, ErrVerifyEmailUserNotFound
 		}
 		p.log.Error("get user by id", zap.String("userID", userID), zap.Error(err))
 		return model.User{}, err
 	}
 
 	if user.EmailVerified {
-		return model.User{}, VerifyEmailAlreadyVerifiedErr
+		return model.User{}, ErrVerifyEmailAlreadyVerified
 	}
 
 	// get verification by user id
 	verification, err := p.userRepo.GetEmailVerificationByUserID(ctx, user.ID)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
-			return model.User{}, VerifyEmailInvalidOrExpiredErr
+			return model.User{}, ErrVerifyEmailInvalidOrExpired
 		}
 		p.log.Error("get email verification", zap.String("userID", userID), zap.Error(err))
 		return model.User{}, err
@@ -48,12 +49,12 @@ func (p *Provider) VerifyEmail(ctx context.Context, userID string, code string) 
 			p.log.Error("clear expired verification", zap.String("verificationID", verification.ID), zap.Error(err))
 			return model.User{}, err
 		}
-		return model.User{}, VerifyEmailInvalidOrExpiredErr
+		return model.User{}, ErrVerifyEmailInvalidOrExpired
 	}
 
 	// compare codes
 	if err = bcrypt.CompareHashAndPassword([]byte(verification.CodeHash.String), []byte(code)); err != nil {
-		return model.User{}, VerifyEmailInvalidOrExpiredErr
+		return model.User{}, ErrVerifyEmailInvalidOrExpired
 	}
 
 	// set verified
@@ -81,12 +82,12 @@ func (p *Provider) ResendVerificationEmail(ctx context.Context, userID string) e
 
 	// check if email is already verified
 	if user.EmailVerified {
-		return VerifyEmailAlreadyVerifiedErr
+		return ErrVerifyEmailAlreadyVerified
 	}
 
 	// check if user has an email address
 	if !user.Email.Valid {
-		return ResendVerificationNoEmailErr
+		return ErrResendVerificationNoEmail
 	}
 
 	// send verification email (includes cooldown and record management)
@@ -187,10 +188,11 @@ func (p *Provider) sendVerificationEmailWithRetry(ctx context.Context, email, us
 func generate6DigitCode() string {
 	const codeLength = 6
 	const maxVal = 10
-	var code string
+	var sb strings.Builder
+	sb.Grow(codeLength)
 	for range codeLength {
 		n, _ := rand.Int(rand.Reader, big.NewInt(maxVal))
-		code += n.String()
+		sb.WriteString(n.String())
 	}
-	return code
+	return sb.String()
 }

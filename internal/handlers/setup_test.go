@@ -19,7 +19,6 @@ const (
 
 func setupTest(t *testing.T, cfg *appconf.Cfg) (
 	*mocks.MockAuth, *mocks.MockGoogleTokenValidator, *handlers.AuthAPI, *mocks.MockUserFacade, *fiber.App, *gomock.Controller) {
-
 	t.Helper()
 
 	ctrl := gomock.NewController(t)

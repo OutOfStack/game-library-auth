@@ -118,7 +118,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 
 				mockUserFacade.EXPECT().
 					UpdateUserProfile(gomock.Any(), userID, gomock.Any()).
-					Return(model.User{}, facade.UpdateProfileUserNotFoundErr)
+					Return(model.User{}, facade.ErrUpdateProfileUserNotFound)
 			},
 			expectedStatus: http.StatusNotFound,
 			expectedResp: web.ErrResp{
@@ -142,7 +142,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 					AnyTimes()
 				mockUserFacade.EXPECT().
 					UpdateUserProfile(gomock.Any(), userID, gomock.Any()).
-					Return(model.User{}, facade.UpdateProfileInvalidPasswordErr)
+					Return(model.User{}, facade.ErrUpdateProfileInvalidPassword)
 			},
 			expectedStatus: http.StatusUnauthorized,
 			expectedResp: web.ErrResp{

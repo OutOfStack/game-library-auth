@@ -63,7 +63,7 @@ func TestSignInHandler(t *testing.T) {
 			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().
 					SignIn(gomock.Any(), "nonexistent", "password123").
-					Return(model.User{}, facade.SignInInvalidCredentialsErr)
+					Return(model.User{}, facade.ErrSignInInvalidCredentials)
 			},
 			expectedStatus: http.StatusUnauthorized,
 			expectedResp: web.ErrResp{
@@ -79,7 +79,7 @@ func TestSignInHandler(t *testing.T) {
 			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().
 					SignIn(gomock.Any(), "testuser", "wrongpassword").
-					Return(model.User{}, facade.SignInInvalidCredentialsErr)
+					Return(model.User{}, facade.ErrSignInInvalidCredentials)
 			},
 			expectedStatus: http.StatusUnauthorized,
 			expectedResp: web.ErrResp{

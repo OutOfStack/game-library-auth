@@ -56,15 +56,15 @@ func (a *AuthAPI) VerifyEmailHandler(c *fiber.Ctx) error {
 	verifiedUser, err := a.userFacade.VerifyEmail(ctx, claims.UserID, req.Code)
 	if err != nil {
 		switch {
-		case errors.Is(err, facade.VerifyEmailUserNotFoundErr):
+		case errors.Is(err, facade.ErrVerifyEmailUserNotFound):
 			return c.Status(http.StatusNotFound).JSON(web.ErrResp{
 				Error: "User not found",
 			})
-		case errors.Is(err, facade.VerifyEmailAlreadyVerifiedErr):
+		case errors.Is(err, facade.ErrVerifyEmailAlreadyVerified):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 				Error: "Email is already verified",
 			})
-		case errors.Is(err, facade.VerifyEmailInvalidOrExpiredErr):
+		case errors.Is(err, facade.ErrVerifyEmailInvalidOrExpired):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 				Error: invalidOrExpiredVrfCodeMsg,
 			})

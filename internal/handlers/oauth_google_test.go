@@ -180,7 +180,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		// Facade returns name conflict
 		mockUserFacade.EXPECT().
 			GoogleOAuth(gomock.Any(), "new-google-sub-id", "conflict@example.com").
-			Return(model.User{}, facade.OAutSignInConflictErr)
+			Return(model.User{}, facade.ErrOAuthSignInConflict)
 
 		reqBody := handlers.GoogleOAuthRequest{
 			IDToken: "mock-google-id-token",
@@ -246,7 +246,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		// Mock facade returns invalid email error
 		mockUserFacade.EXPECT().
 			GoogleOAuth(gomock.Any(), "google-sub-id", "invalid-email").
-			Return(model.User{}, facade.InvalidEmailErr)
+			Return(model.User{}, facade.ErrInvalidEmail)
 
 		reqBody := handlers.GoogleOAuthRequest{
 			IDToken: "mock-google-id-token",
@@ -329,7 +329,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			GoogleOAuth(gomock.Any(), "google-sub-id", "existing@example.com").
 			Return(u2, nil)
 
-			// Mock JWT generation failure
+		// Mock JWT generation failure
 		mockAuth.EXPECT().
 			CreateUserClaims(gomock.Eq(u2)).
 			Return(jwt.MapClaims{"sub": u2.ID})

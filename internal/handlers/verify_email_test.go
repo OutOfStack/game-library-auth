@@ -68,7 +68,7 @@ func TestVerifyEmailHandler(t *testing.T) {
 			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				claims := auth.Claims{UserID: userID}
 				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
-				mockUserFacade.EXPECT().VerifyEmail(gomock.Any(), userID, code).Return(model.User{}, facade.VerifyEmailInvalidOrExpiredErr)
+				mockUserFacade.EXPECT().VerifyEmail(gomock.Any(), userID, code).Return(model.User{}, facade.ErrVerifyEmailInvalidOrExpired)
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedResp:   web.ErrResp{Error: "Invalid or expired verification code"},
@@ -82,7 +82,7 @@ func TestVerifyEmailHandler(t *testing.T) {
 			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				claims := auth.Claims{UserID: userID}
 				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
-				mockUserFacade.EXPECT().VerifyEmail(gomock.Any(), userID, code).Return(model.User{}, facade.VerifyEmailAlreadyVerifiedErr)
+				mockUserFacade.EXPECT().VerifyEmail(gomock.Any(), userID, code).Return(model.User{}, facade.ErrVerifyEmailAlreadyVerified)
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedResp:   web.ErrResp{Error: "Email is already verified"},

@@ -3,6 +3,7 @@ package facade_test
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
@@ -73,8 +74,8 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 
 		_, err := provider.GoogleOAuth(ctx, "oauth-123", "invalid-email")
 
-		if err != facade.InvalidEmailErr {
-			t.Errorf("expected InvalidEmailErr, got %v", err)
+		if !errors.Is(err, facade.ErrInvalidEmail) {
+			t.Errorf("expected ErrInvalidEmail, got %v", err)
 		}
 	})
 
@@ -92,8 +93,8 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 
 		_, err := provider.GoogleOAuth(ctx, "oauth-123", "existing@example.com")
 
-		if err != facade.OAutSignInConflictErr {
-			t.Errorf("expected OAutSignInConflictErr, got %v", err)
+		if !errors.Is(err, facade.ErrOAuthSignInConflict) {
+			t.Errorf("expected ErrOAuthSignInConflict, got %v", err)
 		}
 	})
 }
@@ -182,8 +183,8 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 		params := model.UpdateProfileParams{}
 		_, err := provider.UpdateUserProfile(ctx, "nonexistent", params)
 
-		if err != facade.UpdateProfileUserNotFoundErr {
-			t.Errorf("expected UpdateProfileUserNotFoundErr, got %v", err)
+		if !errors.Is(err, facade.ErrUpdateProfileUserNotFound) {
+			t.Errorf("expected ErrUpdateProfileUserNotFound, got %v", err)
 		}
 	})
 
@@ -211,8 +212,8 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 
 		_, err := provider.UpdateUserProfile(ctx, "user-123", params)
 
-		if err != facade.UpdateProfileNotAllowedErr {
-			t.Errorf("expected UpdateProfileNotAllowedErr, got %v", err)
+		if !errors.Is(err, facade.ErrUpdateProfileNotAllowed) {
+			t.Errorf("expected ErrUpdateProfileNotAllowed, got %v", err)
 		}
 	})
 
@@ -242,8 +243,8 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 
 		_, err := provider.UpdateUserProfile(ctx, "user-123", params)
 
-		if err != facade.UpdateProfileInvalidPasswordErr {
-			t.Errorf("expected UpdateProfileInvalidPasswordErr, got %v", err)
+		if !errors.Is(err, facade.ErrUpdateProfileInvalidPassword) {
+			t.Errorf("expected ErrUpdateProfileInvalidPassword, got %v", err)
 		}
 	})
 }
@@ -325,8 +326,8 @@ func TestProvider_SignIn(t *testing.T) {
 
 		_, err := provider.SignIn(ctx, "nonexistent", "password")
 
-		if err != facade.SignInInvalidCredentialsErr {
-			t.Errorf("expected SignInInvalidCredentialsErr, got %v", err)
+		if !errors.Is(err, facade.ErrSignInInvalidCredentials) {
+			t.Errorf("expected ErrSignInInvalidCredentials, got %v", err)
 		}
 	})
 
@@ -350,8 +351,8 @@ func TestProvider_SignIn(t *testing.T) {
 
 		_, err := provider.SignIn(ctx, "testuser", "wrongpass")
 
-		if err != facade.SignInInvalidCredentialsErr {
-			t.Errorf("expected SignInInvalidCredentialsErr, got %v", err)
+		if !errors.Is(err, facade.ErrSignInInvalidCredentials) {
+			t.Errorf("expected ErrSignInInvalidCredentials, got %v", err)
 		}
 	})
 }
@@ -464,8 +465,8 @@ func TestProvider_SignUp(t *testing.T) {
 
 		_, err := provider.SignUp(ctx, "existinguser", "Display Name", "email@example.com", "password", false)
 
-		if err != facade.SignUpUsernameExistsErr {
-			t.Errorf("expected SignUpUsernameExistsErr, got %v", err)
+		if !errors.Is(err, facade.ErrSignUpUsernameExists) {
+			t.Errorf("expected ErrSignUpUsernameExists, got %v", err)
 		}
 	})
 
@@ -483,8 +484,8 @@ func TestProvider_SignUp(t *testing.T) {
 
 		_, err := provider.SignUp(ctx, "newpublisher", "Existing Publisher", "pub@example.com", "password", true)
 
-		if err != facade.SignUpPublisherNameExistsErr {
-			t.Errorf("expected SignUpPublisherNameExistsErr, got %v", err)
+		if !errors.Is(err, facade.ErrSignUpPublisherNameExists) {
+			t.Errorf("expected ErrSignUpPublisherNameExists, got %v", err)
 		}
 	})
 

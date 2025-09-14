@@ -3,6 +3,7 @@ package facade_test
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 	"time"
 
@@ -73,8 +74,8 @@ func TestProvider_VerifyEmail(t *testing.T) {
 
 		_, err := provider.VerifyEmail(ctx, "nonexistent", "123456")
 
-		if err != facade.VerifyEmailUserNotFoundErr {
-			t.Errorf("expected VerifyEmailUserNotFoundErr, got %v", err)
+		if !errors.Is(err, facade.ErrVerifyEmailUserNotFound) {
+			t.Errorf("expected ErrVerifyEmailUserNotFound, got %v", err)
 		}
 	})
 
@@ -95,8 +96,8 @@ func TestProvider_VerifyEmail(t *testing.T) {
 
 		_, err := provider.VerifyEmail(ctx, "user-123", "123456")
 
-		if err != facade.VerifyEmailAlreadyVerifiedErr {
-			t.Errorf("expected VerifyEmailAlreadyVerifiedErr, got %v", err)
+		if !errors.Is(err, facade.ErrVerifyEmailAlreadyVerified) {
+			t.Errorf("expected ErrVerifyEmailAlreadyVerified, got %v", err)
 		}
 	})
 
@@ -121,8 +122,8 @@ func TestProvider_VerifyEmail(t *testing.T) {
 
 		_, err := provider.VerifyEmail(ctx, "user-123", "123456")
 
-		if err != facade.VerifyEmailInvalidOrExpiredErr {
-			t.Errorf("expected VerifyEmailInvalidOrExpiredErr, got %v", err)
+		if !errors.Is(err, facade.ErrVerifyEmailInvalidOrExpired) {
+			t.Errorf("expected ErrVerifyEmailInvalidOrExpired, got %v", err)
 		}
 	})
 
@@ -161,8 +162,8 @@ func TestProvider_VerifyEmail(t *testing.T) {
 
 		_, err := provider.VerifyEmail(ctx, "user-123", code)
 
-		if err != facade.VerifyEmailInvalidOrExpiredErr {
-			t.Errorf("expected VerifyEmailInvalidOrExpiredErr, got %v", err)
+		if !errors.Is(err, facade.ErrVerifyEmailInvalidOrExpired) {
+			t.Errorf("expected ErrVerifyEmailInvalidOrExpired, got %v", err)
 		}
 	})
 
@@ -197,8 +198,8 @@ func TestProvider_VerifyEmail(t *testing.T) {
 
 		_, err := provider.VerifyEmail(ctx, "user-123", "wrongcode")
 
-		if err != facade.VerifyEmailInvalidOrExpiredErr {
-			t.Errorf("expected VerifyEmailInvalidOrExpiredErr, got %v", err)
+		if !errors.Is(err, facade.ErrVerifyEmailInvalidOrExpired) {
+			t.Errorf("expected ErrVerifyEmailInvalidOrExpired, got %v", err)
 		}
 	})
 }
@@ -267,8 +268,8 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 
 		err := provider.ResendVerificationEmail(ctx, "user-123")
 
-		if err != facade.VerifyEmailAlreadyVerifiedErr {
-			t.Errorf("expected VerifyEmailAlreadyVerifiedErr, got %v", err)
+		if !errors.Is(err, facade.ErrVerifyEmailAlreadyVerified) {
+			t.Errorf("expected ErrVerifyEmailAlreadyVerified, got %v", err)
 		}
 	})
 
@@ -290,8 +291,8 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 
 		err := provider.ResendVerificationEmail(ctx, "user-123")
 
-		if err != facade.ResendVerificationNoEmailErr {
-			t.Errorf("expected ResendVerificationNoEmailErr, got %v", err)
+		if !errors.Is(err, facade.ErrResendVerificationNoEmail) {
+			t.Errorf("expected ErrResendVerificationNoEmail, got %v", err)
 		}
 	})
 
@@ -305,7 +306,7 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 
 		err := provider.ResendVerificationEmail(ctx, "nonexistent")
 
-		if err != database.ErrNotFound {
+		if !errors.Is(err, database.ErrNotFound) {
 			t.Errorf("expected ErrNotFound, got %v", err)
 		}
 	})

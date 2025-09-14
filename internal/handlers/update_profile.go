@@ -82,15 +82,15 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, facade.UpdateProfileUserNotFoundErr):
+		case errors.Is(err, facade.ErrUpdateProfileUserNotFound):
 			return c.Status(http.StatusNotFound).JSON(web.ErrResp{
 				Error: "User does not exist",
 			})
-		case errors.Is(err, facade.UpdateProfileNotAllowedErr):
+		case errors.Is(err, facade.ErrUpdateProfileNotAllowed):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 				Error: "Cannot change password for OAuth provider users",
 			})
-		case errors.Is(err, facade.UpdateProfileInvalidPasswordErr):
+		case errors.Is(err, facade.ErrUpdateProfileInvalidPassword):
 			return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
 				Error: "Invalid current password",
 			})

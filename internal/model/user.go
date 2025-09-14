@@ -7,7 +7,6 @@ type User struct {
 	DisplayName   string
 	Email         string
 	EmailVerified bool
-	PasswordHash  []byte
 	Role          string
 	OAuthProvider string
 	OAuthID       string

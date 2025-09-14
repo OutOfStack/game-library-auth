@@ -50,7 +50,7 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				claims := auth.Claims{UserID: userID}
 				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
-				mockUserFacade.EXPECT().ResendVerificationEmail(gomock.Any(), userID).Return(facade.VerifyEmailAlreadyVerifiedErr)
+				mockUserFacade.EXPECT().ResendVerificationEmail(gomock.Any(), userID).Return(facade.ErrVerifyEmailAlreadyVerified)
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedResp:   web.ErrResp{Error: "Email is already verified"},
@@ -80,7 +80,7 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				claims := auth.Claims{UserID: userID}
 				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
-				mockUserFacade.EXPECT().ResendVerificationEmail(gomock.Any(), userID).Return(facade.ResendVerificationNoEmailErr)
+				mockUserFacade.EXPECT().ResendVerificationEmail(gomock.Any(), userID).Return(facade.ErrResendVerificationNoEmail)
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedResp:   web.ErrResp{Error: "User does not have an email address"},

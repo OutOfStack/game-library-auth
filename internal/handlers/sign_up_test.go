@@ -104,7 +104,7 @@ func TestSignUpHandler(t *testing.T) {
 			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().SignUp(
 					gomock.Any(), "existinguser", "Existing User", "", "password123", false,
-				).Return(model.User{}, facade.SignUpUsernameExistsErr)
+				).Return(model.User{}, facade.ErrSignUpUsernameExists)
 			},
 			expectedStatus: http.StatusConflict,
 			expectedResp:   web.ErrResp{Error: "This username is already taken"},
@@ -121,7 +121,7 @@ func TestSignUpHandler(t *testing.T) {
 			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().SignUp(
 					gomock.Any(), "newpublisher", "Existing Publisher", "", "password123", true,
-				).Return(model.User{}, facade.SignUpPublisherNameExistsErr)
+				).Return(model.User{}, facade.ErrSignUpPublisherNameExists)
 			},
 			expectedStatus: http.StatusConflict,
 			expectedResp:   web.ErrResp{Error: "Publisher with this name already exists"},
