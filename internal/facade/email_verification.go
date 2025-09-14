@@ -5,8 +5,8 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/client/mailersend"
@@ -186,13 +186,11 @@ func (p *Provider) sendVerificationEmailWithRetry(ctx context.Context, email, us
 
 // generates a secure random 6-digit verification code
 func generate6DigitCode() string {
-	const codeLength = 6
-	const maxVal = 10
-	var sb strings.Builder
-	sb.Grow(codeLength)
-	for range codeLength {
-		n, _ := rand.Int(rand.Reader, big.NewInt(maxVal))
-		sb.WriteString(n.String())
-	}
-	return sb.String()
+	const codeLen = 6
+	var minVal = int64(math.Pow10(codeLen - 1))  // min codeLen len value
+	var maxValPlus1 = int64(math.Pow10(codeLen)) // max codeLen len value + 1, but it is exclusive
+
+	// generate random number with codeLen
+	n, _ := rand.Int(rand.Reader, big.NewInt(maxValPlus1-minVal)) // for codeLen = 2: range [0, 90)
+	return fmt.Sprintf("%d", n.Int64()+minVal)                    // for codeLen = 2: [0, 90] + 10 = [10; 100)
 }

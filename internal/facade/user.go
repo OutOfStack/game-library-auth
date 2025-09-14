@@ -17,20 +17,22 @@ import (
 // SignUp creates a new user with provided params and sends verification email if applicable
 func (p *Provider) SignUp(ctx context.Context, username, displayName, email, password string, isPublisher bool) (model.User, error) {
 	// check if user exists
-	if _, err := p.userRepo.GetUserByUsername(ctx, username); err == nil {
-		return model.User{}, ErrSignUpUsernameExists
-	} else if !errors.Is(err, database.ErrNotFound) {
+	_, err := p.userRepo.GetUserByUsername(ctx, username)
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		p.log.Error("check username exists", zap.String("username", username), zap.Error(err))
 		return model.User{}, err
+	}
+	if err == nil {
+		return model.User{}, ErrSignUpUsernameExists
 	}
 
 	// if publisher check name uniqueness
 	userRole := database.UserRoleName
 	if isPublisher {
-		exists, err := p.userRepo.CheckUserExists(ctx, displayName, database.PublisherRoleName)
-		if err != nil {
-			p.log.Error("check publisher name exists", zap.String("name", displayName), zap.Error(err))
-			return model.User{}, err
+		exists, uErr := p.userRepo.CheckUserExists(ctx, displayName, database.PublisherRoleName)
+		if uErr != nil {
+			p.log.Error("check publisher name exists", zap.String("name", displayName), zap.Error(uErr))
+			return model.User{}, uErr
 		}
 		if exists {
 			return model.User{}, ErrSignUpPublisherNameExists
