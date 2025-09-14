@@ -27,6 +27,12 @@ jobs:
 
     - name: Run tests
       run: go test -race -vet=off ./...
+      
+    - name: Run tests with coverage
+      run: go test -cover -coverpkg=./... -coverprofile=coverage.out ./...
+
+    - name: Show tests coverage
+      run: go tool cover -func=coverage.out
 
   build_push_deploy:
     runs-on: ubuntu-latest

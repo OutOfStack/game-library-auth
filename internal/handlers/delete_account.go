@@ -34,8 +34,8 @@ func (a *AuthAPI) DeleteAccountHandler(c *fiber.Ctx) error {
 	log := a.log.With(zap.String("userId", userID))
 
 	// delete user
-	if err = a.userRepo.DeleteUser(ctx, userID); err != nil {
-		log.Error("delete user", zap.Error(err))
+	if err = a.userFacade.DeleteUser(ctx, userID); err != nil {
+		log.Error("delete user", zap.String("userID", userID), zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})

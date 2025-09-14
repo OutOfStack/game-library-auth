@@ -1,25 +1,11 @@
 package handlers
 
-import (
-	"errors"
-	"time"
-)
-
 const (
 	internalErrorMsg           = "Internal error"
 	validationErrorMsg         = "Validation error"
 	authErrorMsg               = "Incorrect username or password"
 	invalidAuthTokenMsg        = "Invalid or missing authorization token"
 	invalidOrExpiredVrfCodeMsg = "Invalid or expired verification code"
-
-	maxUsernameLen = 32
-
-	verificationCodeTTL            = 24 * time.Hour
-	resendVerificationCodeCooldown = 60 * time.Second
-)
-
-var (
-	errTooManyRequests = errors.New("too many requests")
 )
 
 // SignInReq represents user sign in request

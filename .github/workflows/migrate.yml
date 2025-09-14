@@ -17,4 +17,4 @@ jobs:
         cache: true
         
     - name: Apply migrations
-      run: DB_DSN=${{ secrets.DB_DSN }} make migrate
+      run: DB_DSN=${{ secrets.DB_DSN }} go run ./cmd/game-library-auth-manage/.

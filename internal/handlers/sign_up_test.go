@@ -2,7 +2,6 @@ package handlers_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -11,10 +10,12 @@ import (
 	"testing"
 
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
-	"github.com/OutOfStack/game-library-auth/internal/database"
+	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/handlers"
 	mocks "github.com/OutOfStack/game-library-auth/internal/handlers/mocks"
+	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -25,7 +26,7 @@ func TestSignUpHandler(t *testing.T) {
 		name                     string
 		request                  interface{}
 		emailVerificationEnabled bool
-		setupMocks               func(*mocks.MockAuth, *mocks.MockUserRepo, *mocks.MockEmailSender)
+		setupMocks               func(*mocks.MockAuth, *mocks.MockUserFacade)
 		expectedStatus           int
 		expectedResp             interface{}
 	}{
@@ -38,20 +39,12 @@ func TestSignUpHandler(t *testing.T) {
 				ConfirmPassword: "password123",
 				IsPublisher:     false,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo, _ *mocks.MockEmailSender) {
-				mockUserRepo.EXPECT().
-					GetUserByUsername(gomock.Any(), "newuser").
-					Return(database.User{}, database.ErrNotFound)
-
-				mockUserRepo.EXPECT().
-					CreateUser(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ context.Context, user database.User) error {
-						assert.Equal(t, "newuser", user.Username)
-						assert.Equal(t, "New User", user.DisplayName)
-						assert.Equal(t, database.UserRoleName, user.Role)
-						return nil
-					})
-				mockAuth.EXPECT().CreateClaims(gomock.Any()).Return(nil)
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+				u := model.User{ID: "uid-1", Username: "newuser", DisplayName: "New User", Role: "user"}
+				mockUserFacade.EXPECT().SignUp(
+					gomock.Any(), "newuser", "New User", "", "password123", false,
+				).Return(u, nil)
+				mockAuth.EXPECT().CreateUserClaims(u).Return(jwt.MapClaims{"sub": u.ID})
 				mockAuth.EXPECT().GenerateToken(gomock.Any()).Return("test-token", nil)
 			},
 			expectedStatus: http.StatusOK,
@@ -66,24 +59,12 @@ func TestSignUpHandler(t *testing.T) {
 				ConfirmPassword: "password123",
 				IsPublisher:     true,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo, _ *mocks.MockEmailSender) {
-				mockUserRepo.EXPECT().
-					GetUserByUsername(gomock.Any(), "newpublisher").
-					Return(database.User{}, database.ErrNotFound)
-
-				mockUserRepo.EXPECT().
-					CheckUserExists(gomock.Any(), "Publisher Co", database.PublisherRoleName).
-					Return(false, nil)
-
-				mockUserRepo.EXPECT().
-					CreateUser(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ context.Context, user database.User) error {
-						assert.Equal(t, "newpublisher", user.Username)
-						assert.Equal(t, "Publisher Co", user.DisplayName)
-						assert.Equal(t, database.PublisherRoleName, user.Role)
-						return nil
-					})
-				mockAuth.EXPECT().CreateClaims(gomock.Any()).Return(nil)
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+				u := model.User{ID: "uid-2", Username: "newpublisher", DisplayName: "Publisher Co", Role: "publisher"}
+				mockUserFacade.EXPECT().SignUp(
+					gomock.Any(), "newpublisher", "Publisher Co", "", "password123", true,
+				).Return(u, nil)
+				mockAuth.EXPECT().CreateUserClaims(u).Return(jwt.MapClaims{"sub": u.ID})
 				mockAuth.EXPECT().GenerateToken(gomock.Any()).Return("test-token", nil)
 			},
 			expectedStatus: http.StatusOK,
@@ -100,29 +81,12 @@ func TestSignUpHandler(t *testing.T) {
 				IsPublisher:     false,
 			},
 			emailVerificationEnabled: true,
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo, mockEmailSender *mocks.MockEmailSender) {
-				mockUserRepo.EXPECT().
-					GetUserByUsername(gomock.Any(), "newuser_verify").
-					Return(database.User{}, database.ErrNotFound)
-
-				mockUserRepo.EXPECT().
-					CreateUser(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ context.Context, user database.User) error {
-						assert.Equal(t, "newuser_verify", user.Username)
-						assert.Equal(t, "New User Verify", user.DisplayName)
-						assert.Equal(t, database.UserRoleName, user.Role)
-						assert.Equal(t, "verify@example.com", user.Email.String)
-						assert.False(t, user.EmailVerified)
-						return nil
-					})
-
-				// Mock the verification flow
-				mockUserRepo.EXPECT().GetEmailVerificationByUserID(gomock.Any(), gomock.Any()).Return(database.EmailVerification{}, database.ErrNotFound)
-				mockUserRepo.EXPECT().CreateEmailVerification(gomock.Any(), gomock.Any()).Return(nil)
-				mockEmailSender.EXPECT().SendEmailVerification(gomock.Any(), gomock.Any()).Return("msg-456", nil)
-				mockUserRepo.EXPECT().SetEmailVerificationMessageID(gomock.Any(), gomock.Any(), "msg-456").Return(nil)
-
-				mockAuth.EXPECT().CreateClaims(gomock.Any()).Return(nil)
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+				u := model.User{ID: "uid-3", Username: "newuser_verify", DisplayName: "New User Verify", Email: "verify@example.com", Role: "user"}
+				mockUserFacade.EXPECT().SignUp(
+					gomock.Any(), "newuser_verify", "New User Verify", "verify@example.com", "password123", false,
+				).Return(u, nil)
+				mockAuth.EXPECT().CreateUserClaims(u).Return(jwt.MapClaims{"sub": u.ID})
 				mockAuth.EXPECT().GenerateToken(gomock.Any()).Return("test-token", nil)
 			},
 			expectedStatus: http.StatusOK,
@@ -137,15 +101,13 @@ func TestSignUpHandler(t *testing.T) {
 				ConfirmPassword: "password123",
 				IsPublisher:     false,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo, _ *mocks.MockEmailSender) {
-				mockUserRepo.EXPECT().
-					GetUserByUsername(gomock.Any(), "existinguser").
-					Return(database.User{Username: "existinguser"}, nil)
+			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+				mockUserFacade.EXPECT().SignUp(
+					gomock.Any(), "existinguser", "Existing User", "", "password123", false,
+				).Return(model.User{}, facade.SignUpUsernameExistsErr)
 			},
 			expectedStatus: http.StatusConflict,
-			expectedResp: web.ErrResp{
-				Error: "This username is already taken",
-			},
+			expectedResp:   web.ErrResp{Error: "This username is already taken"},
 		},
 		{
 			name: "publisher name already exists",
@@ -156,19 +118,13 @@ func TestSignUpHandler(t *testing.T) {
 				ConfirmPassword: "password123",
 				IsPublisher:     true,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo, _ *mocks.MockEmailSender) {
-				mockUserRepo.EXPECT().
-					GetUserByUsername(gomock.Any(), "newpublisher").
-					Return(database.User{}, database.ErrNotFound)
-
-				mockUserRepo.EXPECT().
-					CheckUserExists(gomock.Any(), "Existing Publisher", database.PublisherRoleName).
-					Return(true, nil)
+			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+				mockUserFacade.EXPECT().SignUp(
+					gomock.Any(), "newpublisher", "Existing Publisher", "", "password123", true,
+				).Return(model.User{}, facade.SignUpPublisherNameExistsErr)
 			},
 			expectedStatus: http.StatusConflict,
-			expectedResp: web.ErrResp{
-				Error: "Publisher with this name already exists",
-			},
+			expectedResp:   web.ErrResp{Error: "Publisher with this name already exists"},
 		},
 		{
 			name: "database error on create",
@@ -179,46 +135,34 @@ func TestSignUpHandler(t *testing.T) {
 				ConfirmPassword: "password123",
 				IsPublisher:     false,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo, _ *mocks.MockEmailSender) {
-				mockUserRepo.EXPECT().
-					GetUserByUsername(gomock.Any(), "newuser").
-					Return(database.User{}, database.ErrNotFound)
-
-				mockUserRepo.EXPECT().
-					CreateUser(gomock.Any(), gomock.Any()).
-					Return(errors.New("database error"))
+			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+				mockUserFacade.EXPECT().SignUp(
+					gomock.Any(), "newuser", "New User", "", "password123", false,
+				).Return(model.User{}, errors.New("database error"))
 			},
 			expectedStatus: http.StatusInternalServerError,
-			expectedResp: web.ErrResp{
-				Error: internalErrorMsg,
-			},
+			expectedResp:   web.ErrResp{Error: internalErrorMsg},
 		},
 		{
 			name:           "invalid request body",
 			request:        "invalid json",
 			setupMocks:     nil,
 			expectedStatus: http.StatusBadRequest,
-			expectedResp: web.ErrResp{
-				Error: "Error parsing data",
-			},
+			expectedResp:   web.ErrResp{Error: "Error parsing data"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &appconf.Cfg{
-				EmailSender: appconf.EmailSender{
-					EmailVerificationEnabled: tt.emailVerificationEnabled,
-				},
-				Auth: appconf.Auth{
-					GoogleClientID: "test-client-id",
-				},
+				EmailSender: appconf.EmailSender{EmailVerificationEnabled: tt.emailVerificationEnabled},
+				Auth:        appconf.Auth{GoogleClientID: "test-client-id"},
 			}
-			mockAuth, mockUserRepo, _, mockEmailSender, authAPI, app, ctrl := setupTest(t, cfg)
+			mockAuth, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, cfg)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(mockAuth, mockUserRepo, mockEmailSender)
+				tt.setupMocks(mockAuth, mockUserFacade)
 			}
 
 			app.Post("/signup", authAPI.SignUpHandler)

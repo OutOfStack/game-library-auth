@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -33,40 +34,27 @@ func (a *AuthAPI) ResendVerificationEmailHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	// get user by ID
-	user, err := a.userRepo.GetUserByID(ctx, claims.UserID)
-	if err != nil {
-		a.log.Error("get user by id", zap.String("user_id", claims.UserID), zap.Error(err))
-		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
-			Error: internalErrorMsg,
-		})
-	}
-
-	// check if email is already verified
-	if user.EmailVerified {
-		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
-			Error: "Email is already verified",
-		})
-	}
-
-	// check if user has an email address
-	if !user.Email.Valid {
-		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
-			Error: "User does not have an email address",
-		})
-	}
-
 	// resend verification email
-	if err = a.sendVerificationEmail(ctx, user.ID, user.Email.String, user.Username); err != nil {
-		if errors.Is(err, errTooManyRequests) {
+	if err = a.userFacade.ResendVerificationEmail(ctx, claims.UserID); err != nil {
+		switch {
+		case errors.Is(err, facade.VerifyEmailAlreadyVerifiedErr):
+			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+				Error: "Email is already verified",
+			})
+		case errors.Is(err, facade.ResendVerificationNoEmailErr):
+			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+				Error: "User does not have an email address",
+			})
+		case errors.Is(err, facade.ErrTooManyRequests):
 			return c.Status(http.StatusTooManyRequests).JSON(web.ErrResp{
 				Error: "Please wait before requesting another code",
 			})
+		default:
+			a.log.Error("resend verification", zap.Error(err))
+			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+				Error: internalErrorMsg,
+			})
 		}
-		a.log.Error("sending verification email", zap.Error(err))
-		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
-			Error: internalErrorMsg,
-		})
 	}
 
 	return c.SendStatus(http.StatusNoContent)

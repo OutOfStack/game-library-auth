@@ -1,15 +1,10 @@
 package handlers
 
 import (
-	"context"
 	"fmt"
 
 	_ "github.com/OutOfStack/game-library-auth/docs" // swagger docs
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
-	auth_ "github.com/OutOfStack/game-library-auth/internal/auth"
-	"github.com/OutOfStack/game-library-auth/internal/client/mailersend"
-	"github.com/OutOfStack/game-library-auth/internal/database"
-	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/gofiber/adaptor/v2"
 	"github.com/gofiber/contrib/otelfiber"
 	"github.com/gofiber/fiber/v2"
@@ -17,7 +12,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
 	rec "github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/jmoiron/sqlx"
 	swag "github.com/swaggo/http-swagger/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/zipkin"
@@ -25,27 +19,15 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
-	"go.uber.org/zap"
-	"google.golang.org/api/idtoken"
 )
 
 var tracer = otel.Tracer("api")
 
 // Service creates and configures auth app
-func Service(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, error) {
-	ctx := context.Background()
-
+func Service(authAPI *AuthAPI, checkAPI *CheckAPI, cfg appconf.Cfg) (*fiber.App, error) {
 	err := initTracer(cfg.Zipkin.ReporterURL)
 	if err != nil {
 		return nil, fmt.Errorf("init exporter: %w", err)
-	}
-	privateKey, err := crypto.ReadPrivateKey(cfg.Auth.PrivateKeyFile)
-	if err != nil {
-		return nil, fmt.Errorf("read private key file: %w", err)
-	}
-	auth, err := auth_.New(cfg.Auth.SigningAlgorithm, privateKey, cfg.Auth.Issuer)
-	if err != nil {
-		return nil, fmt.Errorf("create token service instance: %w", err)
 	}
 
 	app := fiber.New(fiber.Config{
@@ -64,28 +46,6 @@ func Service(log *zap.Logger, db *sqlx.DB, cfg appconf.Cfg) (*fiber.App, error) 
 		AllowMethods: "GET,POST,DELETE,PATCH,OPTIONS",
 	}))
 
-	// create google token validator
-	googleTokenValidator, err := idtoken.NewValidator(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("create google token validator: %w", err)
-	}
-
-	// create email sender
-	emailSender, err := mailersend.NewClient(mailersend.Config{
-		APIToken:  cfg.EmailSender.APIToken,
-		FromEmail: cfg.EmailSender.EmailFrom,
-		Timeout:   cfg.EmailSender.APITimeout,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("create mailersend client: %w", err)
-	}
-
-	// register routes
-	authAPI, err := NewAuthAPI(log, &cfg, auth, database.NewUserRepo(db), googleTokenValidator, emailSender)
-	if err != nil {
-		return nil, fmt.Errorf("create auth api: %w", err)
-	}
-	checkAPI := NewCheckAPI(db)
 	registerRoutes(app, authAPI, checkAPI)
 
 	return app, nil
@@ -104,17 +64,22 @@ func DebugService() *fiber.App {
 }
 
 func registerRoutes(app *fiber.App, authAPI *AuthAPI, checkAPI *CheckAPI) {
+	// health
 	app.Get("/readiness", checkAPI.Readiness)
 	app.Get("/liveness", checkAPI.Liveness)
 
+	// user
 	app.Post("/signin", authAPI.SignInHandler)
 	app.Post("/signup", authAPI.SignUpHandler)
 	app.Patch("/account", authAPI.UpdateProfileHandler)
 	app.Delete("/account", authAPI.DeleteAccountHandler)
 	app.Post("/oauth/google", authAPI.GoogleOAuthHandler)
 
+	// email verification
 	app.Post("/verify-email", authAPI.VerifyEmailHandler)
 	app.Post("/resend-verification", authAPI.ResendVerificationEmailHandler)
+
+	// token
 	app.Post("/token/verify", authAPI.VerifyTokenHandler)
 
 	// swagger

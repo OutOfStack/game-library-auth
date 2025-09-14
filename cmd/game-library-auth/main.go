@@ -1,17 +1,24 @@
 package main
 
 import (
+	"context"
 	_ "expvar"
 	"fmt"
 	"log"
 	_ "net/http/pprof"
 
+	auth_ "github.com/OutOfStack/game-library-auth/internal/auth"
+	"github.com/OutOfStack/game-library-auth/internal/client/mailersend"
+	store "github.com/OutOfStack/game-library-auth/internal/database"
+	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/handlers"
 	"github.com/OutOfStack/game-library-auth/internal/server"
 	conf "github.com/OutOfStack/game-library-auth/pkg/config"
+	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	zaplog "github.com/OutOfStack/game-library-auth/pkg/log"
 	"go.uber.org/zap"
+	"google.golang.org/api/idtoken"
 )
 
 // @title Game library auth API
@@ -43,6 +50,8 @@ func run() error {
 		}
 	}()
 
+	ctx := context.Background()
+
 	// connect to database
 	db, err := database.New(cfg.DB.DSN)
 	if err != nil {
@@ -53,6 +62,43 @@ func run() error {
 			logger.Error("close database", zap.Error(err))
 		}
 	}()
+
+	// create google token validator
+	googleTokenValidator, err := idtoken.NewValidator(ctx)
+	if err != nil {
+		return fmt.Errorf("create google token validator: %w", err)
+	}
+
+	// create email sender
+	emailSender, err := mailersend.NewClient(mailersend.Config{
+		APIToken:  cfg.EmailSender.APIToken,
+		FromEmail: cfg.EmailSender.EmailFrom,
+		Timeout:   cfg.EmailSender.APITimeout,
+	})
+	if err != nil {
+		return fmt.Errorf("create email sender client: %w", err)
+	}
+
+	// create user facade
+	userFacade := facade.New(logger, store.NewUserRepo(db), emailSender, !cfg.EmailSender.EmailVerificationEnabled)
+
+	// create auth token service
+	privateKey, err := crypto.ReadPrivateKey(cfg.Auth.PrivateKeyFile)
+	if err != nil {
+		return fmt.Errorf("read private key file: %w", err)
+	}
+	auth, err := auth_.New(cfg.Auth.SigningAlgorithm, privateKey, cfg.Auth.Issuer)
+	if err != nil {
+		return fmt.Errorf("create token service instance: %w", err)
+	}
+
+	// auth api
+	authAPI, err := handlers.NewAuthAPI(logger, &cfg, auth, googleTokenValidator, userFacade)
+	if err != nil {
+		return fmt.Errorf("create auth api: %w", err)
+	}
+	// health api
+	checkAPI := handlers.NewCheckAPI(db)
 
 	// start debug service
 	go func() {
@@ -65,7 +111,7 @@ func run() error {
 	}()
 
 	// start auth service
-	app, err := handlers.Service(logger, db, cfg)
+	app, err := handlers.Service(authAPI, checkAPI, cfg)
 	if err != nil {
 		return fmt.Errorf("creating auth service: %w", err)
 	}

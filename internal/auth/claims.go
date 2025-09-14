@@ -3,7 +3,7 @@ package auth
 import (
 	"time"
 
-	"github.com/OutOfStack/game-library-auth/internal/database"
+	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -22,8 +22,8 @@ type Claims struct {
 	EmailVerified bool   `json:"email_verified"`
 }
 
-// CreateClaims creates claims for user
-func (a *Auth) CreateClaims(user database.User) jwt.Claims {
+// CreateUserClaims creates claims for user
+func (a *Auth) CreateUserClaims(user model.User) jwt.Claims {
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    a.claimsIssuer,
@@ -34,7 +34,7 @@ func (a *Auth) CreateClaims(user database.User) jwt.Claims {
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 		UserID:        user.ID,
-		UserRole:      string(user.Role),
+		UserRole:      user.Role,
 		Username:      user.Username,
 		Name:          user.DisplayName,
 		EmailVerified: user.EmailVerified,

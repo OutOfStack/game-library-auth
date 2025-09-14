@@ -14,224 +14,11 @@ import (
 	reflect "reflect"
 
 	auth "github.com/OutOfStack/game-library-auth/internal/auth"
-	mailersend "github.com/OutOfStack/game-library-auth/internal/client/mailersend"
-	database "github.com/OutOfStack/game-library-auth/internal/database"
+	model "github.com/OutOfStack/game-library-auth/internal/model"
 	jwt "github.com/golang-jwt/jwt/v4"
 	gomock "go.uber.org/mock/gomock"
 	idtoken "google.golang.org/api/idtoken"
 )
-
-// MockUserRepo is a mock of UserRepo interface.
-type MockUserRepo struct {
-	ctrl     *gomock.Controller
-	recorder *MockUserRepoMockRecorder
-	isgomock struct{}
-}
-
-// MockUserRepoMockRecorder is the mock recorder for MockUserRepo.
-type MockUserRepoMockRecorder struct {
-	mock *MockUserRepo
-}
-
-// NewMockUserRepo creates a new mock instance.
-func NewMockUserRepo(ctrl *gomock.Controller) *MockUserRepo {
-	mock := &MockUserRepo{ctrl: ctrl}
-	mock.recorder = &MockUserRepoMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockUserRepo) EXPECT() *MockUserRepoMockRecorder {
-	return m.recorder
-}
-
-// CheckUserExists mocks base method.
-func (m *MockUserRepo) CheckUserExists(ctx context.Context, name string, role database.Role) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckUserExists", ctx, name, role)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CheckUserExists indicates an expected call of CheckUserExists.
-func (mr *MockUserRepoMockRecorder) CheckUserExists(ctx, name, role any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckUserExists", reflect.TypeOf((*MockUserRepo)(nil).CheckUserExists), ctx, name, role)
-}
-
-// CreateEmailVerification mocks base method.
-func (m *MockUserRepo) CreateEmailVerification(ctx context.Context, verification database.EmailVerification) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateEmailVerification", ctx, verification)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateEmailVerification indicates an expected call of CreateEmailVerification.
-func (mr *MockUserRepoMockRecorder) CreateEmailVerification(ctx, verification any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEmailVerification", reflect.TypeOf((*MockUserRepo)(nil).CreateEmailVerification), ctx, verification)
-}
-
-// CreateUser mocks base method.
-func (m *MockUserRepo) CreateUser(ctx context.Context, user database.User) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateUser", ctx, user)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateUser indicates an expected call of CreateUser.
-func (mr *MockUserRepoMockRecorder) CreateUser(ctx, user any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockUserRepo)(nil).CreateUser), ctx, user)
-}
-
-// DeleteUser mocks base method.
-func (m *MockUserRepo) DeleteUser(ctx context.Context, userID string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteUser", ctx, userID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteUser indicates an expected call of DeleteUser.
-func (mr *MockUserRepoMockRecorder) DeleteUser(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockUserRepo)(nil).DeleteUser), ctx, userID)
-}
-
-// GetEmailVerificationByUserID mocks base method.
-func (m *MockUserRepo) GetEmailVerificationByUserID(ctx context.Context, userID string) (database.EmailVerification, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEmailVerificationByUserID", ctx, userID)
-	ret0, _ := ret[0].(database.EmailVerification)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetEmailVerificationByUserID indicates an expected call of GetEmailVerificationByUserID.
-func (mr *MockUserRepoMockRecorder) GetEmailVerificationByUserID(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEmailVerificationByUserID", reflect.TypeOf((*MockUserRepo)(nil).GetEmailVerificationByUserID), ctx, userID)
-}
-
-// GetUserByEmail mocks base method.
-func (m *MockUserRepo) GetUserByEmail(ctx context.Context, email string) (database.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserByEmail", ctx, email)
-	ret0, _ := ret[0].(database.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserByEmail indicates an expected call of GetUserByEmail.
-func (mr *MockUserRepoMockRecorder) GetUserByEmail(ctx, email any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByEmail", reflect.TypeOf((*MockUserRepo)(nil).GetUserByEmail), ctx, email)
-}
-
-// GetUserByID mocks base method.
-func (m *MockUserRepo) GetUserByID(ctx context.Context, userID string) (database.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserByID", ctx, userID)
-	ret0, _ := ret[0].(database.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserByID indicates an expected call of GetUserByID.
-func (mr *MockUserRepoMockRecorder) GetUserByID(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByID", reflect.TypeOf((*MockUserRepo)(nil).GetUserByID), ctx, userID)
-}
-
-// GetUserByOAuth mocks base method.
-func (m *MockUserRepo) GetUserByOAuth(ctx context.Context, provider, oauthID string) (database.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserByOAuth", ctx, provider, oauthID)
-	ret0, _ := ret[0].(database.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserByOAuth indicates an expected call of GetUserByOAuth.
-func (mr *MockUserRepoMockRecorder) GetUserByOAuth(ctx, provider, oauthID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByOAuth", reflect.TypeOf((*MockUserRepo)(nil).GetUserByOAuth), ctx, provider, oauthID)
-}
-
-// GetUserByUsername mocks base method.
-func (m *MockUserRepo) GetUserByUsername(ctx context.Context, username string) (database.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserByUsername", ctx, username)
-	ret0, _ := ret[0].(database.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetUserByUsername indicates an expected call of GetUserByUsername.
-func (mr *MockUserRepoMockRecorder) GetUserByUsername(ctx, username any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByUsername", reflect.TypeOf((*MockUserRepo)(nil).GetUserByUsername), ctx, username)
-}
-
-// SetEmailVerificationMessageID mocks base method.
-func (m *MockUserRepo) SetEmailVerificationMessageID(ctx context.Context, verificationID, messageID string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetEmailVerificationMessageID", ctx, verificationID, messageID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetEmailVerificationMessageID indicates an expected call of SetEmailVerificationMessageID.
-func (mr *MockUserRepoMockRecorder) SetEmailVerificationMessageID(ctx, verificationID, messageID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEmailVerificationMessageID", reflect.TypeOf((*MockUserRepo)(nil).SetEmailVerificationMessageID), ctx, verificationID, messageID)
-}
-
-// SetEmailVerificationUsed mocks base method.
-func (m *MockUserRepo) SetEmailVerificationUsed(ctx context.Context, id string, verified bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetEmailVerificationUsed", ctx, id, verified)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetEmailVerificationUsed indicates an expected call of SetEmailVerificationUsed.
-func (mr *MockUserRepoMockRecorder) SetEmailVerificationUsed(ctx, id, verified any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEmailVerificationUsed", reflect.TypeOf((*MockUserRepo)(nil).SetEmailVerificationUsed), ctx, id, verified)
-}
-
-// SetUserEmailVerified mocks base method.
-func (m *MockUserRepo) SetUserEmailVerified(ctx context.Context, userID string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetUserEmailVerified", ctx, userID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetUserEmailVerified indicates an expected call of SetUserEmailVerified.
-func (mr *MockUserRepoMockRecorder) SetUserEmailVerified(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUserEmailVerified", reflect.TypeOf((*MockUserRepo)(nil).SetUserEmailVerified), ctx, userID)
-}
-
-// UpdateUser mocks base method.
-func (m *MockUserRepo) UpdateUser(ctx context.Context, user database.User) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUser", ctx, user)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateUser indicates an expected call of UpdateUser.
-func (mr *MockUserRepoMockRecorder) UpdateUser(ctx, user any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockUserRepo)(nil).UpdateUser), ctx, user)
-}
 
 // MockAuth is a mock of Auth interface.
 type MockAuth struct {
@@ -257,18 +44,18 @@ func (m *MockAuth) EXPECT() *MockAuthMockRecorder {
 	return m.recorder
 }
 
-// CreateClaims mocks base method.
-func (m *MockAuth) CreateClaims(user database.User) jwt.Claims {
+// CreateUserClaims mocks base method.
+func (m *MockAuth) CreateUserClaims(user model.User) jwt.Claims {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateClaims", user)
+	ret := m.ctrl.Call(m, "CreateUserClaims", user)
 	ret0, _ := ret[0].(jwt.Claims)
 	return ret0
 }
 
-// CreateClaims indicates an expected call of CreateClaims.
-func (mr *MockAuthMockRecorder) CreateClaims(user any) *gomock.Call {
+// CreateUserClaims indicates an expected call of CreateUserClaims.
+func (mr *MockAuthMockRecorder) CreateUserClaims(user any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClaims", reflect.TypeOf((*MockAuth)(nil).CreateClaims), user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUserClaims", reflect.TypeOf((*MockAuth)(nil).CreateUserClaims), user)
 }
 
 // GenerateToken mocks base method.
@@ -340,41 +127,129 @@ func (mr *MockGoogleTokenValidatorMockRecorder) Validate(ctx, idToken, audience 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockGoogleTokenValidator)(nil).Validate), ctx, idToken, audience)
 }
 
-// MockEmailSender is a mock of EmailSender interface.
-type MockEmailSender struct {
+// MockUserFacade is a mock of UserFacade interface.
+type MockUserFacade struct {
 	ctrl     *gomock.Controller
-	recorder *MockEmailSenderMockRecorder
+	recorder *MockUserFacadeMockRecorder
 	isgomock struct{}
 }
 
-// MockEmailSenderMockRecorder is the mock recorder for MockEmailSender.
-type MockEmailSenderMockRecorder struct {
-	mock *MockEmailSender
+// MockUserFacadeMockRecorder is the mock recorder for MockUserFacade.
+type MockUserFacadeMockRecorder struct {
+	mock *MockUserFacade
 }
 
-// NewMockEmailSender creates a new mock instance.
-func NewMockEmailSender(ctrl *gomock.Controller) *MockEmailSender {
-	mock := &MockEmailSender{ctrl: ctrl}
-	mock.recorder = &MockEmailSenderMockRecorder{mock}
+// NewMockUserFacade creates a new mock instance.
+func NewMockUserFacade(ctrl *gomock.Controller) *MockUserFacade {
+	mock := &MockUserFacade{ctrl: ctrl}
+	mock.recorder = &MockUserFacadeMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockEmailSender) EXPECT() *MockEmailSenderMockRecorder {
+func (m *MockUserFacade) EXPECT() *MockUserFacadeMockRecorder {
 	return m.recorder
 }
 
-// SendEmailVerification mocks base method.
-func (m *MockEmailSender) SendEmailVerification(ctx context.Context, req mailersend.SendEmailVerificationRequest) (string, error) {
+// DeleteUser mocks base method.
+func (m *MockUserFacade) DeleteUser(ctx context.Context, userID string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendEmailVerification", ctx, req)
-	ret0, _ := ret[0].(string)
+	ret := m.ctrl.Call(m, "DeleteUser", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteUser indicates an expected call of DeleteUser.
+func (mr *MockUserFacadeMockRecorder) DeleteUser(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockUserFacade)(nil).DeleteUser), ctx, userID)
+}
+
+// GoogleOAuth mocks base method.
+func (m *MockUserFacade) GoogleOAuth(ctx context.Context, oauthID, email string) (model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GoogleOAuth", ctx, oauthID, email)
+	ret0, _ := ret[0].(model.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// SendEmailVerification indicates an expected call of SendEmailVerification.
-func (mr *MockEmailSenderMockRecorder) SendEmailVerification(ctx, req any) *gomock.Call {
+// GoogleOAuth indicates an expected call of GoogleOAuth.
+func (mr *MockUserFacadeMockRecorder) GoogleOAuth(ctx, oauthID, email any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendEmailVerification", reflect.TypeOf((*MockEmailSender)(nil).SendEmailVerification), ctx, req)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GoogleOAuth", reflect.TypeOf((*MockUserFacade)(nil).GoogleOAuth), ctx, oauthID, email)
+}
+
+// ResendVerificationEmail mocks base method.
+func (m *MockUserFacade) ResendVerificationEmail(ctx context.Context, userID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResendVerificationEmail", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResendVerificationEmail indicates an expected call of ResendVerificationEmail.
+func (mr *MockUserFacadeMockRecorder) ResendVerificationEmail(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResendVerificationEmail", reflect.TypeOf((*MockUserFacade)(nil).ResendVerificationEmail), ctx, userID)
+}
+
+// SignIn mocks base method.
+func (m *MockUserFacade) SignIn(ctx context.Context, username, password string) (model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SignIn", ctx, username, password)
+	ret0, _ := ret[0].(model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SignIn indicates an expected call of SignIn.
+func (mr *MockUserFacadeMockRecorder) SignIn(ctx, username, password any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SignIn", reflect.TypeOf((*MockUserFacade)(nil).SignIn), ctx, username, password)
+}
+
+// SignUp mocks base method.
+func (m *MockUserFacade) SignUp(ctx context.Context, username, displayName, email, password string, isPublisher bool) (model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SignUp", ctx, username, displayName, email, password, isPublisher)
+	ret0, _ := ret[0].(model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SignUp indicates an expected call of SignUp.
+func (mr *MockUserFacadeMockRecorder) SignUp(ctx, username, displayName, email, password, isPublisher any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SignUp", reflect.TypeOf((*MockUserFacade)(nil).SignUp), ctx, username, displayName, email, password, isPublisher)
+}
+
+// UpdateUserProfile mocks base method.
+func (m *MockUserFacade) UpdateUserProfile(ctx context.Context, userID string, params model.UpdateProfileParams) (model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateUserProfile", ctx, userID, params)
+	ret0, _ := ret[0].(model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateUserProfile indicates an expected call of UpdateUserProfile.
+func (mr *MockUserFacadeMockRecorder) UpdateUserProfile(ctx, userID, params any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserProfile", reflect.TypeOf((*MockUserFacade)(nil).UpdateUserProfile), ctx, userID, params)
+}
+
+// VerifyEmail mocks base method.
+func (m *MockUserFacade) VerifyEmail(ctx context.Context, userID, code string) (model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VerifyEmail", ctx, userID, code)
+	ret0, _ := ret[0].(model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// VerifyEmail indicates an expected call of VerifyEmail.
+func (mr *MockUserFacadeMockRecorder) VerifyEmail(ctx, userID, code any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyEmail", reflect.TypeOf((*MockUserFacade)(nil).VerifyEmail), ctx, userID, code)
 }

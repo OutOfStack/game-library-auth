@@ -30,7 +30,6 @@ func (a *AuthAPI) VerifyTokenHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	// validate
 	if fields, err := web.Validate(verifyToken); err != nil {
 		a.log.Error("validating token", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
@@ -39,9 +38,8 @@ func (a *AuthAPI) VerifyTokenHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	tokenStr := verifyToken.Token
-
-	_, err := a.auth.ValidateToken(tokenStr)
+	// validate token
+	_, err := a.auth.ValidateToken(verifyToken.Token)
 	if err != nil {
 		a.log.Error("token validation failed", zap.Error(err))
 		return c.JSON(VerifyTokenResp{

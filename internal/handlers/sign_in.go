@@ -4,11 +4,10 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/OutOfStack/game-library-auth/internal/database"
+	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // SignInHandler godoc
@@ -37,7 +36,6 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 
 	log := a.log.With(zap.String("username", signIn.Username))
 
-	// validate
 	if fields, err := web.Validate(signIn); err != nil {
 		log.Info("validating credentials", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
@@ -46,40 +44,25 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	// fetch user
-	usr, err := a.userRepo.GetUserByUsername(ctx, signIn.Username)
+	// sign in
+	user, err := a.userFacade.SignIn(ctx, signIn.Username, signIn.Password)
 	if err != nil {
-		if errors.Is(err, database.ErrNotFound) {
-			log.Info("username does not exist", zap.Error(err))
+		switch {
+		case errors.Is(err, facade.SignInInvalidCredentialsErr):
+			log.Info("invalid username or password", zap.Error(err))
 			return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
 				Error: authErrorMsg,
 			})
-		}
-		log.Error("fetching user", zap.Error(err))
-		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
-			Error: internalErrorMsg,
-		})
-	}
-
-	// check password
-	if err = bcrypt.CompareHashAndPassword(usr.PasswordHash, []byte(signIn.Password)); err != nil {
-		log.Info("invalid password", zap.Error(err))
-		return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
-			Error: authErrorMsg,
-		})
-	}
-
-	// send verification code to email if user has unverified email
-	if usr.Email.Valid && !usr.EmailVerified {
-		if err = a.sendVerificationEmail(ctx, usr.ID, usr.Email.String, usr.Username); err != nil {
-			log.Error("sending verification email on signin", zap.Error(err))
+		default:
+			log.Error("sign in", zap.Error(err))
+			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+				Error: internalErrorMsg,
+			})
 		}
 	}
 
-	// create claims
-	claims := a.auth.CreateClaims(usr)
-
-	// generate jwt
+	// issue jwt token
+	claims := a.auth.CreateUserClaims(user)
 	tokenStr, err := a.auth.GenerateToken(claims)
 	if err != nil {
 		log.Error("generating jwt", zap.Error(err))
@@ -88,7 +71,5 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(TokenResp{
-		AccessToken: tokenStr,
-	})
+	return c.JSON(TokenResp{AccessToken: tokenStr})
 }

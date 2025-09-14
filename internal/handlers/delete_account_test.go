@@ -23,15 +23,15 @@ func TestDeleteAccountHandler(t *testing.T) {
 	tests := []struct {
 		name           string
 		authHeader     string
-		setupMocks     func(*mocks.MockUserRepo)
+		setupMocks     func(*mocks.MockUserFacade)
 		expectedStatus int
 		expectedResp   interface{}
 	}{
 		{
 			name:       "successful delete",
 			authHeader: "Bearer valid-token",
-			setupMocks: func(mockUserRepo *mocks.MockUserRepo) {
-				mockUserRepo.EXPECT().
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
+				mockUserFacade.EXPECT().
 					DeleteUser(gomock.Any(), userID).
 					Return(nil)
 			},
@@ -40,8 +40,8 @@ func TestDeleteAccountHandler(t *testing.T) {
 		{
 			name:       "user not found - still succeeds",
 			authHeader: "Bearer valid-token",
-			setupMocks: func(mockUserRepo *mocks.MockUserRepo) {
-				mockUserRepo.EXPECT().
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
+				mockUserFacade.EXPECT().
 					DeleteUser(gomock.Any(), userID).
 					Return(nil)
 			},
@@ -51,8 +51,8 @@ func TestDeleteAccountHandler(t *testing.T) {
 		{
 			name:       "user repo error on delete",
 			authHeader: "Bearer valid-token",
-			setupMocks: func(mockUserRepo *mocks.MockUserRepo) {
-				mockUserRepo.EXPECT().
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
+				mockUserFacade.EXPECT().
 					DeleteUser(gomock.Any(), userID).
 					Return(errors.New("database error"))
 			},
@@ -64,7 +64,7 @@ func TestDeleteAccountHandler(t *testing.T) {
 		{
 			name:           "missing authorization header",
 			authHeader:     "",
-			setupMocks:     func(*mocks.MockUserRepo) {},
+			setupMocks:     func(*mocks.MockUserFacade) {},
 			expectedStatus: http.StatusUnauthorized,
 			expectedResp: web.ErrResp{
 				Error: "Invalid or missing authorization token",
@@ -73,7 +73,7 @@ func TestDeleteAccountHandler(t *testing.T) {
 		{
 			name:           "invalid authorization header format",
 			authHeader:     "InvalidFormat",
-			setupMocks:     func(*mocks.MockUserRepo) {},
+			setupMocks:     func(*mocks.MockUserFacade) {},
 			expectedStatus: http.StatusUnauthorized,
 			expectedResp: web.ErrResp{
 				Error: "Invalid or missing authorization token",
@@ -83,7 +83,7 @@ func TestDeleteAccountHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, mockUserRepo, _, _, authAPI, app, ctrl := setupTest(t, nil)
+			mockAuth, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.authHeader == "Bearer valid-token" {
@@ -92,10 +92,11 @@ func TestDeleteAccountHandler(t *testing.T) {
 					ValidateToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
+				// handled in per-test setupMocks
 			}
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(mockUserRepo)
+				tt.setupMocks(mockUserFacade)
 			}
 
 			app.Post("/delete_account", authAPI.DeleteAccountHandler)
