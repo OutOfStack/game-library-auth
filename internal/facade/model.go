@@ -8,6 +8,8 @@ import (
 const (
 	maxUsernameLen = 32
 
+	defaultVrfCodeLen = 6
+
 	verificationCodeTTL            = 24 * time.Hour
 	resendVerificationCodeCooldown = 60 * time.Second
 )
