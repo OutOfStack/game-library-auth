@@ -4,11 +4,11 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/OutOfStack/game-library-auth/internal/database"
+	"github.com/OutOfStack/game-library-auth/internal/facade"
+	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // UpdateProfileHandler godoc
@@ -74,63 +74,36 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	// check if user exists
-	usr, err := a.userRepo.GetUserByID(ctx, userID)
+	// update profile
+	updatedUser, err := a.userFacade.UpdateUserProfile(ctx, userID, model.UpdateProfileParams{
+		Name:        params.Name,
+		Password:    params.Password,
+		NewPassword: params.NewPassword,
+	})
 	if err != nil {
-		if errors.Is(err, database.ErrNotFound) {
+		switch {
+		case errors.Is(err, facade.ErrUpdateProfileUserNotFound):
 			return c.Status(http.StatusNotFound).JSON(web.ErrResp{
 				Error: "User does not exist",
 			})
-		}
-		log.Error("checking existence of user", zap.Error(err))
-		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
-			Error: internalErrorMsg,
-		})
-	}
-
-	if params.Password != nil && usr.OAuthProvider.Valid {
-		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
-			Error: "Cannot change password for OAuth provider users",
-		})
-	}
-
-	if params.Password != nil && len(usr.PasswordHash) > 0 {
-		// check password
-		if err = bcrypt.CompareHashAndPassword(usr.PasswordHash, []byte(*params.Password)); err != nil {
-			log.Info("invalid password", zap.Error(err))
+		case errors.Is(err, facade.ErrUpdateProfileNotAllowed):
+			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+				Error: "Cannot change password for OAuth provider users",
+			})
+		case errors.Is(err, facade.ErrUpdateProfileInvalidPassword):
 			return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
 				Error: "Invalid current password",
 			})
-		}
-
-		// hash password
-		passwordHash, gErr := bcrypt.GenerateFromPassword([]byte(*params.NewPassword), bcrypt.DefaultCost)
-		if gErr != nil {
-			log.Error("generating password hash", zap.Error(gErr))
+		default:
+			log.Error("update profile", zap.Error(err))
 			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 				Error: internalErrorMsg,
 			})
 		}
-
-		usr.PasswordHash = passwordHash
 	}
 
-	if params.Name != nil {
-		usr.DisplayName = *params.Name
-	}
-
-	// update user
-	if err = a.userRepo.UpdateUser(ctx, usr); err != nil {
-		log.Error("update user", zap.Error(err))
-		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
-			Error: internalErrorMsg,
-		})
-	}
-
-	// create claims
-	claims := a.auth.CreateClaims(usr)
-
-	// generate jwt
+	// issue jwt token
+	claims := a.auth.CreateUserClaims(updatedUser)
 	tokenStr, err := a.auth.GenerateToken(claims)
 	if err != nil {
 		log.Error("generating jwt", zap.Error(err))
@@ -139,7 +112,6 @@ func (a *AuthAPI) UpdateProfileHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	// return token
 	return c.JSON(TokenResp{
 		AccessToken: tokenStr,
 	})

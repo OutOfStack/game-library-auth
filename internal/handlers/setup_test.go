@@ -17,13 +17,14 @@ const (
 	authErrorMsg     string = "Incorrect username or password"
 )
 
-func setupTest(t *testing.T, cfg *appconf.Cfg) (*mocks.MockAuth, *mocks.MockUserRepo, *mocks.MockGoogleTokenValidator, *mocks.MockEmailSender, *handlers.AuthAPI, *fiber.App, *gomock.Controller) {
+func setupTest(t *testing.T, cfg *appconf.Cfg) (
+	*mocks.MockAuth, *mocks.MockGoogleTokenValidator, *handlers.AuthAPI, *mocks.MockUserFacade, *fiber.App, *gomock.Controller) {
 	t.Helper()
 
 	ctrl := gomock.NewController(t)
 	mockAuth := mocks.NewMockAuth(ctrl)
-	mockUserRepo := mocks.NewMockUserRepo(ctrl)
 	mockGoogleTokenValidator := mocks.NewMockGoogleTokenValidator(ctrl)
+	mockUserFacade := mocks.NewMockUserFacade(ctrl)
 
 	logger := zap.NewNop()
 	if cfg == nil {
@@ -33,9 +34,8 @@ func setupTest(t *testing.T, cfg *appconf.Cfg) (*mocks.MockAuth, *mocks.MockUser
 			},
 		}
 	}
-	mockEmailSender := mocks.NewMockEmailSender(ctrl)
-	authAPI, err := handlers.NewAuthAPI(logger, cfg, mockAuth, mockUserRepo, mockGoogleTokenValidator, mockEmailSender)
+	authAPI, err := handlers.NewAuthAPI(logger, cfg, mockAuth, mockGoogleTokenValidator, mockUserFacade)
 	require.NoError(t, err)
 
-	return mockAuth, mockUserRepo, mockGoogleTokenValidator, mockEmailSender, authAPI, fiber.New(), ctrl
+	return mockAuth, mockGoogleTokenValidator, authAPI, mockUserFacade, fiber.New(), ctrl
 }

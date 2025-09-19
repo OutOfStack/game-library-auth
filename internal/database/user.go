@@ -40,7 +40,7 @@ func (r *UserRepo) CreateUser(ctx context.Context, user User) error {
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == pgUniqueViolationCode {
-			return ErrUsernameExists
+			return ErrUserExists
 		}
 		return fmt.Errorf("insert user: %w", err)
 	}
@@ -178,7 +178,7 @@ func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (User, erro
 
 // SetUserEmailVerified sets user email as verified
 func (r *UserRepo) SetUserEmailVerified(ctx context.Context, userID string) error {
-	ctx, span := tracer.Start(ctx, "setUserEmailVerified")
+	ctx, span := tracer.Start(ctx, "setUserVerified")
 	defer span.End()
 
 	const q = `UPDATE users

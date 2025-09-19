@@ -6,31 +6,29 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
-	"github.com/OutOfStack/game-library-auth/internal/database"
+	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/handlers"
 	mocks "github.com/OutOfStack/game-library-auth/internal/handlers/mocks"
+	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func TestVerifyEmailHandler(t *testing.T) {
 	userID := uuid.New().String()
 	code := "123456"
-	codeHash, _ := bcrypt.GenerateFromPassword([]byte(code), bcrypt.DefaultCost)
 
 	tests := []struct {
 		name           string
 		request        interface{}
 		authHeader     string
-		setupMocks     func(*mocks.MockAuth, *mocks.MockUserRepo)
+		setupMocks     func(*mocks.MockAuth, *mocks.MockUserFacade)
 		expectedStatus int
 		expectedResp   interface{}
 	}{
@@ -40,21 +38,12 @@ func TestVerifyEmailHandler(t *testing.T) {
 				Code: code,
 			},
 			authHeader: "Bearer valid-token",
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				claims := auth.Claims{UserID: userID}
 				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
-
-				user := database.User{ID: userID, Username: "testuser"}
-				user.SetEmail("test@example.com", false)
-				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID).Return(user, nil)
-
-				verification := database.NewEmailVerification(userID, string(codeHash), time.Now().Add(1*time.Hour))
-				mockUserRepo.EXPECT().GetEmailVerificationByUserID(gomock.Any(), userID).Return(verification, nil)
-
-				mockUserRepo.EXPECT().SetUserEmailVerified(gomock.Any(), userID).Return(nil)
-				mockUserRepo.EXPECT().SetEmailVerificationUsed(gomock.Any(), verification.ID, true).Return(nil)
-
-				mockAuth.EXPECT().CreateClaims(gomock.Any()).Return(jwt.MapClaims{})
+				u := model.User{ID: userID, Username: "testuser", Email: "test@example.com", EmailVerified: true}
+				mockUserFacade.EXPECT().VerifyEmail(gomock.Any(), userID, code).Return(u, nil)
+				mockAuth.EXPECT().CreateUserClaims(u).Return(jwt.MapClaims{})
 				mockAuth.EXPECT().GenerateToken(gomock.Any()).Return("new.jwt.token", nil)
 			},
 			expectedStatus: http.StatusOK,
@@ -76,17 +65,10 @@ func TestVerifyEmailHandler(t *testing.T) {
 				Code: code,
 			},
 			authHeader: "Bearer valid-token",
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				claims := auth.Claims{UserID: userID}
 				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
-
-				user := database.User{ID: userID, Username: "testuser"}
-				user.SetEmail("test@example.com", false)
-				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID).Return(user, nil)
-
-				verification := database.NewEmailVerification(userID, string(codeHash), time.Now().Add(-1*time.Hour))
-				mockUserRepo.EXPECT().GetEmailVerificationByUserID(gomock.Any(), userID).Return(verification, nil)
-				mockUserRepo.EXPECT().SetEmailVerificationUsed(gomock.Any(), verification.ID, false).Return(nil)
+				mockUserFacade.EXPECT().VerifyEmail(gomock.Any(), userID, code).Return(model.User{}, facade.ErrVerifyEmailInvalidOrExpired)
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedResp:   web.ErrResp{Error: "Invalid or expired verification code"},
@@ -97,13 +79,10 @@ func TestVerifyEmailHandler(t *testing.T) {
 				Code: code,
 			},
 			authHeader: "Bearer valid-token",
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				claims := auth.Claims{UserID: userID}
 				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
-
-				user := database.User{ID: userID, Username: "testuser"}
-				user.SetEmail("test@example.com", true) // Already verified
-				mockUserRepo.EXPECT().GetUserByID(gomock.Any(), userID).Return(user, nil)
+				mockUserFacade.EXPECT().VerifyEmail(gomock.Any(), userID, code).Return(model.User{}, facade.ErrVerifyEmailAlreadyVerified)
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedResp:   web.ErrResp{Error: "Email is already verified"},
@@ -112,11 +91,11 @@ func TestVerifyEmailHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, mockUserRepo, _, _, authAPI, app, ctrl := setupTest(t, nil)
+			mockAuth, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(mockAuth, mockUserRepo)
+				tt.setupMocks(mockAuth, mockUserFacade)
 			}
 
 			app.Post("/verify-email", authAPI.VerifyEmailHandler)

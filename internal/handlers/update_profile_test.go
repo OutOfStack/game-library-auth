@@ -2,7 +2,6 @@ package handlers_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -11,16 +10,16 @@ import (
 	"testing"
 
 	auth_ "github.com/OutOfStack/game-library-auth/internal/auth"
-	"github.com/OutOfStack/game-library-auth/internal/database"
+	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/handlers"
 	mocks "github.com/OutOfStack/game-library-auth/internal/handlers/mocks"
+	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func TestUpdateProfileHandler(t *testing.T) {
@@ -33,7 +32,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 		name           string
 		authHeader     string
 		request        handlers.UpdateProfileReq
-		setupMocks     func(*mocks.MockAuth, *mocks.MockUserRepo)
+		setupMocks     func(*mocks.MockAuth, *mocks.MockUserFacade)
 		expectedStatus int
 		expectedResp   interface{}
 	}{
@@ -43,7 +42,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 			request: handlers.UpdateProfileReq{
 				Name: &newName,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				// Mock JWT validation
 				claims := auth_.Claims{UserID: userID}
 				mockAuth.EXPECT().
@@ -51,25 +50,13 @@ func TestUpdateProfileHandler(t *testing.T) {
 					Return(claims, nil).
 					AnyTimes()
 
-				user := database.User{
-					ID:          userID,
-					Username:    "testuser",
-					DisplayName: "Old DisplayName",
-				}
-
-				mockUserRepo.EXPECT().
-					GetUserByID(gomock.Any(), userID).
-					Return(user, nil)
-
-				mockUserRepo.EXPECT().
-					UpdateUser(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ context.Context, updatedUser database.User) error {
-						assert.Equal(t, newName, updatedUser.DisplayName)
-						return nil
-					})
+				updated := model.User{ID: userID, Username: "testuser", DisplayName: newName}
+				mockUserFacade.EXPECT().
+					UpdateUserProfile(gomock.Any(), userID, gomock.Any()).
+					Return(updated, nil)
 
 				mockAuth.EXPECT().
-					CreateClaims(gomock.Any()).
+					CreateUserClaims(updated).
 					Return(jwt.MapClaims{"sub": userID})
 
 				mockAuth.EXPECT().
@@ -89,7 +76,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 				NewPassword:        &newPassword,
 				ConfirmNewPassword: &newPassword,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				// Mock JWT validation
 				claims := auth_.Claims{UserID: userID}
 				mockAuth.EXPECT().
@@ -97,23 +84,13 @@ func TestUpdateProfileHandler(t *testing.T) {
 					Return(claims, nil).
 					AnyTimes()
 
-				passwordHash, _ := bcrypt.GenerateFromPassword([]byte(oldPassword), bcrypt.MinCost)
-				user := database.User{
-					ID:           userID,
-					Username:     "testuser",
-					PasswordHash: passwordHash,
-				}
-
-				mockUserRepo.EXPECT().
-					GetUserByID(gomock.Any(), userID).
-					Return(user, nil)
-
-				mockUserRepo.EXPECT().
-					UpdateUser(gomock.Any(), gomock.Any()).
-					Return(nil)
+				updated := model.User{ID: userID, Username: "testuser"}
+				mockUserFacade.EXPECT().
+					UpdateUserProfile(gomock.Any(), userID, gomock.Any()).
+					Return(updated, nil)
 
 				mockAuth.EXPECT().
-					CreateClaims(gomock.Any()).
+					CreateUserClaims(updated).
 					Return(jwt.MapClaims{"sub": userID})
 
 				mockAuth.EXPECT().
@@ -131,7 +108,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 			request: handlers.UpdateProfileReq{
 				Name: &newName,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				// Mock JWT validation
 				claims := auth_.Claims{UserID: userID}
 				mockAuth.EXPECT().
@@ -139,9 +116,9 @@ func TestUpdateProfileHandler(t *testing.T) {
 					Return(claims, nil).
 					AnyTimes()
 
-				mockUserRepo.EXPECT().
-					GetUserByID(gomock.Any(), userID).
-					Return(database.User{}, database.ErrNotFound)
+				mockUserFacade.EXPECT().
+					UpdateUserProfile(gomock.Any(), userID, gomock.Any()).
+					Return(model.User{}, facade.ErrUpdateProfileUserNotFound)
 			},
 			expectedStatus: http.StatusNotFound,
 			expectedResp: web.ErrResp{
@@ -156,24 +133,16 @@ func TestUpdateProfileHandler(t *testing.T) {
 				NewPassword:        &newPassword,
 				ConfirmNewPassword: &newPassword,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				// Mock JWT validation
 				claims := auth_.Claims{UserID: userID}
 				mockAuth.EXPECT().
 					ValidateToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
-
-				passwordHash, _ := bcrypt.GenerateFromPassword([]byte("differentpassword"), bcrypt.MinCost)
-				user := database.User{
-					ID:           userID,
-					Username:     "testuser",
-					PasswordHash: passwordHash,
-				}
-
-				mockUserRepo.EXPECT().
-					GetUserByID(gomock.Any(), userID).
-					Return(user, nil)
+				mockUserFacade.EXPECT().
+					UpdateUserProfile(gomock.Any(), userID, gomock.Any()).
+					Return(model.User{}, facade.ErrUpdateProfileInvalidPassword)
 			},
 			expectedStatus: http.StatusUnauthorized,
 			expectedResp: web.ErrResp{
@@ -186,26 +155,16 @@ func TestUpdateProfileHandler(t *testing.T) {
 			request: handlers.UpdateProfileReq{
 				Name: &newName,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				// Mock JWT validation
 				claims := auth_.Claims{UserID: userID}
 				mockAuth.EXPECT().
 					ValidateToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
-
-				user := database.User{
-					ID:       userID,
-					Username: "testuser",
-				}
-
-				mockUserRepo.EXPECT().
-					GetUserByID(gomock.Any(), userID).
-					Return(user, nil)
-
-				mockUserRepo.EXPECT().
-					UpdateUser(gomock.Any(), gomock.Any()).
-					Return(errors.New("database error"))
+				mockUserFacade.EXPECT().
+					UpdateUserProfile(gomock.Any(), userID, gomock.Any()).
+					Return(model.User{}, errors.New("database error"))
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedResp: web.ErrResp{
@@ -218,7 +177,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 			request: handlers.UpdateProfileReq{
 				Name: &newName,
 			},
-			setupMocks:     func(_ *mocks.MockAuth, _ *mocks.MockUserRepo) {},
+			setupMocks:     func(_ *mocks.MockAuth, _ *mocks.MockUserFacade) {},
 			expectedStatus: http.StatusUnauthorized,
 			expectedResp: web.ErrResp{
 				Error: "Invalid or missing authorization token",
@@ -230,7 +189,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 			request: handlers.UpdateProfileReq{
 				Name: &newName,
 			},
-			setupMocks:     func(_ *mocks.MockAuth, _ *mocks.MockUserRepo) {},
+			setupMocks:     func(_ *mocks.MockAuth, _ *mocks.MockUserFacade) {},
 			expectedStatus: http.StatusUnauthorized,
 			expectedResp: web.ErrResp{
 				Error: "Invalid or missing authorization token",
@@ -240,11 +199,11 @@ func TestUpdateProfileHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, mockUserRepo, _, _, authAPI, app, ctrl := setupTest(t, nil)
+			mockAuth, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(mockAuth, mockUserRepo)
+				tt.setupMocks(mockAuth, mockUserFacade)
 			}
 
 			app.Post("/update_profile", authAPI.UpdateProfileHandler)

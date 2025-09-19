@@ -1,30 +1,17 @@
 package handlers
 
-import (
-	"errors"
-	"time"
-)
-
 const (
 	internalErrorMsg           = "Internal error"
 	validationErrorMsg         = "Validation error"
 	authErrorMsg               = "Incorrect username or password"
 	invalidAuthTokenMsg        = "Invalid or missing authorization token"
 	invalidOrExpiredVrfCodeMsg = "Invalid or expired verification code"
-
-	maxUsernameLen = 32
-
-	verificationCodeTTL            = 24 * time.Hour
-	resendVerificationCodeCooldown = 60 * time.Second
-)
-
-var (
-	errTooManyRequests = errors.New("too many requests")
 )
 
 // SignInReq represents user sign in request
 type SignInReq struct {
-	Username string `json:"username" validate:"required"`
+	Username string `json:"username"`
+	Login    string `json:"login"`
 	Password string `json:"password" validate:"required,min=8,max=64"`
 }
 
@@ -35,7 +22,7 @@ type TokenResp struct {
 
 // SignUpReq represents user sign up request
 type SignUpReq struct {
-	Username        string `json:"username" validate:"required"`
+	Username        string `json:"username" validate:"required,fieldexcludes=@"`
 	DisplayName     string `json:"name" validate:"required"`
 	Email           string `json:"email" validate:"omitempty,email"`
 	Password        string `json:"password" validate:"required,min=8,max=64"`

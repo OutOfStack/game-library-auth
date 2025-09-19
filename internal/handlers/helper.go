@@ -1,11 +1,8 @@
 package handlers
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
-	"math/big"
-	"net/mail"
 	"strings"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
@@ -47,43 +44,4 @@ func (a *AuthAPI) getUserIDFromJWT(c *fiber.Ctx) (string, error) {
 	}
 
 	return claims.UserID, nil
-}
-
-// extractUsernameFromEmail extracts and sanitizes username from email for OAuth users
-func extractUsernameFromEmail(email string) (string, error) {
-	if email == "" {
-		return "", errors.New("email cannot be empty")
-	}
-
-	if _, err := mail.ParseAddress(email); err != nil {
-		return "", fmt.Errorf("invalid email format: %w", err)
-	}
-
-	// extract username part (before @)
-	parts := strings.Split(email, "@")
-	if len(parts) != 2 {
-		return "", errors.New("invalid email format")
-	}
-
-	username := parts[0]
-
-	username = strings.ToLower(strings.TrimSpace(username))
-
-	if len(username) > maxUsernameLen {
-		username = username[:maxUsernameLen]
-	}
-
-	return username, nil
-}
-
-// generate6DigitCode generates a secure random 6-digit verification code
-func generate6DigitCode() string {
-	const codeLength = 6
-	const maxVal = 10
-	var code string
-	for range codeLength {
-		n, _ := rand.Int(rand.Reader, big.NewInt(maxVal))
-		code += n.String()
-	}
-	return code
 }

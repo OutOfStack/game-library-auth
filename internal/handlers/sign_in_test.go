@@ -9,22 +9,22 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/OutOfStack/game-library-auth/internal/database"
+	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/handlers"
 	mocks "github.com/OutOfStack/game-library-auth/internal/handlers/mocks"
+	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func TestSignInHandler(t *testing.T) {
 	tests := []struct {
 		name           string
 		request        handlers.SignInReq
-		setupMocks     func(*mocks.MockAuth, *mocks.MockUserRepo)
+		setupMocks     func(*mocks.MockAuth, *mocks.MockUserFacade)
 		expectedStatus int
 		expectedResp   interface{}
 	}{
@@ -34,17 +34,16 @@ func TestSignInHandler(t *testing.T) {
 				Username: "testuser",
 				Password: "password123",
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
-				passwordHash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-				user := database.NewUser("testuser", "", passwordHash, database.UserRoleName)
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+				u := model.User{ID: "uid-1", Username: "testuser"}
 
-				mockUserRepo.EXPECT().
-					GetUserByUsername(gomock.Any(), "testuser").
-					Return(user, nil)
+				mockUserFacade.EXPECT().
+					SignIn(gomock.Any(), "testuser", "password123").
+					Return(u, nil)
 
 				mockAuth.EXPECT().
-					CreateClaims(gomock.Eq(user)).
-					Return(jwt.MapClaims{"sub": user.ID})
+					CreateUserClaims(gomock.Eq(u)).
+					Return(jwt.MapClaims{"sub": u.ID})
 
 				mockAuth.EXPECT().
 					GenerateToken(gomock.Any()).
@@ -61,10 +60,10 @@ func TestSignInHandler(t *testing.T) {
 				Username: "nonexistent",
 				Password: "password123",
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
-				mockUserRepo.EXPECT().
-					GetUserByUsername(gomock.Any(), "nonexistent").
-					Return(database.User{}, database.ErrNotFound)
+			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+				mockUserFacade.EXPECT().
+					SignIn(gomock.Any(), "nonexistent", "password123").
+					Return(model.User{}, facade.ErrSignInInvalidCredentials)
 			},
 			expectedStatus: http.StatusUnauthorized,
 			expectedResp: web.ErrResp{
@@ -77,13 +76,10 @@ func TestSignInHandler(t *testing.T) {
 				Username: "testuser",
 				Password: "wrongpassword",
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
-				passwordHash, _ := bcrypt.GenerateFromPassword([]byte("correctpassword"), bcrypt.DefaultCost)
-				user := database.NewUser("testuser", "", passwordHash, database.UserRoleName)
-
-				mockUserRepo.EXPECT().
-					GetUserByUsername(gomock.Any(), "testuser").
-					Return(user, nil)
+			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+				mockUserFacade.EXPECT().
+					SignIn(gomock.Any(), "testuser", "wrongpassword").
+					Return(model.User{}, facade.ErrSignInInvalidCredentials)
 			},
 			expectedStatus: http.StatusUnauthorized,
 			expectedResp: web.ErrResp{
@@ -96,10 +92,10 @@ func TestSignInHandler(t *testing.T) {
 				Username: "testuser",
 				Password: "password123",
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
-				mockUserRepo.EXPECT().
-					GetUserByUsername(gomock.Any(), "testuser").
-					Return(database.User{}, errors.New("database error"))
+			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+				mockUserFacade.EXPECT().
+					SignIn(gomock.Any(), "testuser", "password123").
+					Return(model.User{}, errors.New("database error"))
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedResp: web.ErrResp{
@@ -112,17 +108,16 @@ func TestSignInHandler(t *testing.T) {
 				Username: "testuser",
 				Password: "password123",
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserRepo *mocks.MockUserRepo) {
-				passwordHash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-				user := database.NewUser("testuser", "", passwordHash, database.UserRoleName)
+			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+				u := model.User{ID: "uid-1", Username: "testuser"}
 
-				mockUserRepo.EXPECT().
-					GetUserByUsername(gomock.Any(), "testuser").
-					Return(user, nil)
+				mockUserFacade.EXPECT().
+					SignIn(gomock.Any(), "testuser", "password123").
+					Return(u, nil)
 
 				mockAuth.EXPECT().
-					CreateClaims(gomock.Eq(user)).
-					Return(jwt.MapClaims{"sub": user.ID})
+					CreateUserClaims(gomock.Eq(u)).
+					Return(jwt.MapClaims{"sub": u.ID})
 
 				mockAuth.EXPECT().
 					GenerateToken(gomock.Any()).
@@ -137,11 +132,11 @@ func TestSignInHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, mockUserRepo, _, _, authAPI, app, ctrl := setupTest(t, nil)
+			mockAuth, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(mockAuth, mockUserRepo)
+				tt.setupMocks(mockAuth, mockUserFacade)
 			}
 
 			app.Post("/signin", authAPI.SignInHandler)

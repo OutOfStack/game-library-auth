@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/OutOfStack/game-library-auth/internal/auth"
-	"github.com/OutOfStack/game-library-auth/internal/database"
+	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -36,7 +35,8 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	claims, err := a.verifyGoogleIDToken(ctx, req.IDToken)
+	// verify google token
+	googleClaims, err := a.verifyGoogleIDToken(ctx, req.IDToken)
 	if err != nil {
 		a.log.Error("google token verify failed", zap.Error(err))
 		return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
@@ -44,45 +44,27 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	user, err := a.userRepo.GetUserByOAuth(ctx, "google", claims.Sub)
-	if err != nil && !errors.Is(err, database.ErrNotFound) {
-		a.log.Error("get user (google oauth)", zap.Error(err))
-		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
-			Error: internalErrorMsg,
-		})
-	}
-
-	// create user if not found
-	if errors.Is(err, database.ErrNotFound) {
-		username, uErr := extractUsernameFromEmail(claims.Email)
-		if uErr != nil {
-			a.log.Error("extract username from email", zap.String("email", claims.Email), zap.Error(uErr))
+	// sign in or sign up
+	user, err := a.userFacade.GoogleOAuth(ctx, googleClaims.Sub, googleClaims.Email)
+	if err != nil {
+		switch {
+		case errors.Is(err, facade.ErrInvalidEmail):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 				Error: "Invalid email",
 			})
-		}
-
-		user = database.NewUser(username, "", nil, database.UserRoleName)
-		user.SetOAuthID(auth.GoogleAuthTokenProvider, claims.Sub)
-		user.SetEmail(claims.Email, true)
-
-		// create user
-		if err = a.userRepo.CreateUser(ctx, user); err != nil {
-			if errors.Is(err, database.ErrUsernameExists) {
-				a.log.Warn("username already exists during oauth", zap.String("username", user.Username))
-				return c.Status(http.StatusConflict).JSON(web.ErrResp{
-					Error: "Account setup incomplete. Please complete registration manually.",
-				})
-			}
-			a.log.Error("create user (google oauth)", zap.String("username", user.Username), zap.Error(err))
+		case errors.Is(err, facade.ErrOAuthSignInConflict):
+			return c.Status(http.StatusConflict).JSON(web.ErrResp{
+				Error: "Account setup incomplete. Please complete registration manually.",
+			})
+		default:
 			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 				Error: internalErrorMsg,
 			})
 		}
 	}
 
-	// issue token
-	jwtClaims := a.auth.CreateClaims(user)
+	// issue jwt token
+	jwtClaims := a.auth.CreateUserClaims(user)
 	tokenStr, err := a.auth.GenerateToken(jwtClaims)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
