@@ -437,10 +437,12 @@ const docTemplate = `{
         "handlers.SignInReq": {
             "type": "object",
             "required": [
-                "password",
-                "username"
+                "password"
             ],
             "properties": {
+                "login": {
+                    "type": "string"
+                },
                 "password": {
                     "type": "string",
                     "maxLength": 64,

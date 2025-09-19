@@ -195,18 +195,18 @@ func (mr *MockUserFacadeMockRecorder) ResendVerificationEmail(ctx, userID any) *
 }
 
 // SignIn mocks base method.
-func (m *MockUserFacade) SignIn(ctx context.Context, username, password string) (model.User, error) {
+func (m *MockUserFacade) SignIn(ctx context.Context, login, password string) (model.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SignIn", ctx, username, password)
+	ret := m.ctrl.Call(m, "SignIn", ctx, login, password)
 	ret0, _ := ret[0].(model.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SignIn indicates an expected call of SignIn.
-func (mr *MockUserFacadeMockRecorder) SignIn(ctx, username, password any) *gomock.Call {
+func (mr *MockUserFacadeMockRecorder) SignIn(ctx, login, password any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SignIn", reflect.TypeOf((*MockUserFacade)(nil).SignIn), ctx, username, password)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SignIn", reflect.TypeOf((*MockUserFacade)(nil).SignIn), ctx, login, password)
 }
 
 // SignUp mocks base method.

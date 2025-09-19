@@ -34,7 +34,12 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	log := a.log.With(zap.String("username", signIn.Username))
+	login := signIn.Login
+	if login == "" {
+		login = signIn.Username
+	}
+
+	log := a.log.With(zap.String("login", login))
 
 	if fields, err := web.Validate(signIn); err != nil {
 		log.Info("validating credentials", zap.Error(err))
@@ -44,8 +49,17 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 		})
 	}
 
+	if login == "" {
+		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+			Error: validationErrorMsg,
+			Fields: []web.FieldError{
+				{Field: "login", Error: "Login is required"},
+			},
+		})
+	}
+
 	// sign in
-	user, err := a.userFacade.SignIn(ctx, signIn.Username, signIn.Password)
+	user, err := a.userFacade.SignIn(ctx, login, signIn.Password)
 	if err != nil {
 		switch {
 		case errors.Is(err, facade.ErrSignInInvalidCredentials):

@@ -31,7 +31,7 @@ type UserFacade interface {
 	UpdateUserProfile(ctx context.Context, userID string, params model.UpdateProfileParams) (model.User, error)
 	VerifyEmail(ctx context.Context, userID string, code string) (model.User, error)
 	ResendVerificationEmail(ctx context.Context, userID string) error
-	SignIn(ctx context.Context, username, password string) (model.User, error)
+	SignIn(ctx context.Context, login, password string) (model.User, error)
 	SignUp(ctx context.Context, username, displayName, email, password string, isPublisher bool) (model.User, error)
 }
 

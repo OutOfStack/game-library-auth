@@ -52,10 +52,10 @@ func (p *Provider) SignUp(ctx context.Context, username, displayName, email, pas
 	}
 
 	if err = p.userRepo.CreateUser(ctx, user); err != nil {
-		if errors.Is(err, database.ErrUsernameExists) {
-			return model.User{}, ErrSignUpUsernameExists
+		if errors.Is(err, database.ErrUserExists) {
+			return model.User{}, ErrSignUpEmailExists
 		}
-		p.log.Error("create user", zap.String("username", username), zap.Error(err))
+		p.log.Error("create user", zap.String("username", user.Username), zap.String("email", user.Email.String), zap.Error(err))
 		return model.User{}, err
 	}
 
@@ -69,15 +69,22 @@ func (p *Provider) SignUp(ctx context.Context, username, displayName, email, pas
 	return mapDBUserToUser(user), nil
 }
 
-// SignIn authenticates user by username and password
-func (p *Provider) SignIn(ctx context.Context, username, password string) (model.User, error) {
+// SignIn authenticates user by username/email and password
+func (p *Provider) SignIn(ctx context.Context, login, password string) (model.User, error) {
+	var user database.User
+	var err error
 	// check if user exists
-	user, err := p.userRepo.GetUserByUsername(ctx, username)
+	// support both username (for older registrations) and email
+	if strings.Contains(login, "@") {
+		user, err = p.userRepo.GetUserByEmail(ctx, login)
+	} else {
+		user, err = p.userRepo.GetUserByUsername(ctx, login)
+	}
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
 			return model.User{}, ErrSignInInvalidCredentials
 		}
-		p.log.Error("get user by username", zap.String("username", username), zap.Error(err))
+		p.log.Error("get user by login", zap.String("login", login), zap.Error(err))
 		return model.User{}, err
 	}
 
@@ -114,16 +121,16 @@ func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string) (mode
 	}
 
 	// create user
-	user = database.NewUser(username, "", nil, database.UserRoleName)
+	user = database.NewUser(username, username, nil, database.UserRoleName)
 	user.SetOAuthID(auth.GoogleAuthTokenProvider, oauthID)
 	user.SetEmail(email, true)
 
 	if err = p.userRepo.CreateUser(ctx, user); err != nil {
-		if errors.Is(err, database.ErrUsernameExists) {
-			p.log.Warn("username already exists during oauth", zap.String("username", user.Username))
+		if errors.Is(err, database.ErrUserExists) {
+			p.log.Warn("user already exists during oauth", zap.String("username", user.Username), zap.String("email", user.Email.String))
 			return model.User{}, ErrOAuthSignInConflict
 		}
-		p.log.Error("create user (google oauth)", zap.String("username", user.Username), zap.Error(err))
+		p.log.Error("create user (google oauth)", zap.String("username", user.Username), zap.String("email", user.Email.String), zap.Error(err))
 		return model.User{}, err
 	}
 

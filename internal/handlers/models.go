@@ -10,7 +10,8 @@ const (
 
 // SignInReq represents user sign in request
 type SignInReq struct {
-	Username string `json:"username" validate:"required"`
+	Username string `json:"username"`
+	Login    string `json:"login"`
 	Password string `json:"password" validate:"required,min=8,max=64"`
 }
 
@@ -21,7 +22,7 @@ type TokenResp struct {
 
 // SignUpReq represents user sign up request
 type SignUpReq struct {
-	Username        string `json:"username" validate:"required"`
+	Username        string `json:"username" validate:"required,fieldexcludes=@"`
 	DisplayName     string `json:"name" validate:"required"`
 	Email           string `json:"email" validate:"omitempty,email"`
 	Password        string `json:"password" validate:"required,min=8,max=64"`

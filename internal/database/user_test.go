@@ -44,7 +44,7 @@ func TestCreateUser_DuplicateUsername(t *testing.T) {
 
 	err = s.CreateUser(ctx, user2)
 	require.Error(t, err)
-	require.Equal(t, database.ErrUsernameExists, err)
+	require.Equal(t, database.ErrUserExists, err)
 }
 
 func TestGetUserByID_Ok(t *testing.T) {

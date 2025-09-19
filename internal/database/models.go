@@ -22,10 +22,10 @@ const (
 )
 
 var (
-	// ErrNotFound is used when requested entity is not found
+	// ErrNotFound is used when a record is not found
 	ErrNotFound = errors.New("not found")
-	// ErrUsernameExists is used when username already exists
-	ErrUsernameExists = errors.New("username already exists")
+	// ErrUserExists is used when username/email already exists
+	ErrUserExists = errors.New("user already exists")
 )
 
 // User represents a user

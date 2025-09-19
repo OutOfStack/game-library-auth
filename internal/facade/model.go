@@ -28,5 +28,6 @@ var (
 	ErrVerifyEmailInvalidOrExpired  = errors.New("verify email: invalid or expired code")
 	ErrSignInInvalidCredentials     = errors.New("sign in: invalid credentials")
 	ErrSignUpUsernameExists         = errors.New("sign up: username already exists")
+	ErrSignUpEmailExists            = errors.New("sign up: email already exists")
 	ErrSignUpPublisherNameExists    = errors.New("sign up: publisher name already exists")
 )

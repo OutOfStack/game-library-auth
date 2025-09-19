@@ -89,7 +89,7 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 
 		mockUserRepo.EXPECT().
 			CreateUser(ctx, gomock.Any()).
-			Return(database.ErrUsernameExists)
+			Return(database.ErrUserExists)
 
 		_, err := provider.GoogleOAuth(ctx, "oauth-123", "existing@example.com")
 
