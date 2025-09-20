@@ -17,7 +17,7 @@ func (r *UserRepo) CreateEmailVerification(ctx context.Context, verification Ema
         (id, user_id, verification_code, expires_at, date_created)
         VALUES ($1, $2, $3, $4, NOW())`
 
-	_, err := r.db.ExecContext(ctx, q, verification.ID, verification.UserID, verification.CodeHash, verification.ExpiresAt)
+	_, err := r.query(ctx).Exec(q, verification.ID, verification.UserID, verification.CodeHash, verification.ExpiresAt)
 	if err != nil {
 		return fmt.Errorf("insert email verification: %w", err)
 	}
@@ -34,10 +34,11 @@ func (r *UserRepo) GetEmailVerificationByUserID(ctx context.Context, userID stri
         FROM email_verifications
         WHERE user_id = $1 AND verified_at IS NULL AND verification_code IS NOT NULL
         ORDER BY date_created DESC
-        LIMIT 1`
+        LIMIT 1
+		FOR NO KEY UPDATE`
 
 	var verification EmailVerification
-	if err := r.db.GetContext(ctx, &verification, q, userID); err != nil {
+	if err := r.query(ctx).Get(&verification, q, userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return EmailVerification{}, ErrNotFound
 		}
@@ -53,7 +54,7 @@ func (r *UserRepo) SetEmailVerificationMessageID(ctx context.Context, id string,
 
 	const q = `UPDATE email_verifications SET message_id = $1 WHERE id = $2`
 
-	_, err := r.db.ExecContext(ctx, q, messageID, id)
+	_, err := r.query(ctx).Exec(q, messageID, id)
 	if err != nil {
 		return fmt.Errorf("set email verification message_id: %w", err)
 	}
@@ -75,7 +76,7 @@ func (r *UserRepo) SetEmailVerificationUsed(ctx context.Context, id string, veri
 		SET verification_code = NULL, verified_at = $2
 		WHERE id = $1`
 
-	_, err := r.db.ExecContext(ctx, q, id, verifiedAt)
+	_, err := r.query(ctx).Exec(q, id, verifiedAt)
 	if err != nil {
 		return fmt.Errorf("set email verification as used: %w", err)
 	}

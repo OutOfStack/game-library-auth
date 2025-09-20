@@ -120,6 +120,12 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 		}
 
 		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+
+		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
 			Return(existingUser, nil)
 
@@ -158,6 +164,12 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 		}
 
 		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+
+		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
 			Return(existingUser, nil)
 
@@ -175,6 +187,12 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 	t.Run("user not found", func(t *testing.T) {
 		provider, mockUserRepo, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
+
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
 
 		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "nonexistent").
@@ -207,6 +225,12 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 		}
 
 		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+
+		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
 			Return(existingUser, nil)
 
@@ -236,6 +260,12 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 			Password:    &wrongPassword,
 			NewPassword: &newPassword,
 		}
+
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
 
 		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
@@ -369,6 +399,12 @@ func TestProvider_SignUp(t *testing.T) {
 			Return(database.User{}, database.ErrNotFound)
 
 		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			}).AnyTimes()
+
+		mockUserRepo.EXPECT().
 			CreateUser(ctx, gomock.Any()).
 			Return(nil)
 
@@ -417,6 +453,12 @@ func TestProvider_SignUp(t *testing.T) {
 		mockUserRepo.EXPECT().
 			CheckUserExists(ctx, "Publisher Name", database.PublisherRoleName).
 			Return(false, nil)
+
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			}).AnyTimes()
 
 		mockUserRepo.EXPECT().
 			CreateUser(ctx, gomock.Any()).
@@ -496,6 +538,12 @@ func TestProvider_SignUp(t *testing.T) {
 		mockUserRepo.EXPECT().
 			GetUserByUsername(ctx, "newuser").
 			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
 
 		mockUserRepo.EXPECT().
 			CreateUser(ctx, gomock.Any()).

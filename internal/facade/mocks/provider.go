@@ -174,6 +174,20 @@ func (mr *MockUserRepoMockRecorder) GetUserByUsername(ctx, username any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByUsername", reflect.TypeOf((*MockUserRepo)(nil).GetUserByUsername), ctx, username)
 }
 
+// RunWithTx mocks base method.
+func (m *MockUserRepo) RunWithTx(ctx context.Context, f func(context.Context) error) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RunWithTx", ctx, f)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RunWithTx indicates an expected call of RunWithTx.
+func (mr *MockUserRepoMockRecorder) RunWithTx(ctx, f any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunWithTx", reflect.TypeOf((*MockUserRepo)(nil).RunWithTx), ctx, f)
+}
+
 // SetEmailVerificationMessageID mocks base method.
 func (m *MockUserRepo) SetEmailVerificationMessageID(ctx context.Context, verificationID, messageID string) error {
 	m.ctrl.T.Helper()
