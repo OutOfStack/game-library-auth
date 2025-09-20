@@ -7,9 +7,9 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type contextKey int
+type contextKey string
 
-const txKey contextKey = 0
+const txKey contextKey = "tx"
 
 // WithTx adds a transaction to the context
 func WithTx(ctx context.Context, tx *sqlx.Tx) context.Context {
@@ -30,7 +30,7 @@ type Querier interface {
 
 // Ex wraps db/tx with context
 type Ex struct {
-	ctx context.Context
+	ctx context.Context // nolint:containedctx
 	db  Executor
 }
 

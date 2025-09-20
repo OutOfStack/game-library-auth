@@ -56,6 +56,7 @@ generate:
   	fi
 	${MOCKGEN_BIN} -source=internal/handlers/auth.go -destination=internal/handlers/mocks/auth.go -package=handlers_mocks
 	${MOCKGEN_BIN} -source=internal/facade/provider.go -destination=internal/facade/mocks/provider.go -package=facade_mocks
+	${MOCKGEN_BIN} -source=pkg/database/tx.go -destination=pkg/database/mocks/tx.go -package=database_mocks
 
 LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4
 LINT_BIN := $(shell go env GOPATH)/bin/golangci-lint

@@ -3,6 +3,7 @@ package web
 import (
 	"errors"
 	"log"
+	"regexp"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
@@ -14,6 +15,8 @@ var (
 	validate   = validator.New()
 	translator *ut.UniversalTranslator
 	lang       ut.Translator
+
+	usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 )
 
 func init() {
@@ -27,6 +30,11 @@ func init() {
 	err := entranslations.RegisterDefaultTranslations(validate, lang)
 	if err != nil {
 		log.Fatal("can't register validator translations")
+	}
+
+	err = validate.RegisterValidation("usernameregex", validateUsernameRegex)
+	if err != nil {
+		log.Fatal("can't register username validator")
 	}
 }
 
@@ -52,4 +60,8 @@ func Validate(val interface{}) ([]FieldError, error) {
 	}
 
 	return fields, err
+}
+
+func validateUsernameRegex(fl validator.FieldLevel) bool {
+	return usernameRegex.MatchString(fl.Field().String())
 }

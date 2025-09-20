@@ -38,7 +38,10 @@ func (r *UserRepo) RunWithTx(ctx context.Context, f func(context.Context) error)
 	txCtx := database.WithTx(ctx, tx)
 	err = f(txCtx)
 	if err != nil {
-		tx.Rollback()
+		txErr := tx.Rollback()
+		if txErr != nil {
+			return fmt.Errorf("rollback tx: %w, err: %w", txErr, err)
+		}
 		return err
 	}
 
