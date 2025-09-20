@@ -21,6 +21,13 @@ type UserRepo struct {
 	db *sqlx.DB
 }
 
+// NewUserRepo constructs a user Repo
+func NewUserRepo(db *sqlx.DB) *UserRepo {
+	return &UserRepo{
+		db: db,
+	}
+}
+
 // RunWithTx runs a function in a transaction
 func (r *UserRepo) RunWithTx(ctx context.Context, f func(context.Context) error) error {
 	// check if we're already in a transaction
@@ -49,18 +56,8 @@ func (r *UserRepo) RunWithTx(ctx context.Context, f func(context.Context) error)
 }
 
 // query returns the appropriate executor - transaction if present in context, otherwise the database
-func (r *UserRepo) query(ctx context.Context) database.Querier {
-	if tx, ok := database.TxFromContext(ctx); ok {
-		return database.NewQuerier(ctx, tx)
-	}
-	return database.NewQuerier(ctx, r.db)
-}
-
-// NewUserRepo constructs a user Repo
-func NewUserRepo(db *sqlx.DB) *UserRepo {
-	return &UserRepo{
-		db: db,
-	}
+func (r *UserRepo) query() database.Querier {
+	return database.NewQuerier(r.db)
 }
 
 // CreateUser inserts a new user into the database
@@ -72,7 +69,7 @@ func (r *UserRepo) CreateUser(ctx context.Context, user User) error {
         (id, username, name, email, email_verified, password_hash, role, oauth_provider, oauth_id, date_created)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`
 
-	_, err := r.query(ctx).Exec(q, user.ID, user.Username, user.DisplayName, user.Email, user.EmailVerified, user.PasswordHash, user.Role, user.OAuthProvider, user.OAuthID)
+	_, err := r.query().Exec(ctx, q, user.ID, user.Username, user.DisplayName, user.Email, user.EmailVerified, user.PasswordHash, user.Role, user.OAuthProvider, user.OAuthID)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == pgUniqueViolationCode {
@@ -95,7 +92,7 @@ func (r *UserRepo) UpdateUser(ctx context.Context, user User) error {
 		date_updated = NOW()
 		WHERE id = $1`
 
-	_, err := r.query(ctx).Exec(q, user.ID, user.DisplayName, user.PasswordHash)
+	_, err := r.query().Exec(ctx, q, user.ID, user.DisplayName, user.PasswordHash)
 	if err != nil {
 		return fmt.Errorf("update user: %w", err)
 	}
@@ -113,7 +110,7 @@ func (r *UserRepo) GetUserByID(ctx context.Context, userID string) (user User, e
 		WHERE id = $1
 		FOR NO KEY UPDATE`
 
-	if err = r.query(ctx).Get(&user, q, userID); err != nil {
+	if err = r.query().Get(ctx, &user, q, userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return User{}, ErrNotFound
 		}
@@ -132,7 +129,7 @@ func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (user
 		FROM users
 		WHERE username = $1`
 
-	if err = r.query(ctx).Get(&user, q, username); err != nil {
+	if err = r.query().Get(ctx, &user, q, username); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return User{}, ErrNotFound
 		}
@@ -153,7 +150,7 @@ func (r *UserRepo) CheckUserExists(ctx context.Context, name string, role Role) 
 		WHERE name = $1 AND role = $2)`
 
 	var exists bool
-	if err := r.query(ctx).Get(&exists, q, name, role); err != nil {
+	if err := r.query().Get(ctx, &exists, q, name, role); err != nil {
 		return false, fmt.Errorf("check user exists: %w", err)
 	}
 
@@ -170,7 +167,7 @@ func (r *UserRepo) GetUserByOAuth(ctx context.Context, provider string, oauthID 
         WHERE oauth_provider = $1 AND oauth_id = $2`
 
 	var user User
-	if err := r.query(ctx).Get(&user, q, provider, oauthID); err != nil {
+	if err := r.query().Get(ctx, &user, q, provider, oauthID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return User{}, ErrNotFound
 		}
@@ -186,7 +183,7 @@ func (r *UserRepo) DeleteUser(ctx context.Context, userID string) error {
 
 	const q = `DELETE FROM users WHERE id = $1`
 
-	_, err := r.query(ctx).Exec(q, userID)
+	_, err := r.query().Exec(ctx, q, userID)
 	if err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}
@@ -204,7 +201,7 @@ func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (User, erro
 		WHERE email = $1`
 
 	var user User
-	if err := r.query(ctx).Get(&user, q, email); err != nil {
+	if err := r.query().Get(ctx, &user, q, email); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return User{}, ErrNotFound
 		}
@@ -222,7 +219,7 @@ func (r *UserRepo) SetUserEmailVerified(ctx context.Context, userID string) erro
         SET email_verified = TRUE, date_updated = NOW()
         WHERE id = $1`
 
-	_, err := r.query(ctx).Exec(q, userID)
+	_, err := r.query().Exec(ctx, q, userID)
 	if err != nil {
 		return fmt.Errorf("set user email verified: %w", err)
 	}

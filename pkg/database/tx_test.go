@@ -57,7 +57,7 @@ func TestNewQuerier(t *testing.T) {
 	defer ctrl.Finish()
 	mockDB := mocks.NewMockExecutor(ctrl)
 
-	querier := database.NewQuerier(t.Context(), mockDB)
+	querier := database.NewQuerier(mockDB)
 
 	assert.NotNil(t, querier)
 }
@@ -74,8 +74,8 @@ func TestEx_Exec(t *testing.T) {
 
 	mockDB.EXPECT().ExecContext(ctx, query, args[0]).Return(expectedResult, nil)
 
-	querier := database.NewQuerier(ctx, mockDB)
-	result, err := querier.Exec(query, args...)
+	querier := database.NewQuerier(mockDB)
+	result, err := querier.Exec(ctx, query, args...)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedResult, result)
@@ -93,8 +93,8 @@ func TestEx_Get(t *testing.T) {
 
 	mockDB.EXPECT().GetContext(ctx, dest, query, args[0]).Return(nil)
 
-	querier := database.NewQuerier(ctx, mockDB)
-	err := querier.Get(dest, query, args...)
+	querier := database.NewQuerier(mockDB)
+	err := querier.Get(ctx, dest, query, args...)
 
 	assert.NoError(t, err)
 }
