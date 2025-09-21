@@ -63,6 +63,9 @@ func run() error {
 		}
 	}()
 
+	// create user repo
+	userRepo := store.NewUserRepo(db, logger)
+
 	// create google token validator
 	googleTokenValidator, err := idtoken.NewValidator(ctx)
 	if err != nil {
@@ -80,7 +83,7 @@ func run() error {
 	}
 
 	// create user facade
-	userFacade := facade.New(logger, store.NewUserRepo(db), emailSender, !cfg.EmailSender.EmailVerificationEnabled)
+	userFacade := facade.New(logger, userRepo, emailSender, !cfg.EmailSender.EmailVerificationEnabled)
 
 	// create auth token service
 	privateKey, err := crypto.ReadPrivateKey(cfg.Auth.PrivateKeyFile)

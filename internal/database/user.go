@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"go.opentelemetry.io/otel"
+	"go.uber.org/zap"
 )
 
 var (
@@ -18,13 +19,15 @@ var (
 
 // UserRepo manages API for user access
 type UserRepo struct {
-	db *sqlx.DB
+	db  *sqlx.DB
+	log *zap.Logger
 }
 
 // NewUserRepo constructs a user Repo
-func NewUserRepo(db *sqlx.DB) *UserRepo {
+func NewUserRepo(db *sqlx.DB, log *zap.Logger) *UserRepo {
 	return &UserRepo{
-		db: db,
+		db:  db,
+		log: log,
 	}
 }
 
@@ -47,7 +50,8 @@ func (r *UserRepo) RunWithTx(ctx context.Context, f func(context.Context) error)
 	if err != nil {
 		txErr := tx.Rollback()
 		if txErr != nil {
-			return fmt.Errorf("rollback tx: %v, err: %w", txErr, err)
+			r.log.Error("rolling back tx", zap.Error(txErr))
+			return err
 		}
 		return err
 	}
