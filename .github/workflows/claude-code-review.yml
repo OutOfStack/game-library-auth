@@ -50,7 +50,7 @@ jobs:
             - Performance issues
             - Code quality and Go best practices violations
       
-            Only provide actionable feedback that requires changes. Do not comment on what is done correctly or add praise. Be concise and specific. Provide code examples only when necessary. Think.
+            Only provide actionable feedback that requires changes. Do not comment on what is done correctly or add praise. Be concise and specific. Provide code examples only when necessary.
 
           # Use sticky comments to reduce costs by reusing comments
           use_sticky_comment: true
