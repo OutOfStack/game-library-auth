@@ -28,6 +28,8 @@ func New(log *zap.Logger, userRepo UserRepo, emailSender EmailSender, disableEma
 
 // UserRepo provides methods for working with user repo
 type UserRepo interface {
+	RunWithTx(ctx context.Context, f func(context.Context) error) error
+
 	CreateUser(ctx context.Context, user database.User) error
 	UpdateUser(ctx context.Context, user database.User) error
 	DeleteUser(ctx context.Context, userID string) error

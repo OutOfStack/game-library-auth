@@ -14,6 +14,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"go.uber.org/zap"
 )
 
 const (
@@ -82,7 +83,7 @@ func setup(t *testing.T) *database.UserRepo {
 		t.Fatalf("failed to apply migrations: %v. Applied %d migrations", err, n)
 	}
 
-	return database.NewUserRepo(db)
+	return database.NewUserRepo(db, zap.NewNop())
 }
 
 // teardown rolls back all migrations from the test database

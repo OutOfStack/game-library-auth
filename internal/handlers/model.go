@@ -22,7 +22,7 @@ type TokenResp struct {
 
 // SignUpReq represents user sign up request
 type SignUpReq struct {
-	Username        string `json:"username" validate:"required,fieldexcludes=@"`
+	Username        string `json:"username" validate:"required,usernameregex"`
 	DisplayName     string `json:"name" validate:"required"`
 	Email           string `json:"email" validate:"omitempty,email"`
 	Password        string `json:"password" validate:"required,min=8,max=64"`

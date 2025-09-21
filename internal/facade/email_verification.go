@@ -20,55 +20,68 @@ import (
 
 // VerifyEmail verifies user email by provided code
 func (p *Provider) VerifyEmail(ctx context.Context, userID string, code string) (model.User, error) {
-	// get user
-	user, err := p.userRepo.GetUserByID(ctx, userID)
-	if err != nil {
-		if errors.Is(err, database.ErrNotFound) {
-			return model.User{}, ErrVerifyEmailUserNotFound
+	var user database.User
+
+	txErr := p.userRepo.RunWithTx(ctx, func(ctx context.Context) error {
+		var err error
+
+		// get user
+		user, err = p.userRepo.GetUserByID(ctx, userID)
+		if err != nil {
+			if errors.Is(err, database.ErrNotFound) {
+				return ErrVerifyEmailUserNotFound
+			}
+			p.log.Error("get user by id", zap.String("userID", userID), zap.Error(err))
+			return err
 		}
-		p.log.Error("get user by id", zap.String("userID", userID), zap.Error(err))
-		return model.User{}, err
-	}
 
-	if user.EmailVerified {
-		return model.User{}, ErrVerifyEmailAlreadyVerified
-	}
-
-	// get verification by user id
-	verification, err := p.userRepo.GetEmailVerificationByUserID(ctx, user.ID)
-	if err != nil {
-		if errors.Is(err, database.ErrNotFound) {
-			return model.User{}, ErrVerifyEmailInvalidOrExpired
+		if user.EmailVerified {
+			return ErrVerifyEmailAlreadyVerified
 		}
-		p.log.Error("get email verification", zap.String("userID", userID), zap.Error(err))
-		return model.User{}, err
-	}
 
-	// check expiration
-	if verification.IsExpired() {
-		if err = p.userRepo.SetEmailVerificationUsed(ctx, verification.ID, false); err != nil {
-			p.log.Error("clear expired verification", zap.String("verificationID", verification.ID), zap.Error(err))
-			return model.User{}, err
+		// get verification by user id
+		verification, err := p.userRepo.GetEmailVerificationByUserID(ctx, user.ID)
+		if err != nil {
+			if errors.Is(err, database.ErrNotFound) {
+				return ErrVerifyEmailInvalidOrExpired
+			}
+			p.log.Error("get email verification", zap.String("userID", userID), zap.Error(err))
+			return err
 		}
-		return model.User{}, ErrVerifyEmailInvalidOrExpired
+
+		// check expiration
+		if verification.IsExpired() {
+			if err = p.userRepo.SetEmailVerificationUsed(ctx, verification.ID, false); err != nil {
+				p.log.Error("clear expired verification", zap.String("verificationID", verification.ID), zap.Error(err))
+				return err
+			}
+			return ErrVerifyEmailInvalidOrExpired
+		}
+
+		// compare codes
+		if err = bcrypt.CompareHashAndPassword([]byte(verification.CodeHash.String), []byte(code)); err != nil {
+			return ErrVerifyEmailInvalidOrExpired
+		}
+
+		// set verified
+		if err = p.userRepo.SetUserEmailVerified(ctx, userID); err != nil {
+			p.log.Error("set user email verified", zap.String("userID", verification.UserID), zap.Error(err))
+			return err
+		}
+		user.EmailVerified = true
+
+		// mark verification as used
+		if err = p.userRepo.SetEmailVerificationUsed(ctx, verification.ID, true); err != nil {
+			p.log.Error("mark email verification used", zap.String("verificationID", verification.ID), zap.Error(err))
+			return err
+		}
+
+		return nil
+	})
+	if txErr != nil {
+		return model.User{}, txErr
 	}
 
-	// compare codes
-	if err = bcrypt.CompareHashAndPassword([]byte(verification.CodeHash.String), []byte(code)); err != nil {
-		return model.User{}, ErrVerifyEmailInvalidOrExpired
-	}
-
-	// set verified
-	if err = p.userRepo.SetUserEmailVerified(ctx, verification.UserID); err != nil {
-		p.log.Error("set user email verified", zap.String("userID", verification.UserID), zap.Error(err))
-		return model.User{}, err
-	}
-	if err = p.userRepo.SetEmailVerificationUsed(ctx, verification.ID, true); err != nil {
-		p.log.Error("mark email verification used", zap.String("verificationID", verification.ID), zap.Error(err))
-		return model.User{}, err
-	}
-
-	user.EmailVerified = true
 	return mapDBUserToUser(user), nil
 }
 
@@ -105,40 +118,47 @@ func (p *Provider) sendVerificationEmail(ctx context.Context, userID string, ema
 		return nil
 	}
 
-	// check if code was already sent
-	record, err := p.userRepo.GetEmailVerificationByUserID(ctx, userID)
-	if err != nil && !errors.Is(err, database.ErrNotFound) {
-		return fmt.Errorf("get verification record: %w", err)
-	}
-	if err == nil {
-		// if sent before resend cooldown, don't resend
-		// if sent after resend cooldown, resend
-		if time.Since(record.DateCreated) < resendVerificationCodeCooldown {
-			return ErrTooManyRequests
+	txErr := p.userRepo.RunWithTx(ctx, func(ctx context.Context) error {
+		// check if code was already sent
+		record, err := p.userRepo.GetEmailVerificationByUserID(ctx, userID)
+		if err != nil && !errors.Is(err, database.ErrNotFound) {
+			return fmt.Errorf("get verification record: %w", err)
+		}
+		if err == nil {
+			// if sent before resend cooldown, don't resend
+			// if sent after resend cooldown, resend
+			if time.Since(record.DateCreated) < resendVerificationCodeCooldown {
+				return ErrTooManyRequests
+			}
+
+			// mark verification as used
+			if err = p.userRepo.SetEmailVerificationUsed(ctx, record.ID, false); err != nil {
+				return fmt.Errorf("clear verification: %w", err)
+			}
 		}
 
-		// mark verification as used
-		if err = p.userRepo.SetEmailVerificationUsed(ctx, record.ID, false); err != nil {
-			p.log.Error("clear verification", zap.Error(err))
+		// create new verification record
+		recordID, code, err := p.createEmailVerificationRecord(ctx, userID)
+		if err != nil {
+			return fmt.Errorf("create verification record: %w", err)
 		}
-	}
 
-	// create new verification record
-	recordID, code, err := p.createEmailVerificationRecord(ctx, userID)
-	if err != nil {
-		return fmt.Errorf("create verification record: %w", err)
-	}
+		// send verification email
+		messageID, err := p.sendVerificationEmailWithRetry(ctx, email, username, code)
+		if err != nil {
+			return fmt.Errorf("send verification email: %w", err)
+		}
 
-	// send verification email
-	messageID, err := p.sendVerificationEmailWithRetry(ctx, email, username, code)
-	if err != nil {
-		return fmt.Errorf("send verification email: %w", err)
-	}
+		// set message id
+		err = p.userRepo.SetEmailVerificationMessageID(ctx, recordID, messageID)
+		if err != nil {
+			return fmt.Errorf("set email verification message_id: %w", err)
+		}
 
-	// set message id
-	err = p.userRepo.SetEmailVerificationMessageID(ctx, recordID, messageID)
-	if err != nil {
-		return fmt.Errorf("set email verification message_id: %w", err)
+		return nil
+	})
+	if txErr != nil {
+		return txErr
 	}
 
 	return nil

@@ -3,7 +3,6 @@ package facade
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/mail"
 	"strings"
 
@@ -51,19 +50,26 @@ func (p *Provider) SignUp(ctx context.Context, username, displayName, email, pas
 		user.SetEmail(email, false)
 	}
 
-	if err = p.userRepo.CreateUser(ctx, user); err != nil {
-		if errors.Is(err, database.ErrUserExists) {
-			return model.User{}, ErrSignUpEmailExists
+	txErr := p.userRepo.RunWithTx(ctx, func(ctx context.Context) error {
+		if err = p.userRepo.CreateUser(ctx, user); err != nil {
+			if errors.Is(err, database.ErrUserExists) {
+				return ErrSignUpEmailExists
+			}
+			p.log.Error("create user", zap.String("username", user.Username), zap.String("email", user.Email.String), zap.Error(err))
+			return err
 		}
-		p.log.Error("create user", zap.String("username", user.Username), zap.String("email", user.Email.String), zap.Error(err))
-		return model.User{}, err
-	}
 
-	// send verification email
-	if user.Email.Valid {
-		if err = p.sendVerificationEmail(ctx, user.ID, user.Email.String, user.Username); err != nil {
-			p.log.Error("send verification email on signup", zap.Error(err))
+		// send verification email
+		if user.Email.Valid {
+			if err = p.sendVerificationEmail(ctx, user.ID, user.Email.String, user.Username); err != nil {
+				p.log.Error("send verification email on signup", zap.Error(err))
+				return err
+			}
 		}
+		return nil
+	})
+	if txErr != nil {
+		return model.User{}, txErr
 	}
 
 	return mapDBUserToUser(user), nil
@@ -97,6 +103,7 @@ func (p *Provider) SignIn(ctx context.Context, login, password string) (model.Us
 	if user.Email.Valid && !user.EmailVerified {
 		if err = p.sendVerificationEmail(ctx, user.ID, user.Email.String, user.Username); err != nil {
 			p.log.Error("sending verification email on signin", zap.Error(err))
+			return model.User{}, err
 		}
 	}
 
@@ -139,41 +146,52 @@ func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string) (mode
 
 // UpdateUserProfile updates user profile
 func (p *Provider) UpdateUserProfile(ctx context.Context, userID string, params model.UpdateProfileParams) (model.User, error) {
-	// check if user exists
-	user, err := p.userRepo.GetUserByID(ctx, userID)
-	if err != nil {
-		if errors.Is(err, database.ErrNotFound) {
-			return model.User{}, ErrUpdateProfileUserNotFound
-		}
-		p.log.Error("get user by id", zap.String("userID", userID), zap.Error(err))
-		return model.User{}, err
-	}
+	var user database.User
 
-	// update password if provided
-	if params.Password != nil {
-		if user.OAuthProvider.Valid {
-			return model.User{}, ErrUpdateProfileNotAllowed
-		}
-		if err = bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(*params.Password)); err != nil {
-			return model.User{}, ErrUpdateProfileInvalidPassword
-		}
-		passwordHash, gErr := bcrypt.GenerateFromPassword([]byte(*params.NewPassword), bcrypt.DefaultCost)
-		if gErr != nil {
-			p.log.Error("generate password hash", zap.String("userID", userID), zap.Error(gErr))
-			return model.User{}, gErr
-		}
-		user.PasswordHash = passwordHash
-	}
+	txErr := p.userRepo.RunWithTx(ctx, func(ctx context.Context) error {
+		var err error
 
-	// update name if provided
-	if params.Name != nil {
-		user.DisplayName = *params.Name
-	}
+		// check if user exists
+		user, err = p.userRepo.GetUserByID(ctx, userID)
+		if err != nil {
+			if errors.Is(err, database.ErrNotFound) {
+				return ErrUpdateProfileUserNotFound
+			}
+			p.log.Error("get user by id", zap.String("userID", userID), zap.Error(err))
+			return err
+		}
 
-	// update user info
-	if err = p.userRepo.UpdateUser(ctx, user); err != nil {
-		p.log.Error("update user", zap.String("userID", userID), zap.Error(err))
-		return model.User{}, err
+		// update password if provided
+		if params.Password != nil {
+			if user.OAuthProvider.Valid {
+				return ErrUpdateProfileNotAllowed
+			}
+			if err = bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(*params.Password)); err != nil {
+				return ErrUpdateProfileInvalidPassword
+			}
+			passwordHash, gErr := bcrypt.GenerateFromPassword([]byte(*params.NewPassword), bcrypt.DefaultCost)
+			if gErr != nil {
+				p.log.Error("generate password hash", zap.String("userID", userID), zap.Error(gErr))
+				return gErr
+			}
+			user.PasswordHash = passwordHash
+		}
+
+		// update name if provided
+		if params.Name != nil {
+			user.DisplayName = *params.Name
+		}
+
+		// update user info
+		if err = p.userRepo.UpdateUser(ctx, user); err != nil {
+			p.log.Error("update user", zap.String("userID", userID), zap.Error(err))
+			return err
+		}
+
+		return nil
+	})
+	if txErr != nil {
+		return model.User{}, txErr
 	}
 
 	return mapDBUserToUser(user), nil
@@ -187,17 +205,17 @@ func (p *Provider) DeleteUser(ctx context.Context, userID string) error {
 // extracts and sanitizes username from email for OAuth users
 func extractUsernameFromEmail(email string) (string, error) {
 	if email == "" {
-		return "", errors.New("email cannot be empty")
+		return "", ErrInvalidEmail
 	}
 
 	if _, err := mail.ParseAddress(email); err != nil {
-		return "", fmt.Errorf("invalid email format: %w", err)
+		return "", ErrInvalidEmail
 	}
 
 	// extract username part (before @)
 	parts := strings.Split(email, "@")
 	if len(parts) != 2 {
-		return "", errors.New("invalid email format")
+		return "", ErrInvalidEmail
 	}
 
 	username := parts[0]

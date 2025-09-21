@@ -39,6 +39,12 @@ func TestProvider_VerifyEmail(t *testing.T) {
 		}
 
 		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+
+		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
 			Return(user, nil)
 
@@ -69,6 +75,12 @@ func TestProvider_VerifyEmail(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+
+		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "nonexistent").
 			Return(database.User{}, database.ErrNotFound)
 
@@ -91,6 +103,12 @@ func TestProvider_VerifyEmail(t *testing.T) {
 		}
 
 		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+
+		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
 			Return(user, nil)
 
@@ -111,6 +129,12 @@ func TestProvider_VerifyEmail(t *testing.T) {
 			EmailVerified: false,
 			Role:          database.UserRoleName,
 		}
+
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
 
 		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
@@ -147,6 +171,12 @@ func TestProvider_VerifyEmail(t *testing.T) {
 			ExpiresAt:   time.Now().Add(-1 * time.Hour), // expired
 			DateCreated: time.Now().Add(-25 * time.Hour),
 		}
+
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
 
 		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
@@ -189,6 +219,12 @@ func TestProvider_VerifyEmail(t *testing.T) {
 		}
 
 		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+
+		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
 			Return(user, nil)
 
@@ -222,6 +258,13 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
 			Return(user, nil)
+
+		// mock the transaction call for sendVerificationEmail
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
 
 		// mock the call to check existing verification record (returns not found)
 		mockUserRepo.EXPECT().
