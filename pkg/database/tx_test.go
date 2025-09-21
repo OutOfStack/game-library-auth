@@ -8,6 +8,7 @@ import (
 	mocks "github.com/OutOfStack/game-library-auth/pkg/database/mocks"
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
@@ -44,7 +45,8 @@ func TestTxFromContext_NoTransaction(t *testing.T) {
 }
 
 func TestTxFromContext_WrongType(t *testing.T) {
-	ctx := context.WithValue(t.Context(), "tx", "not-a-transaction")
+	type ctxKeyType string
+	ctx := context.WithValue(t.Context(), ctxKeyType("tx"), "not-a-transaction")
 
 	retrievedTx, exists := database.TxFromContext(ctx)
 
@@ -77,8 +79,8 @@ func TestEx_Exec(t *testing.T) {
 	querier := database.NewQuerier(mockDB)
 	result, err := querier.Exec(ctx, query, args...)
 
-	assert.NoError(t, err)
-	assert.Equal(t, expectedResult, result)
+	require.NoError(t, err)
+	require.Equal(t, expectedResult, result)
 }
 
 func TestEx_Get(t *testing.T) {
