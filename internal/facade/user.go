@@ -103,6 +103,7 @@ func (p *Provider) SignIn(ctx context.Context, login, password string) (model.Us
 	if user.Email.Valid && !user.EmailVerified {
 		if err = p.sendVerificationEmail(ctx, user.ID, user.Email.String, user.Username); err != nil {
 			p.log.Error("sending verification email on signin", zap.Error(err))
+			return model.User{}, err
 		}
 	}
 
