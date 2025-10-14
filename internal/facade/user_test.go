@@ -6,7 +6,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
@@ -25,11 +24,11 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 			ID:       "user-123",
 			Username: "testuser",
 			Email:    sql.NullString{String: "test@example.com", Valid: true},
-			Role:     database.UserRoleName,
+			Role:     model.UserRoleName,
 		}
 
 		mockUserRepo.EXPECT().
-			GetUserByOAuth(ctx, auth.GoogleAuthTokenProvider, "oauth-123").
+			GetUserByOAuth(ctx, model.GoogleAuthTokenProvider, "oauth-123").
 			Return(expectedUser, nil)
 
 		result, err := provider.GoogleOAuth(ctx, "oauth-123", "test@example.com")
@@ -47,7 +46,7 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
-			GetUserByOAuth(ctx, auth.GoogleAuthTokenProvider, "oauth-123").
+			GetUserByOAuth(ctx, model.GoogleAuthTokenProvider, "oauth-123").
 			Return(database.User{}, database.ErrNotFound)
 
 		mockUserRepo.EXPECT().
@@ -69,7 +68,7 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
-			GetUserByOAuth(ctx, auth.GoogleAuthTokenProvider, "oauth-123").
+			GetUserByOAuth(ctx, model.GoogleAuthTokenProvider, "oauth-123").
 			Return(database.User{}, database.ErrNotFound)
 
 		_, err := provider.GoogleOAuth(ctx, "oauth-123", "invalid-email")
@@ -84,7 +83,7 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
-			GetUserByOAuth(ctx, auth.GoogleAuthTokenProvider, "oauth-123").
+			GetUserByOAuth(ctx, model.GoogleAuthTokenProvider, "oauth-123").
 			Return(database.User{}, database.ErrNotFound)
 
 		mockUserRepo.EXPECT().
@@ -111,7 +110,7 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 			Username:    "testuser",
 			DisplayName: "Old Name",
 			Email:       sql.NullString{String: "test@example.com", Valid: true},
-			Role:        database.UserRoleName,
+			Role:        model.UserRoleName,
 		}
 
 		newName := "New Name"
@@ -154,7 +153,7 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 			ID:           "user-123",
 			Username:     "testuser",
 			PasswordHash: oldPasswordHash,
-			Role:         database.UserRoleName,
+			Role:         model.UserRoleName,
 		}
 
 		newPassword := "newpass"
@@ -214,7 +213,7 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 			ID:            "user-123",
 			Username:      "testuser",
 			OAuthProvider: sql.NullString{String: "google", Valid: true},
-			Role:          database.UserRoleName,
+			Role:          model.UserRoleName,
 		}
 
 		oldPassword := "oldpass"
@@ -252,7 +251,7 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 			ID:           "user-123",
 			Username:     "testuser",
 			PasswordHash: correctPasswordHash,
-			Role:         database.UserRoleName,
+			Role:         model.UserRoleName,
 		}
 
 		newPassword := "newpass"
@@ -329,7 +328,7 @@ func TestProvider_SignIn(t *testing.T) {
 			ID:           "user-123",
 			Username:     "testuser",
 			PasswordHash: passwordHash,
-			Role:         database.UserRoleName,
+			Role:         model.UserRoleName,
 		}
 
 		mockUserRepo.EXPECT().
@@ -372,7 +371,7 @@ func TestProvider_SignIn(t *testing.T) {
 			ID:           "user-123",
 			Username:     "testuser",
 			PasswordHash: passwordHash,
-			Role:         database.UserRoleName,
+			Role:         model.UserRoleName,
 		}
 
 		mockUserRepo.EXPECT().
@@ -391,7 +390,7 @@ func TestProvider_SignUp(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("successful user signup", func(t *testing.T) {
-		provider, mockUserRepo, mockEmailSender, ctrl := setupTest(t)
+		provider, mockUserRepo, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -402,34 +401,15 @@ func TestProvider_SignUp(t *testing.T) {
 			RunWithTx(ctx, gomock.Any()).
 			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
 				return f(ctx)
-			}).AnyTimes()
+			})
 
 		mockUserRepo.EXPECT().
 			CreateUser(ctx, gomock.Any()).
 			Return(nil)
 
-		// mock email verification calls (with email sender enabled)
-		mockUserRepo.EXPECT().
-			GetEmailVerificationByUserID(ctx, gomock.Any()).
-			Return(database.EmailVerification{}, database.ErrNotFound).
-			AnyTimes()
+		// regular users do not provide email
 
-		mockUserRepo.EXPECT().
-			CreateEmailVerification(ctx, gomock.Any()).
-			Return(nil).
-			AnyTimes()
-
-		mockEmailSender.EXPECT().
-			SendEmailVerification(ctx, gomock.Any()).
-			Return("message-id-123", nil).
-			AnyTimes()
-
-		mockUserRepo.EXPECT().
-			SetEmailVerificationMessageID(ctx, gomock.Any(), "message-id-123").
-			Return(nil).
-			AnyTimes()
-
-		result, err := provider.SignUp(ctx, "newuser", "New User", "newuser@example.com", "password", false)
+		result, err := provider.SignUp(ctx, "newuser", "New User", "", "password", false)
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -437,8 +417,11 @@ func TestProvider_SignUp(t *testing.T) {
 		if result.Username != "newuser" {
 			t.Errorf("expected username newuser, got %s", result.Username)
 		}
-		if result.Role != string(database.UserRoleName) {
-			t.Errorf("expected role %s, got %s", database.UserRoleName, result.Role)
+		if result.Role != string(model.UserRoleName) {
+			t.Errorf("expected role %s, got %s", model.UserRoleName, result.Role)
+		}
+		if result.Email != "" {
+			t.Errorf("expected no email for regular user, got %s", result.Email)
 		}
 	})
 
@@ -451,7 +434,7 @@ func TestProvider_SignUp(t *testing.T) {
 			Return(database.User{}, database.ErrNotFound)
 
 		mockUserRepo.EXPECT().
-			CheckUserExists(ctx, "Publisher Name", database.PublisherRoleName).
+			CheckUserExists(ctx, "Publisher Name", model.PublisherRoleName).
 			Return(false, nil)
 
 		mockUserRepo.EXPECT().
@@ -463,6 +446,11 @@ func TestProvider_SignUp(t *testing.T) {
 		mockUserRepo.EXPECT().
 			CreateUser(ctx, gomock.Any()).
 			Return(nil)
+
+		// mock unsubscribe check
+		mockUserRepo.EXPECT().
+			IsEmailUnsubscribed(ctx, "pub@example.com").
+			Return(false, nil)
 
 		// mock email verification calls (with email sender enabled)
 		mockUserRepo.EXPECT().
@@ -490,8 +478,11 @@ func TestProvider_SignUp(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
-		if result.Role != string(database.PublisherRoleName) {
-			t.Errorf("expected role %s, got %s", database.PublisherRoleName, result.Role)
+		if result.Role != string(model.PublisherRoleName) {
+			t.Errorf("expected role %s, got %s", model.PublisherRoleName, result.Role)
+		}
+		if result.EmailVerified {
+			t.Error("expected publisher email to not be auto-verified")
 		}
 	})
 
@@ -521,7 +512,7 @@ func TestProvider_SignUp(t *testing.T) {
 			Return(database.User{}, database.ErrNotFound)
 
 		mockUserRepo.EXPECT().
-			CheckUserExists(ctx, "Existing Publisher", database.PublisherRoleName).
+			CheckUserExists(ctx, "Existing Publisher", model.PublisherRoleName).
 			Return(true, nil)
 
 		_, err := provider.SignUp(ctx, "newpublisher", "Existing Publisher", "pub@example.com", "password", true)

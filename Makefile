@@ -26,11 +26,9 @@ test:
 cover:
 	go test -cover -coverpkg=./... -coverprofile=coverage.out ./... && go tool cover -func=coverage.out
 
-SWAG_PKG := github.com/swaggo/swag/cmd/swag@v1.16.4
+SWAG_PKG := github.com/swaggo/swag/cmd/swag@v1.16.6
 SWAG_BIN := $(shell go env GOPATH)/bin/swag
-MOCKGEN_PKG := go.uber.org/mock/mockgen@v0.6
-MOCKGEN_BIN := $(shell go env GOPATH)/bin/mockgen
-generate:
+generate-swag:
 	@if \[ ! -f ${SWAG_BIN} \]; then \
 		echo "Installing swag..."; \
     	go install ${SWAG_PKG}; \
@@ -44,6 +42,9 @@ generate:
 	${SWAG_BIN} init \
 	-d cmd/game-library-auth,internal/handlers,internal/web
 
+MOCKGEN_PKG := go.uber.org/mock/mockgen@v0.6
+MOCKGEN_BIN := $(shell go env GOPATH)/bin/mockgen
+generate-mocks:
 	@if \[ ! -f ${MOCKGEN_BIN} \]; then \
 		echo "Installing mockgen..."; \
 		go install ${MOCKGEN_PKG}; \
@@ -55,23 +56,22 @@ generate:
 		exit 1; \
   	fi
 	${MOCKGEN_BIN} -source=internal/handlers/auth.go -destination=internal/handlers/mocks/auth.go -package=handlers_mocks
+	${MOCKGEN_BIN} -source=internal/handlers/unsubscribe.go -destination=internal/handlers/mocks/unsubscribe.go -package=handlers_mocks
 	${MOCKGEN_BIN} -source=internal/facade/provider.go -destination=internal/facade/mocks/provider.go -package=facade_mocks
 	${MOCKGEN_BIN} -source=pkg/database/tx.go -destination=pkg/database/mocks/tx.go -package=database_mocks
 
-LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.4
-LINT_BIN := $(shell go env GOPATH)/bin/golangci-lint
+generate: generate-swag generate-mocks
+
+LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5
+LINT_BIN := $(shell command -v golangci-lint 2>/dev/null || echo $(shell go env GOPATH)/bin/golangci-lint)
 lint:
-	@if \[ ! -f ${LINT_BIN} \]; then \
+	@if [ ! -f ${LINT_BIN} ]; then \
 		echo "Installing golangci-lint..."; \
-    go install ${LINT_PKG}; \
-  fi
-	@if \[ -f ${LINT_BIN} \]; then \
-  	echo "Found golangci-lint at '$(LINT_BIN)', running..."; \
-    ${LINT_BIN} run; \
-	else \
-    echo "golangci-lint not found or the file does not exist"; \
-    exit 1; \
-  fi
+    	go install ${LINT_PKG}; \
+		LINT_BIN=$(shell go env GOPATH)/bin/golangci-lint; \
+  	fi
+	@echo "Found golangci-lint at '$(LINT_BIN)', running..."; \
+	${LINT_BIN} run
 
 ### Manage service
 # apply all migrations

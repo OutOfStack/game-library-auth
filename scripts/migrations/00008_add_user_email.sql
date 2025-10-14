@@ -11,6 +11,7 @@ WHERE oauth_id IS NOT NULL;
 
 -- +migrate Down
 DROP INDEX IF EXISTS idx_users_email;
+
 ALTER TABLE users
     DROP COLUMN email,
     DROP COLUMN email_verified;

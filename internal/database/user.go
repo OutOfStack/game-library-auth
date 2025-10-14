@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -144,7 +145,7 @@ func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (user
 }
 
 // CheckUserExists checks whether user with provided name and role exists
-func (r *UserRepo) CheckUserExists(ctx context.Context, name string, role Role) (bool, error) {
+func (r *UserRepo) CheckUserExists(ctx context.Context, name string, role model.Role) (bool, error) {
 	ctx, span := tracer.Start(ctx, "checkUserExists")
 	defer span.End()
 

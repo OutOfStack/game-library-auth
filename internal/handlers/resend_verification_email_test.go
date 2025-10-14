@@ -98,9 +98,8 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 			expectedResp:   web.ErrResp{Error: internalErrorMsg},
 		},
 		{
-			name:                     "database error on GetUserByID",
-			authHeader:               "Bearer valid-token",
-			emailVerificationEnabled: true,
+			name:       "database error on GetUserByID",
+			authHeader: "Bearer valid-token",
 			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
 				claims := auth.Claims{UserID: userID}
 				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
@@ -114,9 +113,7 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &appconf.Cfg{
-				EmailSender: appconf.EmailSender{
-					EmailVerificationEnabled: tt.emailVerificationEnabled,
-				},
+				EmailSender: appconf.EmailSender{},
 				Auth: appconf.Auth{
 					GoogleClientID: "test-client-id",
 				},

@@ -31,19 +31,17 @@ type UserFacade interface {
 	UpdateUserProfile(ctx context.Context, userID string, params model.UpdateProfileParams) (model.User, error)
 	VerifyEmail(ctx context.Context, userID string, code string) (model.User, error)
 	ResendVerificationEmail(ctx context.Context, userID string) error
-	SignIn(ctx context.Context, login, password string) (model.User, error)
+	SignIn(ctx context.Context, username, password string) (model.User, error)
 	SignUp(ctx context.Context, username, displayName, email, password string, isPublisher bool) (model.User, error)
 }
 
 // AuthAPI describes dependencies for auth endpoints
 type AuthAPI struct {
 	googleOAuthClientID  string
-	baseURL              string
 	log                  *zap.Logger
 	auth                 Auth
 	googleTokenValidator GoogleTokenValidator
 	userFacade           UserFacade
-	disableEmailSender   bool
 }
 
 // NewAuthAPI return new instance of auth api
@@ -52,17 +50,11 @@ func NewAuthAPI(log *zap.Logger, cfg *appconf.Cfg, auth Auth, googleTokenValidat
 		return nil, errors.New("google client id is empty")
 	}
 
-	if !cfg.EmailSender.EmailVerificationEnabled {
-		log.Warn("email verification is disabled")
-	}
-
 	return &AuthAPI{
 		googleOAuthClientID:  cfg.Auth.GoogleClientID,
-		baseURL:              cfg.Auth.Issuer,
 		auth:                 auth,
 		log:                  log,
 		googleTokenValidator: googleTokenValidator,
 		userFacade:           userFacade,
-		disableEmailSender:   !cfg.EmailSender.EmailVerificationEnabled,
 	}, nil
 }

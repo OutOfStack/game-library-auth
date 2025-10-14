@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/OutOfStack/game-library-auth/internal/database"
+	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -15,7 +16,7 @@ func TestCreateUser_Ok(t *testing.T) {
 
 	ctx := context.Background()
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), database.UserRoleName)
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	user.SetEmail("test@example.com", false)
 
 	err := s.CreateUser(ctx, user)
@@ -36,8 +37,8 @@ func TestCreateUser_DuplicateUsername(t *testing.T) {
 
 	ctx := context.Background()
 
-	user1 := database.NewUser("testuser", "Test User 1", []byte("hashedpassword1"), database.UserRoleName)
-	user2 := database.NewUser("testuser", "Test User 2", []byte("hashedpassword2"), database.UserRoleName)
+	user1 := database.NewUser("testuser", "Test User 1", []byte("hashedpassword1"), model.UserRoleName)
+	user2 := database.NewUser("testuser", "Test User 2", []byte("hashedpassword2"), model.UserRoleName)
 
 	err := s.CreateUser(ctx, user1)
 	require.NoError(t, err)
@@ -53,7 +54,7 @@ func TestGetUserByID_Ok(t *testing.T) {
 
 	ctx := context.Background()
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), database.UserRoleName)
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	user.SetEmail("test@example.com", true)
 	err := s.CreateUser(ctx, user)
 	require.NoError(t, err)
@@ -85,7 +86,7 @@ func TestGetUserByUsername_Ok(t *testing.T) {
 
 	ctx := context.Background()
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), database.PublisherRoleName)
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.PublisherRoleName)
 	err := s.CreateUser(ctx, user)
 	require.NoError(t, err)
 
@@ -113,7 +114,7 @@ func TestCheckUserExists_True(t *testing.T) {
 
 	ctx := context.Background()
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), database.UserRoleName)
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
 	require.NoError(t, err)
 
@@ -128,7 +129,7 @@ func TestCheckUserExists_False(t *testing.T) {
 
 	ctx := context.Background()
 
-	exists, err := s.CheckUserExists(ctx, "Nonexistent User", database.UserRoleName)
+	exists, err := s.CheckUserExists(ctx, "Nonexistent User", model.UserRoleName)
 	require.NoError(t, err)
 	require.False(t, exists)
 }
@@ -139,7 +140,7 @@ func TestGetUserByOAuth_Ok(t *testing.T) {
 
 	ctx := context.Background()
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), database.UserRoleName)
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	user.SetOAuthID("google", "google123456")
 	err := s.CreateUser(ctx, user)
 	require.NoError(t, err)
@@ -169,7 +170,7 @@ func TestUpdateUser_Ok(t *testing.T) {
 
 	ctx := context.Background()
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), database.UserRoleName)
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
 	require.NoError(t, err)
 
@@ -191,7 +192,7 @@ func TestDeleteUser_Ok(t *testing.T) {
 
 	ctx := context.Background()
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), database.UserRoleName)
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
 	require.NoError(t, err)
 
@@ -209,7 +210,7 @@ func TestGetUserByEmail_Ok(t *testing.T) {
 
 	ctx := context.Background()
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), database.UserRoleName)
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	user.SetEmail("test@example.com", true)
 	err := s.CreateUser(ctx, user)
 	require.NoError(t, err)
@@ -238,7 +239,7 @@ func TestUpdateUserEmail_Ok(t *testing.T) {
 
 	ctx := context.Background()
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), database.UserRoleName)
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
 	require.NoError(t, err)
 

@@ -1,4 +1,4 @@
-package mailersend
+package resendapi
 
 import (
 	"bytes"
@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 	"time"
 
-	"github.com/mailersend/mailersend-go"
+	"github.com/resend/resend-go/v2"
 	"go.opentelemetry.io/otel"
 )
 
@@ -18,32 +19,40 @@ import (
 var templateFS embed.FS
 
 var (
-	// ErrDailyQuotaExceeded is returned when the daily email quota is exceeded.
+	// ErrDailyQuotaExceeded is returned when the daily email quota is exceeded
 	ErrDailyQuotaExceeded = errors.New("daily quota exceeded")
 
-	tracer = otel.Tracer("mailersend")
+	tracer = otel.Tracer("resendapi")
 )
 
-// Client represents MailerSend client
+// Client represents Resend client
 type Client struct {
-	client               *mailersend.Mailersend
+	client               *resend.Client
+	baseURL              string
 	fromEmail            string
 	fromName             string
-	timeout              time.Duration
+	contactEmail         string
+	unsubscribeURL       string
 	verificationHTMLTmpl *template.Template
 	verificationTextTmpl *template.Template
 }
 
-// Config represents MailerSend client configuration
+// Config represents Resend client configuration
 type Config struct {
-	APIToken  string
-	FromEmail string
-	Timeout   time.Duration
+	APIToken       string
+	FromEmail      string
+	ContactEmail   string
+	BaseURL        string
+	UnsubscribeURL string
+	Timeout        time.Duration
 }
 
-// NewClient creates a new MailerSend client
+// NewClient creates a new Resend client
 func NewClient(cfg Config) (*Client, error) {
-	ms := mailersend.NewMailersend(cfg.APIToken)
+	httpClient := &http.Client{
+		Timeout: cfg.Timeout,
+	}
+	client := resend.NewCustomClient(httpClient, cfg.APIToken)
 
 	htmlTemplateContent, err := templateFS.ReadFile("templates/email_verification.html")
 	if err != nil {
@@ -66,29 +75,21 @@ func NewClient(cfg Config) (*Client, error) {
 	}
 
 	return &Client{
-		client:               ms,
+		client:               client,
+		baseURL:              cfg.BaseURL,
 		fromEmail:            cfg.FromEmail,
 		fromName:             "Game Library",
-		timeout:              cfg.Timeout,
+		contactEmail:         cfg.ContactEmail,
+		unsubscribeURL:       cfg.UnsubscribeURL,
 		verificationHTMLTmpl: htmlTmpl,
 		verificationTextTmpl: textTmpl,
 	}, nil
-}
-
-// SendEmailVerificationRequest represents email verification request
-type SendEmailVerificationRequest struct {
-	Email            string
-	Username         string
-	VerificationCode string
 }
 
 // SendEmailVerification sends email verification email with verification code and returns message id
 func (c *Client) SendEmailVerification(ctx context.Context, req SendEmailVerificationRequest) (string, error) {
 	ctx, span := tracer.Start(ctx, "sendEmailVerification")
 	defer span.End()
-
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
 
 	htmlContent, err := c.fillTemplate(c.verificationHTMLTmpl, req)
 	if err != nil {
@@ -99,55 +100,48 @@ func (c *Client) SendEmailVerification(ctx context.Context, req SendEmailVerific
 		return "", fmt.Errorf("fill text template: %w", err)
 	}
 
-	from := mailersend.From{
-		Name:  c.fromName,
-		Email: c.fromEmail,
+	params := &resend.SendEmailRequest{
+		From:    fmt.Sprintf("%s <%s>", c.fromName, c.fromEmail),
+		To:      []string{req.Email},
+		Subject: "Verify Your Email Address - Game Library",
+		Html:    htmlContent,
+		Text:    textContent,
 	}
 
-	recipients := []mailersend.Recipient{
-		{
-			Name:  req.Username,
-			Email: req.Email,
-		},
-	}
-
-	message := c.client.Email.NewMessage()
-	message.SetFrom(from)
-	message.SetRecipients(recipients)
-	message.SetSubject("Verify Your Email Address - Game Library")
-	message.SetHTML(htmlContent)
-	message.SetText(textContent)
-
-	res, err := c.client.Email.Send(ctx, message)
+	sent, err := c.client.Emails.SendWithContext(ctx, params)
 	if err != nil {
+		if isQuotaExceededError(err) {
+			return "", ErrDailyQuotaExceeded
+		}
 		return "", fmt.Errorf("send email: %w", err)
 	}
 
-	// Check for rate limiting (429 status)
-	if res.StatusCode == http.StatusTooManyRequests {
-		return "", ErrDailyQuotaExceeded
-	}
-
-	if res.StatusCode >= 400 {
-		return "", fmt.Errorf("mailersend API error: status %d", res.StatusCode)
-	}
-
-	messageID := res.Header.Get("x-message-id")
-
-	return messageID, nil
+	return sent.Id, nil
 }
 
 // fillTemplate fills template placeholders
 func (c *Client) fillTemplate(tmpl *template.Template, req SendEmailVerificationRequest) (string, error) {
-	sanitizedReq := SendEmailVerificationRequest{
-		Email:            template.HTMLEscapeString(req.Email),
-		Username:         template.HTMLEscapeString(req.Username),
-		VerificationCode: req.VerificationCode,
+	data := templateData{
+		Email:             template.HTMLEscapeString(req.Email),
+		Username:          template.HTMLEscapeString(req.Username),
+		VerificationCode:  req.VerificationCode,
+		UnsubscribeToken:  req.UnsubscribeToken,
+		BaseURL:           c.baseURL,
+		UnsubscribeURL:    c.unsubscribeURL,
+		ContactEmail:      c.contactEmail,
+		PrivacyPolicyURL:  c.baseURL + "/privacy-policy.html",
+		TermsOfServiceURL: c.baseURL + "/terms-of-service.html",
+		CurrentYear:       time.Now().Year(),
 	}
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, sanitizedReq); err != nil {
+	if err := tmpl.Execute(&buf, data); err != nil {
 		return "", fmt.Errorf("execute template: %w", err)
 	}
 
 	return buf.String(), nil
+}
+
+func isQuotaExceededError(err error) bool {
+	errStr := err.Error()
+	return strings.Contains(errStr, "429") || strings.Contains(errStr, "Too Many Requests")
 }

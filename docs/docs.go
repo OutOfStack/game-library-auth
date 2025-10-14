@@ -437,19 +437,19 @@ const docTemplate = `{
         "handlers.SignInReq": {
             "type": "object",
             "required": [
-                "password"
+                "password",
+                "username"
             ],
             "properties": {
-                "login": {
-                    "type": "string"
-                },
                 "password": {
                     "type": "string",
                     "maxLength": 64,
                     "minLength": 8
                 },
                 "username": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 4
                 }
             }
         },
@@ -479,7 +479,8 @@ const docTemplate = `{
                     "minLength": 8
                 },
                 "username": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 4
                 }
             }
         },

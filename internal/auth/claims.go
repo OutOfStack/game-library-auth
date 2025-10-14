@@ -7,19 +7,15 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-const (
-	// GoogleAuthTokenProvider is google auth token provider
-	GoogleAuthTokenProvider = "google"
-)
-
 // Claims represent jwt claims
 type Claims struct {
 	jwt.RegisteredClaims
-	UserID        string `json:"user_id"`
-	UserRole      string `json:"user_role,omitempty"`
-	Username      string `json:"username,omitempty"`
-	Name          string `json:"name,omitempty"`
-	EmailVerified bool   `json:"email_verified"`
+	UserID   string `json:"user_id"`
+	UserRole string `json:"user_role,omitempty"`
+	Username string `json:"username,omitempty"`
+	Name     string `json:"name,omitempty"`
+	// VerificationRequired - represents requirement to verify email (true = not verified, false = verified or does not require verification)
+	VerificationRequired bool `json:"vrf_required"`
 }
 
 // CreateUserClaims creates claims for user
@@ -33,11 +29,11 @@ func (a *Auth) CreateUserClaims(user model.User) jwt.Claims {
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
-		UserID:        user.ID,
-		UserRole:      user.Role,
-		Username:      user.Username,
-		Name:          user.DisplayName,
-		EmailVerified: user.EmailVerified,
+		UserID:               user.ID,
+		UserRole:             user.Role,
+		Username:             user.Username,
+		Name:                 user.DisplayName,
+		VerificationRequired: user.IsPublisher() && !user.EmailVerified,
 	}
 
 	return claims

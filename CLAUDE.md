@@ -7,9 +7,11 @@
 - Write comments for all exported functions and structs
 - Do NOT use periods (`.`) at the end of comments unless there are several sentences
 - Start comments with a lower-case letter unless it's a new sentence, a title or a method/struct name
+- Write proper openapi-style specs for handlers.
 
 # Code practices:
-- DO NOT use env variables unless it is specified, for dynamic configuring refer to previously read README.md in order to find out how configuration works
+- For introducing config params, add new params to @app.example.env, then to @internal/appconf/settings.go and then to @.k8s/config.yaml
+- After adding new package, run `go mod tidy`
 
 ## Testing Requirements
 - Write tests for all exported functions
@@ -27,9 +29,6 @@
 - Fix any issues found by these commands
 
 ## Documentation
-- Record important decisions and implementation details in `thinking.md`
-- Include instructions for any external setup (database, AWS, APIs, etc.)
-- Separate new entries with `-----` delimiter
 - If there are significant updates regarding what written in `README.md`, add it there
 
 ## Git Workflow Restrictions

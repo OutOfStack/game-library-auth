@@ -23,7 +23,7 @@ jobs:
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v8
       with:
-        version: v2.4
+        version: v2.5
 
     - name: Run tests
       run: go test -race -vet=off ./...
@@ -69,6 +69,7 @@ jobs:
         -e 's/_K8S_URL_/${{ secrets.K8S_URL }}/g' \
         -e 's/_IMAGE_TAG_/${{ github.sha }}/g' \
         -e 's/_UI_URL_/${{ vars.UI_URL }}/g' \
+        -e 's/_CONTACT_EMAIL_/${{ vars.CONTACT_EMAIL }}/g' \
         .k8s/*.yaml
 
     - name: Kubernetes Apply configs

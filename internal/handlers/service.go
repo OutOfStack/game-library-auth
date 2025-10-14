@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
 	rec "github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/template/html/v2"
 	swag "github.com/swaggo/http-swagger/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/zipkin"
@@ -24,16 +25,20 @@ import (
 var tracer = otel.Tracer("api")
 
 // Service creates and configures auth app
-func Service(authAPI *AuthAPI, checkAPI *CheckAPI, cfg appconf.Cfg) (*fiber.App, error) {
+func Service(authAPI *AuthAPI, checkAPI *CheckAPI, unsubscribeAPI *UnsubscribeAPI, cfg appconf.Cfg) (*fiber.App, error) {
 	err := initTracer(cfg.Zipkin.ReporterURL)
 	if err != nil {
 		return nil, fmt.Errorf("init exporter: %w", err)
 	}
 
+	// initialize HTML template engine
+	viewEngine := html.New("./internal/web/templates", ".html")
+
 	app := fiber.New(fiber.Config{
 		AppName:      appconf.ServiceName,
 		ReadTimeout:  cfg.Web.ReadTimeout,
 		WriteTimeout: cfg.Web.WriteTimeout,
+		Views:        viewEngine,
 	})
 
 	// apply middleware
@@ -46,7 +51,7 @@ func Service(authAPI *AuthAPI, checkAPI *CheckAPI, cfg appconf.Cfg) (*fiber.App,
 		AllowMethods: "GET,POST,DELETE,PATCH,OPTIONS",
 	}))
 
-	registerRoutes(app, authAPI, checkAPI)
+	registerRoutes(app, authAPI, checkAPI, unsubscribeAPI)
 
 	return app, nil
 }
@@ -63,7 +68,7 @@ func DebugService() *fiber.App {
 	return app
 }
 
-func registerRoutes(app *fiber.App, authAPI *AuthAPI, checkAPI *CheckAPI) {
+func registerRoutes(app *fiber.App, authAPI *AuthAPI, checkAPI *CheckAPI, unsubscribeAPI *UnsubscribeAPI) {
 	// health
 	app.Get("/readiness", checkAPI.Readiness)
 	app.Get("/liveness", checkAPI.Liveness)
@@ -78,6 +83,10 @@ func registerRoutes(app *fiber.App, authAPI *AuthAPI, checkAPI *CheckAPI) {
 	// email verification
 	app.Post("/verify-email", authAPI.VerifyEmailHandler)
 	app.Post("/resend-verification", authAPI.ResendVerificationEmailHandler)
+
+	// unsubscribe
+	app.Get("/unsubscribe", unsubscribeAPI.UnsubscribeHandler)
+	app.Post("/unsubscribe", unsubscribeAPI.UnsubscribeConfirmHandler)
 
 	// token
 	app.Post("/token/verify", authAPI.VerifyTokenHandler)

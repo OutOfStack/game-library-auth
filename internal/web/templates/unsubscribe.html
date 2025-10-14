@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unsubscribe from Email Notifications - Game Library</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 16px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 24px;
+        }
+        .logo {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 16px;
+            font-size: 20px;
+        }
+        .email {
+            background-color: #f8f9fa;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 16px 0;
+            font-weight: 600;
+            text-align: center;
+            color: #2c3e50;
+            border-left: 4px solid #3498db;
+        }
+        .form-container {
+            text-align: center;
+            margin-top: 32px;
+        }
+        .btn {
+            padding: 12px 32px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 8px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            min-width: 140px;
+        }
+        .btn-primary {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #c0392b;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+        }
+        .btn-secondary {
+            background-color: white;
+            color: #3498db;
+            border: 2px solid #3498db;
+        }
+        .btn-secondary:hover {
+            background-color: #3498db;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #f39c12;
+            color: #856404;
+            padding: 16px;
+            border-radius: 4px;
+            margin: 24px 0;
+            line-height: 1.6;
+        }
+        .warning strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #f39c12;
+        }
+        .info-box {
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            color: #2c3e50;
+            padding: 16px;
+            border-radius: 4px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        .consequences {
+            margin: 16px 0;
+            text-align: left;
+        }
+        .consequences h3 {
+            color: #2c3e50;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        .consequences ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .consequences li {
+            padding: 8px 0;
+            padding-left: 24px;
+            position: relative;
+        }
+        .consequences li:before {
+            content: "✗";
+            position: absolute;
+            left: 0;
+            color: #e74c3c;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🎮</div>
+            <h1>Game Library</h1>
+        </div>
+
+        <h2>Unsubscribe from Email Notifications</h2>
+
+        <p>You are about to unsubscribe the following email address:</p>
+
+        <div class="email">{{.Email}}</div>
+
+        <div class="consequences">
+            <h3>What you'll miss:</h3>
+            <ul>
+                <li>Email verification codes for account security</li>
+                <li>Important account notifications</li>
+                <li>Game library updates and features</li>
+            </ul>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Important Notice</strong>
+            After unsubscribing, you will no longer receive ANY email notifications from Game Library, including critical account-related communications and security alerts.
+        </div>
+
+        <div class="info-box">
+            💡 <strong>Tip:</strong> You can manage your email preferences instead of fully unsubscribing. Contact support to customize which emails you receive.
+        </div>
+
+        <p style="text-align: center; margin-top: 32px; font-weight: 500;">Are you sure you want to proceed?</p>
+
+        <div class="form-container">
+            <a href="/" class="btn btn-secondary">Keep Subscribed</a>
+            <form method="POST" action="/unsubscribe" style="display: inline;">
+                <input type="hidden" name="token" value="{{.Token}}">
+                <button type="submit" class="btn btn-primary">Yes, Unsubscribe</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

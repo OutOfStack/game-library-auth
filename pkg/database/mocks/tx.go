@@ -42,9 +42,9 @@ func (m *MockQuerier) EXPECT() *MockQuerierMockRecorder {
 }
 
 // Exec mocks base method.
-func (m *MockQuerier) Exec(query string, args ...any) (sql.Result, error) {
+func (m *MockQuerier) Exec(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	m.ctrl.T.Helper()
-	varargs := []any{query}
+	varargs := []any{ctx, query}
 	for _, a := range args {
 		varargs = append(varargs, a)
 	}
@@ -55,16 +55,16 @@ func (m *MockQuerier) Exec(query string, args ...any) (sql.Result, error) {
 }
 
 // Exec indicates an expected call of Exec.
-func (mr *MockQuerierMockRecorder) Exec(query any, args ...any) *gomock.Call {
+func (mr *MockQuerierMockRecorder) Exec(ctx, query any, args ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{query}, args...)
+	varargs := append([]any{ctx, query}, args...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exec", reflect.TypeOf((*MockQuerier)(nil).Exec), varargs...)
 }
 
 // Get mocks base method.
-func (m *MockQuerier) Get(dest any, query string, args ...any) error {
+func (m *MockQuerier) Get(ctx context.Context, dest any, query string, args ...any) error {
 	m.ctrl.T.Helper()
-	varargs := []any{dest, query}
+	varargs := []any{ctx, dest, query}
 	for _, a := range args {
 		varargs = append(varargs, a)
 	}
@@ -74,9 +74,9 @@ func (m *MockQuerier) Get(dest any, query string, args ...any) error {
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockQuerierMockRecorder) Get(dest, query any, args ...any) *gomock.Call {
+func (mr *MockQuerierMockRecorder) Get(ctx, dest, query any, args ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{dest, query}, args...)
+	varargs := append([]any{ctx, dest, query}, args...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockQuerier)(nil).Get), varargs...)
 }
 

@@ -2,16 +2,12 @@ package facade
 
 import (
 	"errors"
-	"time"
 )
 
 const (
 	maxUsernameLen = 32
 
 	defaultVrfCodeLen = 6
-
-	verificationCodeTTL            = 24 * time.Hour
-	resendVerificationCodeCooldown = 60 * time.Second
 )
 
 // errors
@@ -29,5 +25,13 @@ var (
 	ErrSignInInvalidCredentials     = errors.New("sign in: invalid credentials")
 	ErrSignUpUsernameExists         = errors.New("sign up: username already exists")
 	ErrSignUpEmailExists            = errors.New("sign up: email already exists")
+	ErrSignUpEmailRequired          = errors.New("sign up: email is required")
 	ErrSignUpPublisherNameExists    = errors.New("sign up: publisher name already exists")
 )
+
+// emailVerificationResult - result of creating an email verification record
+type emailVerificationResult struct {
+	ID               string
+	Code             string
+	UnsubscribeToken string
+}

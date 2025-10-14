@@ -155,7 +155,7 @@ func TestSignUpHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &appconf.Cfg{
-				EmailSender: appconf.EmailSender{EmailVerificationEnabled: tt.emailVerificationEnabled},
+				EmailSender: appconf.EmailSender{},
 				Auth:        appconf.Auth{GoogleClientID: "test-client-id"},
 			}
 			mockAuth, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, cfg)

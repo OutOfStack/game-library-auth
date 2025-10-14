@@ -1,0 +1,13 @@
+-- +migrate Up
+CREATE TABLE email_unsubscribes (
+    id              UUID DEFAULT gen_random_uuid(),
+    email           VARCHAR(255) NOT NULL UNIQUE,
+    date_created    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY (id)
+);
+
+CREATE INDEX email_unsubscribes_email_idx ON email_unsubscribes (email);
+
+-- +migrate Down
+DROP TABLE IF EXISTS email_unsubscribes;

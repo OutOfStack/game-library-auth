@@ -35,6 +35,7 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 	}
 
 	log := a.log.With(zap.String("username", signUp.Username))
+
 	// validate
 	if fields, err := web.Validate(signUp); err != nil {
 		log.Info("validating sign up data", zap.Error(err))
@@ -62,6 +63,11 @@ func (a *AuthAPI) SignUpHandler(c *fiber.Ctx) error {
 			log.Info("publisher already exists")
 			return c.Status(http.StatusConflict).JSON(web.ErrResp{
 				Error: "Publisher with this name already exists",
+			})
+		case errors.Is(err, facade.ErrSignUpEmailRequired):
+			log.Info("email is required")
+			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+				Error: "Email is required",
 			})
 		default:
 			log.Error("sign up", zap.Error(err))

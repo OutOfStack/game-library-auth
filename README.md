@@ -47,7 +47,10 @@ Prerequisites: `go`, `Docker`, `Make`. To set up the service, follow these steps
 5. Get Google API Client ID for Google OAuth and set it in [app.env](./app.env):
    https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid
 
-6. Build and run the service:
+6. Get Resend API key and set it along with the sender details in [app.env](./app.env):
+    https://resend.com/api-keys
+
+7. Build and run the service:
    ```bash
    make build
    make run
@@ -65,11 +68,12 @@ After installation, you can use the following Make commands to develop the servi
 
 Refer to the [List of Make Commands](#list-of-make-commands) for a complete list of commands.
 
-## Tech Stack
+## Tech Stack and Integrations
 
 - Data storage with PostgreSQL.
 - Tracing with Zipkin.
 - Log management with Graylog.
+- Transactional email delivery through Resend API.
 - Code analysis with golangci-lint.
 - CI/CD with GitHub Actions and deploy to Kubernetes (microk8s) cluster.
 
