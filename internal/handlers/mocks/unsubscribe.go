@@ -40,6 +40,21 @@ func (m *MockUnsubscribeFacade) EXPECT() *MockUnsubscribeFacadeMockRecorder {
 	return m.recorder
 }
 
+// IsEmailUnsubscribed mocks base method.
+func (m *MockUnsubscribeFacade) IsEmailUnsubscribed(ctx context.Context, email string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsEmailUnsubscribed", ctx, email)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsEmailUnsubscribed indicates an expected call of IsEmailUnsubscribed.
+func (mr *MockUnsubscribeFacadeMockRecorder) IsEmailUnsubscribed(ctx, email any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsEmailUnsubscribed", reflect.TypeOf((*MockUnsubscribeFacade)(nil).IsEmailUnsubscribed), ctx, email)
+}
+
 // UnsubscribeEmail mocks base method.
 func (m *MockUnsubscribeFacade) UnsubscribeEmail(ctx context.Context, token string) (string, error) {
 	m.ctrl.T.Helper()

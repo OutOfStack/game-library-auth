@@ -42,3 +42,8 @@ func (p *Provider) UnsubscribeEmail(ctx context.Context, token string) (string, 
 	p.log.Info("email unsubscribed", zap.String("email", email))
 	return email, nil
 }
+
+// IsEmailUnsubscribed checks if an email address is unsubscribed from all notifications
+func (p *Provider) IsEmailUnsubscribed(ctx context.Context, email string) (bool, error) {
+	return p.userRepo.IsEmailUnsubscribed(ctx, email)
+}

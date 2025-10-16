@@ -108,7 +108,7 @@ func run() error {
 	}
 
 	// unsubscribe api
-	unsubscribeAPI := handlers.NewUnsubscribeAPI(logger, unsubscribeTokenGenerator, userFacade)
+	unsubscribeAPI := handlers.NewUnsubscribeAPI(logger, unsubscribeTokenGenerator, userFacade, cfg.EmailSender.ContactEmail)
 
 	// health api
 	checkAPI := handlers.NewCheckAPI(db)

@@ -25,12 +25,12 @@ func setupUnsubscribeTest(t *testing.T) (*handlers.UnsubscribeAPI, *handlers_moc
 	mockFacade := handlers_mocks.NewMockUnsubscribeFacade(ctrl)
 	log := zap.NewNop()
 	tokenGen := auth.NewUnsubscribeTokenGenerator([]byte("test-secret-key"))
-	api := handlers.NewUnsubscribeAPI(log, tokenGen, mockFacade)
+	api := handlers.NewUnsubscribeAPI(log, tokenGen, mockFacade, "test@example.com")
 	return api, mockFacade, ctrl, tokenGen
 }
 
 func TestUnsubscribeHandler_Success(t *testing.T) {
-	api, _, ctrl, tokenGen := setupUnsubscribeTest(t)
+	api, mockFacade, ctrl, tokenGen := setupUnsubscribeTest(t)
 	defer ctrl.Finish()
 
 	app := fiber.New(fiber.Config{
@@ -41,6 +41,10 @@ func TestUnsubscribeHandler_Success(t *testing.T) {
 	email := "test@example.com"
 	expiresAt := time.Now().Add(24 * time.Hour)
 	token := tokenGen.GenerateToken(email, expiresAt)
+
+	mockFacade.EXPECT().
+		IsEmailUnsubscribed(gomock.Any(), email).
+		Return(false, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/unsubscribe?token="+token, nil)
 	resp, err := app.Test(req)
@@ -127,6 +131,35 @@ func TestUnsubscribeHandler_ExpiredToken(t *testing.T) {
 	body, _ := io.ReadAll(resp.Body)
 	if !strings.Contains(string(body), "Invalid or expired unsubscribe link") {
 		t.Errorf("expected 'Invalid or expired unsubscribe link' message, got %s", string(body))
+	}
+}
+
+func TestUnsubscribeHandler_AlreadyUnsubscribed(t *testing.T) {
+	api, mockFacade, ctrl, tokenGen := setupUnsubscribeTest(t)
+	defer ctrl.Finish()
+
+	app := fiber.New(fiber.Config{
+		Views: &mockTemplateEngine{},
+	})
+	app.Get("/unsubscribe", api.UnsubscribeHandler)
+
+	email := "test@example.com"
+	expiresAt := time.Now().Add(24 * time.Hour)
+	token := tokenGen.GenerateToken(email, expiresAt)
+
+	mockFacade.EXPECT().
+		IsEmailUnsubscribed(gomock.Any(), email).
+		Return(true, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/unsubscribe?token="+token, nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status 200, got %d", resp.StatusCode)
 	}
 }
 

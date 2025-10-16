@@ -123,7 +123,7 @@ func (p *Provider) sendVerificationEmail(ctx context.Context, userID string, ema
 	}
 	if isUnsubscribed {
 		p.log.Info("email is unsubscribed, skipping verification email", zap.String("email", email))
-		return nil
+		return ErrSendVerifyEmailUnsubscribed
 	}
 
 	txErr := p.userRepo.RunWithTx(ctx, func(ctx context.Context) error {

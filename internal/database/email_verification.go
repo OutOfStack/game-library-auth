@@ -73,7 +73,9 @@ func (r *UserRepo) SetEmailVerificationUsed(ctx context.Context, id string, veri
 	}
 
 	const q = `UPDATE email_verifications 
-		SET verification_code = NULL, verified_at = $2
+		SET verification_code = NULL, 
+		    unsubscribe_token = NULL, 
+		    verified_at = $2
 		WHERE id = $1`
 
 	_, err := r.query().Exec(ctx, q, id, verifiedAt)

@@ -27,6 +27,7 @@ var (
 	ErrSignUpEmailExists            = errors.New("sign up: email already exists")
 	ErrSignUpEmailRequired          = errors.New("sign up: email is required")
 	ErrSignUpPublisherNameExists    = errors.New("sign up: publisher name already exists")
+	ErrSendVerifyEmailUnsubscribed  = errors.New("send verify email: user is unsubscribed")
 )
 
 // emailVerificationResult - result of creating an email verification record

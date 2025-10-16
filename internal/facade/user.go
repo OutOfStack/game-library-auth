@@ -66,7 +66,9 @@ func (p *Provider) SignUp(ctx context.Context, username, displayName, email, pas
 
 		// send verification email only for publishers
 		if isPublisher {
-			if err = p.sendVerificationEmail(ctx, user.ID, user.Email.String, user.Username); err != nil {
+			err = p.sendVerificationEmail(ctx, user.ID, user.Email.String, user.Username)
+			// ignore 'user unsubscribed' error as emails are unique and this situation should not happen
+			if err != nil && !errors.Is(err, ErrSendVerifyEmailUnsubscribed) {
 				p.log.Error("send verification email on signup", zap.Error(err))
 				return err
 			}
@@ -88,7 +90,7 @@ func (p *Provider) SignIn(ctx context.Context, username, password string) (model
 		if errors.Is(err, database.ErrNotFound) {
 			return model.User{}, ErrSignInInvalidCredentials
 		}
-		p.log.Error("get user by username", zap.String("login", username), zap.Error(err))
+		p.log.Error("get user by username", zap.String("username", username), zap.Error(err))
 		return model.User{}, err
 	}
 
@@ -99,8 +101,10 @@ func (p *Provider) SignIn(ctx context.Context, username, password string) (model
 
 	// send verification code to email if publisher has unverified email
 	if !user.EmailVerified && user.Role == model.PublisherRoleName {
-		if err = p.sendVerificationEmail(ctx, user.ID, user.Email.String, user.Username); err != nil {
-			p.log.Error("sending verification email on signin", zap.Error(err))
+		err = p.sendVerificationEmail(ctx, user.ID, user.Email.String, user.Username)
+		// ignore 'user unsubscribed' error as such error will be display on resend email attempt
+		if err != nil && !errors.Is(err, ErrSendVerifyEmailUnsubscribed) {
+			p.log.Error("sending verification email on sign in", zap.Error(err))
 			return model.User{}, err
 		}
 	}

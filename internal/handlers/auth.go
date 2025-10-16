@@ -37,11 +37,12 @@ type UserFacade interface {
 
 // AuthAPI describes dependencies for auth endpoints
 type AuthAPI struct {
-	googleOAuthClientID  string
 	log                  *zap.Logger
 	auth                 Auth
 	googleTokenValidator GoogleTokenValidator
 	userFacade           UserFacade
+	googleOAuthClientID  string
+	contactEmail         string
 }
 
 // NewAuthAPI return new instance of auth api
@@ -52,6 +53,7 @@ func NewAuthAPI(log *zap.Logger, cfg *appconf.Cfg, auth Auth, googleTokenValidat
 
 	return &AuthAPI{
 		googleOAuthClientID:  cfg.Auth.GoogleClientID,
+		contactEmail:         cfg.EmailSender.ContactEmail,
 		auth:                 auth,
 		log:                  log,
 		googleTokenValidator: googleTokenValidator,
