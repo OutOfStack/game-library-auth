@@ -122,8 +122,8 @@ func (c *Client) SendEmailVerification(ctx context.Context, req SendEmailVerific
 // fillTemplate fills template placeholders
 func (c *Client) fillTemplate(tmpl *template.Template, req SendEmailVerificationRequest) (string, error) {
 	data := templateData{
-		Email:             template.HTMLEscapeString(req.Email),
-		Username:          template.HTMLEscapeString(req.Username),
+		Email:             req.Email,
+		Username:          req.Username,
 		VerificationCode:  req.VerificationCode,
 		UnsubscribeToken:  req.UnsubscribeToken,
 		BaseURL:           c.baseURL,

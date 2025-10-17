@@ -86,9 +86,8 @@ func (ev *EmailVerification) IsExpired() bool {
 
 // EmailUnsubscribe represents an email unsubscribe record
 type EmailUnsubscribe struct {
-	ID          string    `db:"id"`
-	Email       string    `db:"email"`
-	DateCreated time.Time `db:"date_created"`
+	ID    string `db:"id"`
+	Email string `db:"email"`
 }
 
 // NewEmailUnsubscribe creates a new email unsubscribe record

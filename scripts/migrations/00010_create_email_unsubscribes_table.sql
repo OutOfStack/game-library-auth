@@ -7,7 +7,5 @@ CREATE TABLE email_unsubscribes (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX email_unsubscribes_email_idx ON email_unsubscribes (email);
-
 -- +migrate Down
 DROP TABLE IF EXISTS email_unsubscribes;
