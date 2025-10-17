@@ -132,7 +132,8 @@ func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (user
 
 	const q = `SELECT id, username, name, email, email_verified, password_hash, role, oauth_provider, oauth_id, date_created, date_updated
 		FROM users
-		WHERE username = $1`
+		WHERE username = $1
+		FOR NO KEY UPDATE`
 
 	if err = r.query().Get(ctx, &user, q, username); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

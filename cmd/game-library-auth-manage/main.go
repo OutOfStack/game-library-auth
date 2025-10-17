@@ -55,11 +55,14 @@ func main() {
 		}
 	case "keygen":
 		keygen()
+	case "secretgen":
+		secretgen()
 	default:
 		fmt.Println("Unknown command, available commands:")
 		fmt.Println("migrate: applies all migrations to database")
 		fmt.Println("rollback: roll backs one last migration of database")
 		fmt.Println("keygen: creates private/public key pair files")
+		fmt.Println("secretgen: generates a cryptographically secure random secret for HMAC")
 	}
 }
 
@@ -113,4 +116,14 @@ func keygen() {
 		log.Fatalf("Error creating private/public keypair: %v", err)
 	}
 	fmt.Println("Private/public key files successfully created")
+}
+
+func secretgen() {
+	secret, err := crypto.GenerateSecret(32)
+	if err != nil {
+		log.Fatalf("Error generating secret: %v", err)
+	}
+	fmt.Println("Generated secret (base64-encoded 32 bytes):")
+	fmt.Println(secret)
+	fmt.Println("\nAdd this to your app.env file as EMAIL_SENDER_UNSUBSCRIBE_SECRET")
 }

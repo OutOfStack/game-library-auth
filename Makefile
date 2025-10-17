@@ -85,5 +85,8 @@ rollback:
 keygen:
 	go run ./cmd/game-library-auth-manage/. keygen
 
+secretgen:
+	go run ./cmd/game-library-auth-manage/. secretgen
+
 dbuildmng:
 	docker build -f Dockerfile.mng -t game-library-auth-mng:latest .

@@ -96,7 +96,7 @@ func run() error {
 	}
 
 	// create unsubscribe token generator
-	unsubscribeTokenGenerator := auth_.NewUnsubscribeTokenGenerator(privateKey.D.Bytes())
+	unsubscribeTokenGenerator := auth_.NewUnsubscribeTokenGenerator([]byte(cfg.EmailSender.UnsubscribeSecret))
 
 	// create user facade
 	userFacade := facade.New(logger, userRepo, emailSender, unsubscribeTokenGenerator)

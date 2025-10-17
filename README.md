@@ -108,6 +108,7 @@ make generate
 
 #### Key Management
     keygen     creates private/public key pair files
+    secretgen  generates a cryptographically secure random secret for HMAC
 
 #### Docker Commands
     dbuildauth builds auth app docker image
