@@ -114,21 +114,6 @@ func (mr *MockUserRepoMockRecorder) DeleteUser(ctx, userID any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockUserRepo)(nil).DeleteUser), ctx, userID)
 }
 
-// GetEmailVerificationByUnsubscribeToken mocks base method.
-func (m *MockUserRepo) GetEmailVerificationByUnsubscribeToken(ctx context.Context, token string) (database.EmailVerification, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEmailVerificationByUnsubscribeToken", ctx, token)
-	ret0, _ := ret[0].(database.EmailVerification)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetEmailVerificationByUnsubscribeToken indicates an expected call of GetEmailVerificationByUnsubscribeToken.
-func (mr *MockUserRepoMockRecorder) GetEmailVerificationByUnsubscribeToken(ctx, token any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEmailVerificationByUnsubscribeToken", reflect.TypeOf((*MockUserRepo)(nil).GetEmailVerificationByUnsubscribeToken), ctx, token)
-}
-
 // GetEmailVerificationByUserID mocks base method.
 func (m *MockUserRepo) GetEmailVerificationByUserID(ctx context.Context, userID string) (database.EmailVerification, error) {
 	m.ctrl.T.Helper()

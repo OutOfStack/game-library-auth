@@ -44,7 +44,6 @@ type UserRepo interface {
 
 	CreateEmailVerification(ctx context.Context, verification database.EmailVerification) error
 	GetEmailVerificationByUserID(ctx context.Context, userID string) (database.EmailVerification, error)
-	GetEmailVerificationByUnsubscribeToken(ctx context.Context, token string) (database.EmailVerification, error)
 	SetEmailVerificationMessageID(ctx context.Context, verificationID string, messageID string) error
 	SetEmailVerificationUsed(ctx context.Context, id string, verified bool) error
 	SetUnsubscribeToken(ctx context.Context, id string, token string) error
