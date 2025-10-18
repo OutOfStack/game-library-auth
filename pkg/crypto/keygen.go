@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"log"
@@ -67,4 +68,13 @@ func KeyGen() error {
 		return fmt.Errorf("writing public key file: %w", err)
 	}
 	return nil
+}
+
+// GenerateSecret generates a cryptographically secure random secret of the specified length
+func GenerateSecret(length int) (string, error) {
+	bytes := make([]byte, length)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", fmt.Errorf("generating random bytes: %w", err)
+	}
+	return base64.StdEncoding.EncodeToString(bytes), nil
 }

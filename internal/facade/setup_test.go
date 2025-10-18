@@ -3,6 +3,7 @@ package facade_test
 import (
 	"testing"
 
+	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	mocks "github.com/OutOfStack/game-library-auth/internal/facade/mocks"
 	"go.uber.org/mock/gomock"
@@ -15,9 +16,9 @@ func setupTest(t *testing.T) (*facade.Provider, *mocks.MockUserRepo, *mocks.Mock
 	ctrl := gomock.NewController(t)
 	mockUserRepo := mocks.NewMockUserRepo(ctrl)
 	mockEmailSender := mocks.NewMockEmailSender(ctrl)
+	tokenGenerator := auth.NewUnsubscribeTokenGenerator([]byte("test-secret-key"))
 
-	logger := zap.NewNop()
-	provider := facade.New(logger, mockUserRepo, mockEmailSender, false)
+	provider := facade.New(zap.NewNop(), mockUserRepo, mockEmailSender, tokenGenerator)
 
 	return provider, mockUserRepo, mockEmailSender, ctrl
 }

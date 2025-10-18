@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/OutOfStack/game-library-auth/internal/facade"
@@ -48,6 +49,10 @@ func (a *AuthAPI) ResendVerificationEmailHandler(c *fiber.Ctx) error {
 		case errors.Is(err, facade.ErrTooManyRequests):
 			return c.Status(http.StatusTooManyRequests).JSON(web.ErrResp{
 				Error: "Please wait before requesting another code",
+			})
+		case errors.Is(err, facade.ErrSendVerifyEmailUnsubscribed):
+			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+				Error: fmt.Sprintf("User is unsubscribed. You may contact us at mailto:%s to resubscribe", a.contactEmail),
 			})
 		default:
 			a.log.Error("resend verification", zap.Error(err))

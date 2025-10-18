@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/OutOfStack/game-library-auth/internal/client/mailersend"
+	"github.com/OutOfStack/game-library-auth/internal/client/resendapi"
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/cenkalti/backoff/v4"
@@ -94,8 +94,9 @@ func (p *Provider) ResendVerificationEmail(ctx context.Context, userID string) e
 		return err
 	}
 
-	// check if email is already verified
-	if user.EmailVerified {
+	// check if already verified.
+	// only publishers require email verification
+	if user.EmailVerified || user.Role != model.PublisherRoleName {
 		return ErrVerifyEmailAlreadyVerified
 	}
 
@@ -104,7 +105,7 @@ func (p *Provider) ResendVerificationEmail(ctx context.Context, userID string) e
 		return ErrResendVerificationNoEmail
 	}
 
-	// send verification email (includes cooldown and record management)
+	// send verification email
 	if err = p.sendVerificationEmail(ctx, user.ID, user.Email.String, user.Username); err != nil {
 		return err
 	}
@@ -114,43 +115,50 @@ func (p *Provider) ResendVerificationEmail(ctx context.Context, userID string) e
 
 // sends verification email. Returns ErrTooManyRequests if email was sent recently
 func (p *Provider) sendVerificationEmail(ctx context.Context, userID string, email, username string) error {
-	if p.disableEmailSender {
-		return nil
+	// check if email is unsubscribed
+	isUnsubscribed, uErr := p.userRepo.IsEmailUnsubscribed(ctx, email)
+	if uErr != nil {
+		p.log.Error("check email unsubscribe status", zap.String("email", email), zap.Error(uErr))
+		return fmt.Errorf("check email unsubscribe status: %w", uErr)
+	}
+	if isUnsubscribed {
+		p.log.Info("email is unsubscribed, skipping verification email", zap.String("email", email))
+		return ErrSendVerifyEmailUnsubscribed
 	}
 
 	txErr := p.userRepo.RunWithTx(ctx, func(ctx context.Context) error {
 		// check if code was already sent
-		record, err := p.userRepo.GetEmailVerificationByUserID(ctx, userID)
+		vrfRecord, err := p.userRepo.GetEmailVerificationByUserID(ctx, userID)
 		if err != nil && !errors.Is(err, database.ErrNotFound) {
 			return fmt.Errorf("get verification record: %w", err)
 		}
 		if err == nil {
 			// if sent before resend cooldown, don't resend
 			// if sent after resend cooldown, resend
-			if time.Since(record.DateCreated) < resendVerificationCodeCooldown {
+			if time.Since(vrfRecord.DateCreated) < model.ResendVerificationCodeCooldown {
 				return ErrTooManyRequests
 			}
 
 			// mark verification as used
-			if err = p.userRepo.SetEmailVerificationUsed(ctx, record.ID, false); err != nil {
+			if err = p.userRepo.SetEmailVerificationUsed(ctx, vrfRecord.ID, false); err != nil {
 				return fmt.Errorf("clear verification: %w", err)
 			}
 		}
 
 		// create new verification record
-		recordID, code, err := p.createEmailVerificationRecord(ctx, userID)
+		result, err := p.createEmailVerificationRecord(ctx, userID, email)
 		if err != nil {
 			return fmt.Errorf("create verification record: %w", err)
 		}
 
 		// send verification email
-		messageID, err := p.sendVerificationEmailWithRetry(ctx, email, username, code)
+		messageID, err := p.sendVerificationEmailWithRetry(ctx, email, username, result.Code, result.UnsubscribeToken)
 		if err != nil {
 			return fmt.Errorf("send verification email: %w", err)
 		}
 
 		// set message id
-		err = p.userRepo.SetEmailVerificationMessageID(ctx, recordID, messageID)
+		err = p.userRepo.SetEmailVerificationMessageID(ctx, result.ID, messageID)
 		if err != nil {
 			return fmt.Errorf("set email verification message_id: %w", err)
 		}
@@ -164,33 +172,42 @@ func (p *Provider) sendVerificationEmail(ctx context.Context, userID string, ema
 	return nil
 }
 
-// creates a new email verification record and returns verification record id and code
-func (p *Provider) createEmailVerificationRecord(ctx context.Context, userID string) (string, string, error) {
+// creates a new email verification record and returns the result
+func (p *Provider) createEmailVerificationRecord(ctx context.Context, userID, email string) (emailVerificationResult, error) {
 	code := generate6DigitCode()
 
 	// hash the code
 	codeHash, err := bcrypt.GenerateFromPassword([]byte(code), bcrypt.DefaultCost)
 	if err != nil {
-		return "", "", fmt.Errorf("hash verification code: %w", err)
+		return emailVerificationResult{}, fmt.Errorf("hash verification code: %w", err)
 	}
 
-	expiresAt := time.Now().Add(verificationCodeTTL)
-	verification := database.NewEmailVerification(userID, string(codeHash), expiresAt)
+	// generate unsubscribe token
+	now := time.Now()
+	expiresAt := now.Add(model.UnsubscribeTokenTTL)
+	unsubscribeToken := p.unsubscribeTokenGenerator.GenerateToken(email, expiresAt)
+
+	verification := database.NewEmailVerification(userID, string(codeHash), unsubscribeToken, now)
 
 	if err = p.userRepo.CreateEmailVerification(ctx, verification); err != nil {
-		return "", "", err
+		return emailVerificationResult{}, err
 	}
 
-	return verification.ID, code, nil
+	return emailVerificationResult{
+		ID:               verification.ID,
+		Code:             code,
+		UnsubscribeToken: unsubscribeToken,
+	}, nil
 }
 
 // sends verification email with retry logic and returns message id
-func (p *Provider) sendVerificationEmailWithRetry(ctx context.Context, email, username, code string) (messageID string, err error) {
+func (p *Provider) sendVerificationEmailWithRetry(ctx context.Context, email, username, code, unsubscribeToken string) (messageID string, err error) {
 	op := func() error {
-		messageID, err = p.emailSender.SendEmailVerification(ctx, mailersend.SendEmailVerificationRequest{
+		messageID, err = p.emailSender.SendEmailVerification(ctx, resendapi.SendEmailVerificationRequest{
 			Email:            email,
 			Username:         username,
 			VerificationCode: code,
+			UnsubscribeToken: unsubscribeToken,
 		})
 		return err
 	}

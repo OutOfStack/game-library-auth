@@ -1,0 +1,29 @@
+🎮 Game Library - Email Verification
+
+Hello {{.Username}},
+
+Thank you for signing up with Game Library! To complete your registration and secure your account, please enter the following verification code:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    {{.VerificationCode}}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⏱ IMPORTANT: This verification code will expire in 24 hours for security purposes.
+
+Enter this code in the verification form to activate your account.
+
+If you didn't create an account with us, please ignore this email.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This email was sent to {{.Email}}
+
+Need help?
+Contact us: {{.ContactEmail}}
+Privacy Policy: {{.PrivacyPolicyURL}}
+Terms of Service: {{.TermsOfServiceURL}}
+
+© {{.CurrentYear}} Game Library ({{.BaseURL}}). All rights reserved.
+
+To unsubscribe from these emails, visit:
+{{.UnsubscribeURL}}?token={{.UnsubscribeToken}}

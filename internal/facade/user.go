@@ -6,7 +6,6 @@ import (
 	"net/mail"
 	"strings"
 
-	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"go.uber.org/zap"
@@ -24,17 +23,23 @@ func (p *Provider) SignUp(ctx context.Context, username, displayName, email, pas
 		return model.User{}, ErrSignUpUsernameExists
 	}
 
-	// if publisher check name uniqueness
-	userRole := database.UserRoleName
+	// if publisher, check name uniqueness
+	//nolint:godox
+	// TODO: check if publisher is one of well-known publisher/developer names using game-library api
+	userRole := model.UserRoleName
 	if isPublisher {
-		exists, uErr := p.userRepo.CheckUserExists(ctx, displayName, database.PublisherRoleName)
+		// email is required for publishers
+		if email == "" {
+			return model.User{}, ErrSignUpEmailRequired
+		}
+		exists, uErr := p.userRepo.CheckUserExists(ctx, displayName, model.PublisherRoleName)
 		if uErr != nil {
 			p.log.Error("check publisher name exists", zap.String("name", displayName), zap.Error(uErr))
 			return model.User{}, uErr
 		} else if exists {
 			return model.User{}, ErrSignUpPublisherNameExists
 		}
-		userRole = database.PublisherRoleName
+		userRole = model.PublisherRoleName
 	}
 
 	// hash password
@@ -46,7 +51,7 @@ func (p *Provider) SignUp(ctx context.Context, username, displayName, email, pas
 
 	// create user
 	user := database.NewUser(username, displayName, passwordHash, userRole)
-	if email != "" {
+	if isPublisher {
 		user.SetEmail(email, false)
 	}
 
@@ -59,11 +64,15 @@ func (p *Provider) SignUp(ctx context.Context, username, displayName, email, pas
 			return err
 		}
 
-		// send verification email
-		if user.Email.Valid {
+		// send verification email only for publishers
+		if isPublisher {
 			if err = p.sendVerificationEmail(ctx, user.ID, user.Email.String, user.Username); err != nil {
-				p.log.Error("send verification email on signup", zap.Error(err))
-				return err
+				if !errors.Is(err, ErrSendVerifyEmailUnsubscribed) {
+					p.log.Error("send verification email on signup", zap.Error(err))
+					return err
+				}
+				// ignore 'user unsubscribed' error as emails are unique and this situation should not happen
+				p.log.Warn("user is unsubscribed", zap.String("email", user.Email.String))
 			}
 		}
 		return nil
@@ -76,21 +85,14 @@ func (p *Provider) SignUp(ctx context.Context, username, displayName, email, pas
 }
 
 // SignIn authenticates user by username/email and password
-func (p *Provider) SignIn(ctx context.Context, login, password string) (model.User, error) {
-	var user database.User
-	var err error
+func (p *Provider) SignIn(ctx context.Context, username, password string) (model.User, error) {
 	// check if user exists
-	// support both username (for older registrations) and email
-	if strings.Contains(login, "@") {
-		user, err = p.userRepo.GetUserByEmail(ctx, login)
-	} else {
-		user, err = p.userRepo.GetUserByUsername(ctx, login)
-	}
+	user, err := p.userRepo.GetUserByUsername(ctx, username)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
 			return model.User{}, ErrSignInInvalidCredentials
 		}
-		p.log.Error("get user by login", zap.String("login", login), zap.Error(err))
+		p.log.Error("get user by username", zap.String("username", username), zap.Error(err))
 		return model.User{}, err
 	}
 
@@ -99,11 +101,15 @@ func (p *Provider) SignIn(ctx context.Context, login, password string) (model.Us
 		return model.User{}, ErrSignInInvalidCredentials
 	}
 
-	// send verification code to email if user has unverified email
-	if user.Email.Valid && !user.EmailVerified {
+	// send verification code to email if publisher has unverified email
+	if !user.EmailVerified && user.Role == model.PublisherRoleName {
 		if err = p.sendVerificationEmail(ctx, user.ID, user.Email.String, user.Username); err != nil {
-			p.log.Error("sending verification email on signin", zap.Error(err))
-			return model.User{}, err
+			if !errors.Is(err, ErrSendVerifyEmailUnsubscribed) {
+				p.log.Error("sending verification email on sign in", zap.Error(err))
+				return model.User{}, err
+			}
+			// ignore 'user unsubscribed' error as such error will be display on resend email attempt
+			p.log.Warn("user is unsubscribed", zap.String("email", user.Email.String))
 		}
 	}
 
@@ -113,7 +119,7 @@ func (p *Provider) SignIn(ctx context.Context, login, password string) (model.Us
 // GoogleOAuth handles Google OAuth sign in
 func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string) (model.User, error) {
 	// check if user exists
-	user, err := p.userRepo.GetUserByOAuth(ctx, auth.GoogleAuthTokenProvider, oauthID)
+	user, err := p.userRepo.GetUserByOAuth(ctx, model.GoogleAuthTokenProvider, oauthID)
 	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return model.User{}, err
 	}
@@ -128,8 +134,8 @@ func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string) (mode
 	}
 
 	// create user
-	user = database.NewUser(username, username, nil, database.UserRoleName)
-	user.SetOAuthID(auth.GoogleAuthTokenProvider, oauthID)
+	user = database.NewUser(username, username, nil, model.UserRoleName)
+	user.SetOAuthID(model.GoogleAuthTokenProvider, oauthID)
 	user.SetEmail(email, true)
 
 	if err = p.userRepo.CreateUser(ctx, user); err != nil {

@@ -9,15 +9,15 @@ import (
 )
 
 // CreateEmailVerification creates a new email verification record
-func (r *UserRepo) CreateEmailVerification(ctx context.Context, verification EmailVerification) error {
+func (r *UserRepo) CreateEmailVerification(ctx context.Context, vrf EmailVerification) error {
 	ctx, span := tracer.Start(ctx, "createEmailVerification")
 	defer span.End()
 
 	const q = `INSERT INTO email_verifications
-        (id, user_id, verification_code, expires_at, date_created)
-        VALUES ($1, $2, $3, $4, NOW())`
+        (id, user_id, verification_code, unsubscribe_token, date_created)
+        VALUES ($1, $2, $3, $4, $5)`
 
-	_, err := r.query().Exec(ctx, q, verification.ID, verification.UserID, verification.CodeHash, verification.ExpiresAt)
+	_, err := r.query().Exec(ctx, q, vrf.ID, vrf.UserID, vrf.CodeHash, vrf.UnsubscribeToken, vrf.DateCreated)
 	if err != nil {
 		return fmt.Errorf("insert email verification: %w", err)
 	}
@@ -30,7 +30,7 @@ func (r *UserRepo) GetEmailVerificationByUserID(ctx context.Context, userID stri
 	ctx, span := tracer.Start(ctx, "getEmailVerificationByUserID")
 	defer span.End()
 
-	const q = `SELECT id, user_id, verification_code, expires_at, message_id, date_created
+	const q = `SELECT id, user_id, verification_code, message_id, date_created
         FROM email_verifications
         WHERE user_id = $1 AND verified_at IS NULL AND verification_code IS NOT NULL
         ORDER BY date_created DESC
@@ -73,7 +73,9 @@ func (r *UserRepo) SetEmailVerificationUsed(ctx context.Context, id string, veri
 	}
 
 	const q = `UPDATE email_verifications 
-		SET verification_code = NULL, verified_at = $2
+		SET verification_code = NULL, 
+		    unsubscribe_token = NULL, 
+		    verified_at = $2
 		WHERE id = $1`
 
 	_, err := r.query().Exec(ctx, q, id, verifiedAt)

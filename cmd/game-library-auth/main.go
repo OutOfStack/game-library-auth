@@ -8,7 +8,7 @@ import (
 	_ "net/http/pprof"
 
 	auth_ "github.com/OutOfStack/game-library-auth/internal/auth"
-	"github.com/OutOfStack/game-library-auth/internal/client/mailersend"
+	"github.com/OutOfStack/game-library-auth/internal/client/resendapi"
 	store "github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/handlers"
@@ -73,17 +73,17 @@ func run() error {
 	}
 
 	// create email sender
-	emailSender, err := mailersend.NewClient(mailersend.Config{
-		APIToken:  cfg.EmailSender.APIToken,
-		FromEmail: cfg.EmailSender.EmailFrom,
-		Timeout:   cfg.EmailSender.APITimeout,
+	emailSender, err := resendapi.NewClient(resendapi.Config{
+		APIToken:       cfg.EmailSender.APIToken,
+		FromEmail:      cfg.EmailSender.EmailFrom,
+		ContactEmail:   cfg.EmailSender.ContactEmail,
+		BaseURL:        cfg.EmailSender.BaseURL,
+		UnsubscribeURL: cfg.EmailSender.UnsubscribeURL,
+		Timeout:        cfg.EmailSender.APITimeout,
 	})
 	if err != nil {
 		return fmt.Errorf("create email sender client: %w", err)
 	}
-
-	// create user facade
-	userFacade := facade.New(logger, userRepo, emailSender, !cfg.EmailSender.EmailVerificationEnabled)
 
 	// create auth token service
 	privateKey, err := crypto.ReadPrivateKey(cfg.Auth.PrivateKeyFile)
@@ -95,11 +95,21 @@ func run() error {
 		return fmt.Errorf("create token service instance: %w", err)
 	}
 
+	// create unsubscribe token generator
+	unsubscribeTokenGenerator := auth_.NewUnsubscribeTokenGenerator([]byte(cfg.EmailSender.UnsubscribeSecret))
+
+	// create user facade
+	userFacade := facade.New(logger, userRepo, emailSender, unsubscribeTokenGenerator)
+
 	// auth api
 	authAPI, err := handlers.NewAuthAPI(logger, &cfg, auth, googleTokenValidator, userFacade)
 	if err != nil {
 		return fmt.Errorf("create auth api: %w", err)
 	}
+
+	// unsubscribe api
+	unsubscribeAPI := handlers.NewUnsubscribeAPI(logger, unsubscribeTokenGenerator, userFacade, cfg.EmailSender.ContactEmail)
+
 	// health api
 	checkAPI := handlers.NewCheckAPI(db)
 
@@ -114,7 +124,7 @@ func run() error {
 	}()
 
 	// start auth service
-	app, err := handlers.Service(authAPI, checkAPI, cfg)
+	app, err := handlers.Service(authAPI, checkAPI, unsubscribeAPI, cfg)
 	if err != nil {
 		return fmt.Errorf("creating auth service: %w", err)
 	}

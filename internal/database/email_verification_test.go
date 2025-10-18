@@ -6,12 +6,9 @@ import (
 	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/database"
+	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-)
-
-const (
-	vrfCodeTTL = 24 * time.Hour
 )
 
 func TestCreateEmailVerification_Ok(t *testing.T) {
@@ -20,11 +17,11 @@ func TestCreateEmailVerification_Ok(t *testing.T) {
 
 	ctx := context.Background()
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), database.UserRoleName)
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
 	require.NoError(t, err)
 
-	verification := database.NewEmailVerification(user.ID, "hashedcode123", time.Now().Add(vrfCodeTTL))
+	verification := database.NewEmailVerification(user.ID, "hashedcode123", "unsubscribe_token", time.Now())
 
 	err = s.CreateEmailVerification(ctx, verification)
 	require.NoError(t, err)
@@ -43,11 +40,11 @@ func TestGetEmailVerificationByUserID_Ok(t *testing.T) {
 
 	ctx := context.Background()
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), database.UserRoleName)
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
 	require.NoError(t, err)
 
-	verification := database.NewEmailVerification(user.ID, "hashedcode123", time.Now().Add(vrfCodeTTL))
+	verification := database.NewEmailVerification(user.ID, "hashedcode123", "unsubscribe_token", time.Now())
 	err = s.CreateEmailVerification(ctx, verification)
 	require.NoError(t, err)
 
@@ -75,18 +72,18 @@ func TestGetEmailVerificationByUserID_MostRecent(t *testing.T) {
 
 	ctx := context.Background()
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), database.UserRoleName)
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
 	require.NoError(t, err)
 
 	// Create first verification
-	verification1 := database.NewEmailVerification(user.ID, "hashedcode123", time.Now().Add(vrfCodeTTL))
+	verification1 := database.NewEmailVerification(user.ID, "hashedcode123", "unsubscribe_token1", time.Now())
 	err = s.CreateEmailVerification(ctx, verification1)
 	require.NoError(t, err)
 
 	// Wait a bit and create second verification
 	time.Sleep(10 * time.Millisecond)
-	verification2 := database.NewEmailVerification(user.ID, "hashedcode456", time.Now().Add(vrfCodeTTL))
+	verification2 := database.NewEmailVerification(user.ID, "hashedcode456", "unsubscribe_token2", time.Now())
 	err = s.CreateEmailVerification(ctx, verification2)
 	require.NoError(t, err)
 
@@ -103,11 +100,11 @@ func TestSetEmailVerificationMessageID_Ok(t *testing.T) {
 
 	ctx := context.Background()
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), database.UserRoleName)
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
 	require.NoError(t, err)
 
-	verification := database.NewEmailVerification(user.ID, "hashedcode123", time.Now().Add(vrfCodeTTL))
+	verification := database.NewEmailVerification(user.ID, "hashedcode123", "unsubscribe_token", time.Now())
 	err = s.CreateEmailVerification(ctx, verification)
 	require.NoError(t, err)
 
@@ -127,11 +124,11 @@ func TestSetEmailVerificationUsed_Ok(t *testing.T) {
 
 	ctx := context.Background()
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), database.UserRoleName)
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
 	require.NoError(t, err)
 
-	verification := database.NewEmailVerification(user.ID, "hashedcode123", time.Now().Add(vrfCodeTTL))
+	verification := database.NewEmailVerification(user.ID, "hashedcode123", "unsubscribe_token", time.Now())
 	err = s.CreateEmailVerification(ctx, verification)
 	require.NoError(t, err)
 
@@ -145,15 +142,15 @@ func TestSetEmailVerificationUsed_Ok(t *testing.T) {
 }
 
 func TestEmailVerification_IsExpired_True(t *testing.T) {
-	// Expired 1 hour ago
-	verification := database.NewEmailVerification(uuid.New().String(), "hashedcode123", time.Now().Add(-1*time.Hour))
+	// Create verification with old date (expired)
+	verification := database.NewEmailVerification(uuid.New().String(), "hashedcode123", "unsubscribe_token", time.Now().Add(-25*time.Hour))
 
 	require.True(t, verification.IsExpired())
 }
 
 func TestEmailVerification_IsExpired_False(t *testing.T) {
-	// Expires in 1 hour
-	verification := database.NewEmailVerification(uuid.New().String(), "hashedcode123", time.Now().Add(1*time.Hour))
+	// Create verification with current time (not expired)
+	verification := database.NewEmailVerification(uuid.New().String(), "hashedcode123", "unsubscribe_token", time.Now())
 
 	require.False(t, verification.IsExpired())
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
+	"github.com/OutOfStack/game-library-auth/internal/model"
 	"go.uber.org/mock/gomock"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -25,7 +26,7 @@ func TestProvider_VerifyEmail(t *testing.T) {
 			Username:      "testuser",
 			Email:         sql.NullString{String: "test@example.com", Valid: true},
 			EmailVerified: false,
-			Role:          database.UserRoleName,
+			Role:          model.UserRoleName,
 		}
 
 		code := "123456"
@@ -34,7 +35,6 @@ func TestProvider_VerifyEmail(t *testing.T) {
 			ID:          "verification-123",
 			UserID:      "user-123",
 			CodeHash:    sql.NullString{String: string(codeHash), Valid: true},
-			ExpiresAt:   time.Now().Add(24 * time.Hour),
 			DateCreated: time.Now(),
 		}
 
@@ -99,7 +99,7 @@ func TestProvider_VerifyEmail(t *testing.T) {
 			ID:            "user-123",
 			Username:      "testuser",
 			EmailVerified: true,
-			Role:          database.UserRoleName,
+			Role:          model.UserRoleName,
 		}
 
 		mockUserRepo.EXPECT().
@@ -127,7 +127,7 @@ func TestProvider_VerifyEmail(t *testing.T) {
 			ID:            "user-123",
 			Username:      "testuser",
 			EmailVerified: false,
-			Role:          database.UserRoleName,
+			Role:          model.UserRoleName,
 		}
 
 		mockUserRepo.EXPECT().
@@ -159,7 +159,7 @@ func TestProvider_VerifyEmail(t *testing.T) {
 			ID:            "user-123",
 			Username:      "testuser",
 			EmailVerified: false,
-			Role:          database.UserRoleName,
+			Role:          model.UserRoleName,
 		}
 
 		code := "123456"
@@ -168,8 +168,7 @@ func TestProvider_VerifyEmail(t *testing.T) {
 			ID:          "verification-123",
 			UserID:      "user-123",
 			CodeHash:    sql.NullString{String: string(codeHash), Valid: true},
-			ExpiresAt:   time.Now().Add(-1 * time.Hour), // expired
-			DateCreated: time.Now().Add(-25 * time.Hour),
+			DateCreated: time.Now().Add(-25 * time.Hour), // expired (older than 24h)
 		}
 
 		mockUserRepo.EXPECT().
@@ -205,7 +204,7 @@ func TestProvider_VerifyEmail(t *testing.T) {
 			ID:            "user-123",
 			Username:      "testuser",
 			EmailVerified: false,
-			Role:          database.UserRoleName,
+			Role:          model.UserRoleName,
 		}
 
 		correctCode := "123456"
@@ -214,7 +213,6 @@ func TestProvider_VerifyEmail(t *testing.T) {
 			ID:          "verification-123",
 			UserID:      "user-123",
 			CodeHash:    sql.NullString{String: string(codeHash), Valid: true},
-			ExpiresAt:   time.Now().Add(24 * time.Hour),
 			DateCreated: time.Now(),
 		}
 
@@ -252,12 +250,17 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 			Username:      "testuser",
 			Email:         sql.NullString{String: "test@example.com", Valid: true},
 			EmailVerified: false,
-			Role:          database.UserRoleName,
+			Role:          model.PublisherRoleName,
 		}
 
 		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
 			Return(user, nil)
+
+		// mock unsubscribe check
+		mockUserRepo.EXPECT().
+			IsEmailUnsubscribed(ctx, "test@example.com").
+			Return(false, nil)
 
 		// mock the transaction call for sendVerificationEmail
 		mockUserRepo.EXPECT().
@@ -302,7 +305,7 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 			Username:      "testuser",
 			Email:         sql.NullString{String: "test@example.com", Valid: true},
 			EmailVerified: true,
-			Role:          database.UserRoleName,
+			Role:          model.UserRoleName,
 		}
 
 		mockUserRepo.EXPECT().
@@ -325,7 +328,7 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 			Username:      "testuser",
 			Email:         sql.NullString{Valid: false}, // no email
 			EmailVerified: false,
-			Role:          database.UserRoleName,
+			Role:          model.PublisherRoleName,
 		}
 
 		mockUserRepo.EXPECT().
@@ -336,6 +339,29 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 
 		if !errors.Is(err, facade.ErrResendVerificationNoEmail) {
 			t.Errorf("expected ErrResendVerificationNoEmail, got %v", err)
+		}
+	})
+
+	t.Run("regular user does not require verification", func(t *testing.T) {
+		provider, mockUserRepo, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		user := database.User{
+			ID:            "user-123",
+			Username:      "testuser",
+			Email:         sql.NullString{String: "test@example.com", Valid: true},
+			EmailVerified: false,
+			Role:          model.UserRoleName,
+		}
+
+		mockUserRepo.EXPECT().
+			GetUserByID(ctx, "user-123").
+			Return(user, nil)
+
+		err := provider.ResendVerificationEmail(ctx, "user-123")
+
+		if !errors.Is(err, facade.ErrVerifyEmailAlreadyVerified) {
+			t.Errorf("expected ErrVerifyEmailAlreadyVerified, got %v", err)
 		}
 	})
 

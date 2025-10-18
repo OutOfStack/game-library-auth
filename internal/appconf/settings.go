@@ -55,8 +55,11 @@ type Log struct {
 
 // EmailSender represents settings for email sending service
 type EmailSender struct {
-	EmailVerificationEnabled bool          `mapstructure:"EMAIL_SENDER_EMAIL_VERIFICATION_ENABLED"`
-	APIToken                 string        `mapstructure:"EMAIL_SENDER_API_TOKEN"`
-	EmailFrom                string        `mapstructure:"EMAIL_SENDER_EMAIL_FROM"`
-	APITimeout               time.Duration `mapstructure:"EMAIL_SENDER_API_TIMEOUT"`
+	APIToken          string        `mapstructure:"EMAIL_SENDER_API_TOKEN"`
+	APITimeout        time.Duration `mapstructure:"EMAIL_SENDER_API_TIMEOUT"`
+	EmailFrom         string        `mapstructure:"EMAIL_SENDER_EMAIL_FROM"`
+	ContactEmail      string        `mapstructure:"EMAIL_SENDER_CONTACT_EMAIL"`
+	BaseURL           string        `mapstructure:"EMAIL_SENDER_BASE_URL"`
+	UnsubscribeURL    string        `mapstructure:"EMAIL_SENDER_UNSUBSCRIBE_URL"`
+	UnsubscribeSecret string        `mapstructure:"EMAIL_SENDER_UNSUBSCRIBE_SECRET"`
 }

@@ -9,16 +9,17 @@ definitions:
     type: object
   handlers.SignInReq:
     properties:
-      login:
-        type: string
       password:
         maxLength: 64
         minLength: 8
         type: string
       username:
+        maxLength: 64
+        minLength: 4
         type: string
     required:
     - password
+    - username
     type: object
   handlers.SignUpReq:
     properties:
@@ -35,6 +36,7 @@ definitions:
         minLength: 8
         type: string
       username:
+        minLength: 4
         type: string
     required:
     - name

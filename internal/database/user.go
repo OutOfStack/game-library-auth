@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -131,7 +132,8 @@ func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (user
 
 	const q = `SELECT id, username, name, email, email_verified, password_hash, role, oauth_provider, oauth_id, date_created, date_updated
 		FROM users
-		WHERE username = $1`
+		WHERE username = $1
+		FOR NO KEY UPDATE`
 
 	if err = r.query().Get(ctx, &user, q, username); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -144,7 +146,7 @@ func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (user
 }
 
 // CheckUserExists checks whether user with provided name and role exists
-func (r *UserRepo) CheckUserExists(ctx context.Context, name string, role Role) (bool, error) {
+func (r *UserRepo) CheckUserExists(ctx context.Context, name string, role model.Role) (bool, error) {
 	ctx, span := tracer.Start(ctx, "checkUserExists")
 	defer span.End()
 
