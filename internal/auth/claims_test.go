@@ -17,7 +17,7 @@ func TestCreateUserClaims_RegularUser(t *testing.T) {
 		t.Fatalf("failed to generate private key: %v", err)
 	}
 
-	a, err := auth.New("RS256", privateKey, "test-issuer")
+	a, err := auth.New("RS256", privateKey, "test-issuer", 15*time.Minute, 7*24*time.Hour)
 	if err != nil {
 		t.Fatalf("failed to create auth: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestCreateUserClaims_Publisher_EmailVerified(t *testing.T) {
 		t.Fatalf("failed to generate private key: %v", err)
 	}
 
-	a, err := auth.New("RS256", privateKey, "test-issuer")
+	a, err := auth.New("RS256", privateKey, "test-issuer", 15*time.Minute, 7*24*time.Hour)
 	if err != nil {
 		t.Fatalf("failed to create auth: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestCreateUserClaims_Publisher_EmailNotVerified(t *testing.T) {
 		t.Fatalf("failed to generate private key: %v", err)
 	}
 
-	a, err := auth.New("RS256", privateKey, "test-issuer")
+	a, err := auth.New("RS256", privateKey, "test-issuer", 15*time.Minute, 7*24*time.Hour)
 	if err != nil {
 		t.Fatalf("failed to create auth: %v", err)
 	}
@@ -149,7 +149,7 @@ func TestCreateUserClaims_TokenExpiry(t *testing.T) {
 		t.Fatalf("failed to generate private key: %v", err)
 	}
 
-	a, err := auth.New("RS256", privateKey, "test-issuer")
+	a, err := auth.New("RS256", privateKey, "test-issuer", 15*time.Minute, 7*24*time.Hour)
 	if err != nil {
 		t.Fatalf("failed to create auth: %v", err)
 	}
@@ -180,10 +180,10 @@ func TestCreateUserClaims_TokenExpiry(t *testing.T) {
 		t.Fatal("expected NotBefore to be set")
 	}
 
-	expectedExpiryMin := now.Add(359 * time.Hour)
-	expectedExpiryMax := now.Add(361 * time.Hour)
+	expectedExpiryMin := now.Add(15*time.Minute - 1*time.Minute)
+	expectedExpiryMax := now.Add(15*time.Minute + 1*time.Minute)
 	if authClaims.ExpiresAt.Before(expectedExpiryMin) || authClaims.ExpiresAt.After(expectedExpiryMax) {
-		t.Errorf("expected ExpiresAt to be around 360 hours in the future, got %v", authClaims.ExpiresAt)
+		t.Errorf("expected ExpiresAt to be around %v in the future, got %v", 15*time.Minute, authClaims.ExpiresAt)
 	}
 
 	timeTolerance := 2 * time.Second
@@ -202,7 +202,7 @@ func TestCreateUserClaims_Subject(t *testing.T) {
 		t.Fatalf("failed to generate private key: %v", err)
 	}
 
-	a, err := auth.New("RS256", privateKey, "test-issuer")
+	a, err := auth.New("RS256", privateKey, "test-issuer", 15*time.Minute, 7*24*time.Hour)
 	if err != nil {
 		t.Fatalf("failed to create auth: %v", err)
 	}

@@ -12,12 +12,99 @@ package facade_mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
+	auth "github.com/OutOfStack/game-library-auth/internal/auth"
 	resendapi "github.com/OutOfStack/game-library-auth/internal/client/resendapi"
 	database "github.com/OutOfStack/game-library-auth/internal/database"
 	model "github.com/OutOfStack/game-library-auth/internal/model"
+	jwt "github.com/golang-jwt/jwt/v4"
 	gomock "go.uber.org/mock/gomock"
 )
+
+// MockAuth is a mock of Auth interface.
+type MockAuth struct {
+	ctrl     *gomock.Controller
+	recorder *MockAuthMockRecorder
+	isgomock struct{}
+}
+
+// MockAuthMockRecorder is the mock recorder for MockAuth.
+type MockAuthMockRecorder struct {
+	mock *MockAuth
+}
+
+// NewMockAuth creates a new mock instance.
+func NewMockAuth(ctrl *gomock.Controller) *MockAuth {
+	mock := &MockAuth{ctrl: ctrl}
+	mock.recorder = &MockAuthMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockAuth) EXPECT() *MockAuthMockRecorder {
+	return m.recorder
+}
+
+// CreateUserClaims mocks base method.
+func (m *MockAuth) CreateUserClaims(user model.User) jwt.Claims {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateUserClaims", user)
+	ret0, _ := ret[0].(jwt.Claims)
+	return ret0
+}
+
+// CreateUserClaims indicates an expected call of CreateUserClaims.
+func (mr *MockAuthMockRecorder) CreateUserClaims(user any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUserClaims", reflect.TypeOf((*MockAuth)(nil).CreateUserClaims), user)
+}
+
+// GenerateRefreshToken mocks base method.
+func (m *MockAuth) GenerateRefreshToken() (string, time.Time, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateRefreshToken")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(time.Time)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GenerateRefreshToken indicates an expected call of GenerateRefreshToken.
+func (mr *MockAuthMockRecorder) GenerateRefreshToken() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateRefreshToken", reflect.TypeOf((*MockAuth)(nil).GenerateRefreshToken))
+}
+
+// GenerateToken mocks base method.
+func (m *MockAuth) GenerateToken(claims jwt.Claims) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateToken", claims)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GenerateToken indicates an expected call of GenerateToken.
+func (mr *MockAuthMockRecorder) GenerateToken(claims any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateToken", reflect.TypeOf((*MockAuth)(nil).GenerateToken), claims)
+}
+
+// ValidateToken mocks base method.
+func (m *MockAuth) ValidateToken(tokenStr string) (auth.Claims, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateToken", tokenStr)
+	ret0, _ := ret[0].(auth.Claims)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateToken indicates an expected call of ValidateToken.
+func (mr *MockAuthMockRecorder) ValidateToken(tokenStr any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateToken", reflect.TypeOf((*MockAuth)(nil).ValidateToken), tokenStr)
+}
 
 // MockUserRepo is a mock of UserRepo interface.
 type MockUserRepo struct {
@@ -86,6 +173,20 @@ func (mr *MockUserRepoMockRecorder) CreateEmailVerification(ctx, verification an
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEmailVerification", reflect.TypeOf((*MockUserRepo)(nil).CreateEmailVerification), ctx, verification)
 }
 
+// CreateRefreshToken mocks base method.
+func (m *MockUserRepo) CreateRefreshToken(ctx context.Context, refreshToken database.RefreshToken) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateRefreshToken", ctx, refreshToken)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateRefreshToken indicates an expected call of CreateRefreshToken.
+func (mr *MockUserRepoMockRecorder) CreateRefreshToken(ctx, refreshToken any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRefreshToken", reflect.TypeOf((*MockUserRepo)(nil).CreateRefreshToken), ctx, refreshToken)
+}
+
 // CreateUser mocks base method.
 func (m *MockUserRepo) CreateUser(ctx context.Context, user database.User) error {
 	m.ctrl.T.Helper()
@@ -98,6 +199,34 @@ func (m *MockUserRepo) CreateUser(ctx context.Context, user database.User) error
 func (mr *MockUserRepoMockRecorder) CreateUser(ctx, user any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockUserRepo)(nil).CreateUser), ctx, user)
+}
+
+// DeleteRefreshToken mocks base method.
+func (m *MockUserRepo) DeleteRefreshToken(ctx context.Context, token string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteRefreshToken", ctx, token)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteRefreshToken indicates an expected call of DeleteRefreshToken.
+func (mr *MockUserRepoMockRecorder) DeleteRefreshToken(ctx, token any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRefreshToken", reflect.TypeOf((*MockUserRepo)(nil).DeleteRefreshToken), ctx, token)
+}
+
+// DeleteRefreshTokensByUserID mocks base method.
+func (m *MockUserRepo) DeleteRefreshTokensByUserID(ctx context.Context, userID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteRefreshTokensByUserID", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteRefreshTokensByUserID indicates an expected call of DeleteRefreshTokensByUserID.
+func (mr *MockUserRepoMockRecorder) DeleteRefreshTokensByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRefreshTokensByUserID", reflect.TypeOf((*MockUserRepo)(nil).DeleteRefreshTokensByUserID), ctx, userID)
 }
 
 // DeleteUser mocks base method.
@@ -127,6 +256,21 @@ func (m *MockUserRepo) GetEmailVerificationByUserID(ctx context.Context, userID 
 func (mr *MockUserRepoMockRecorder) GetEmailVerificationByUserID(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEmailVerificationByUserID", reflect.TypeOf((*MockUserRepo)(nil).GetEmailVerificationByUserID), ctx, userID)
+}
+
+// GetRefreshTokenByToken mocks base method.
+func (m *MockUserRepo) GetRefreshTokenByToken(ctx context.Context, token string) (database.RefreshToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRefreshTokenByToken", ctx, token)
+	ret0, _ := ret[0].(database.RefreshToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRefreshTokenByToken indicates an expected call of GetRefreshTokenByToken.
+func (mr *MockUserRepoMockRecorder) GetRefreshTokenByToken(ctx, token any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRefreshTokenByToken", reflect.TypeOf((*MockUserRepo)(nil).GetRefreshTokenByToken), ctx, token)
 }
 
 // GetUserByEmail mocks base method.

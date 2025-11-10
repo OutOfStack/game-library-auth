@@ -20,7 +20,7 @@ func TestVerifyToken(t *testing.T) {
 	tests := []struct {
 		name           string
 		request        handlers.VerifyTokenReq
-		setupMocks     func(*mocks.MockAuth)
+		setupMocks     func(*mocks.MockUserFacade)
 		expectedStatus int
 		expectedResp   handlers.VerifyTokenResp
 	}{
@@ -29,9 +29,9 @@ func TestVerifyToken(t *testing.T) {
 			request: handlers.VerifyTokenReq{
 				Token: "valid.jwt.token",
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth) {
-				mockAuth.EXPECT().
-					ValidateToken("valid.jwt.token").
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
+				mockUserFacade.EXPECT().
+					ValidateAccessToken("valid.jwt.token").
 					Return(auth.Claims{}, nil)
 			},
 			expectedStatus: http.StatusOK,
@@ -44,9 +44,9 @@ func TestVerifyToken(t *testing.T) {
 			request: handlers.VerifyTokenReq{
 				Token: "invalid.jwt.token",
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth) {
-				mockAuth.EXPECT().
-					ValidateToken("invalid.jwt.token").
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
+				mockUserFacade.EXPECT().
+					ValidateAccessToken("invalid.jwt.token").
 					Return(auth.Claims{}, errors.New("token validation error"))
 			},
 			expectedStatus: http.StatusOK,
@@ -58,11 +58,11 @@ func TestVerifyToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, _, authAPI, _, app, ctrl := setupTest(t, nil)
+			_, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(mockAuth)
+				tt.setupMocks(mockUserFacade)
 			}
 
 			app.Post("/token/verify", authAPI.VerifyTokenHandler)

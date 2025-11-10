@@ -4,14 +4,21 @@ metadata:
     name: game-library-auth-config
     namespace: game-library
 data:
+    LOG_LEVEL: "INFO"
     APP_ADDRESS: "0.0.0.0:8000"
     DEBUG_ADDRESS: "0.0.0.0:6060"
+    APP_READTIMEOUT: "3s"
+    APP_WRITETIMEOUT: "3s"
     APP_ALLOWEDCORSORIGIN: "https://_K8S_URL_,https://_UI_URL_"
+    APP_REFRESH_TOKEN_COOKIE_SAMESITE: "strict"
+    APP_REFRESH_TOKEN_COOKIE_SECURE: "true"
     AUTH_PRIVATEKEYFILE: "/etc/gla/private"
+    AUTH_SIGNINGALG: "RS256"
     AUTH_ISSUER: "https://_UI_URL_"
+    AUTH_ACCESSTOKENTTL: "15m"
+    AUTH_REFRESHTOKENTTL: "168h"
     ZIPKIN_REPORTERURL: "http://zipkin-service.game-library.svc.cluster.local.:9411/api/v2/spans"
     GRAYLOG_ADDR: "graylog-service.game-library.svc.cluster.local.:12201"
-    LOG_LEVEL: "INFO"
     EMAIL_SENDER_API_TIMEOUT: "5s"
     EMAIL_SENDER_EMAIL_FROM: "Game Library <info@_UI_URL_>"
     EMAIL_SENDER_CONTACT_EMAIL: "_CONTACT_EMAIL_"

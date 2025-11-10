@@ -97,3 +97,27 @@ func NewEmailUnsubscribe(email string) EmailUnsubscribe {
 		Email: email,
 	}
 }
+
+// RefreshToken represents a refresh token
+type RefreshToken struct {
+	ID          string    `db:"id"`
+	UserID      string    `db:"user_id"`
+	Token       string    `db:"token"`
+	ExpiresAt   time.Time `db:"expires_at"`
+	DateCreated time.Time `db:"date_created"`
+}
+
+// NewRefreshToken creates a new refresh token
+func NewRefreshToken(userID, token string, expiresAt time.Time) RefreshToken {
+	return RefreshToken{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		Token:     token,
+		ExpiresAt: expiresAt,
+	}
+}
+
+// IsExpired checks if the refresh token has expired
+func (rt *RefreshToken) IsExpired() bool {
+	return !time.Now().Before(rt.ExpiresAt)
+}

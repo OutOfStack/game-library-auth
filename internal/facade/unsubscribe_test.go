@@ -11,7 +11,7 @@ import (
 )
 
 func TestProvider_UnsubscribeEmail_Success(t *testing.T) {
-	provider, mockUserRepo, _, ctrl := setupTest(t)
+	provider, mockUserRepo, _, _, ctrl := setupTest(t)
 	defer ctrl.Finish()
 
 	ctx := context.Background()
@@ -36,7 +36,7 @@ func TestProvider_UnsubscribeEmail_Success(t *testing.T) {
 }
 
 func TestProvider_UnsubscribeEmail_InvalidToken(t *testing.T) {
-	provider, _, _, ctrl := setupTest(t)
+	provider, _, _, _, ctrl := setupTest(t) //nolint
 	defer ctrl.Finish()
 
 	ctx := context.Background()
@@ -50,7 +50,7 @@ func TestProvider_UnsubscribeEmail_InvalidToken(t *testing.T) {
 }
 
 func TestProvider_UnsubscribeEmail_ExpiredToken(t *testing.T) {
-	provider, _, _, ctrl := setupTest(t)
+	provider, _, _, _, ctrl := setupTest(t) //nolint
 	defer ctrl.Finish()
 
 	ctx := context.Background()
@@ -67,7 +67,7 @@ func TestProvider_UnsubscribeEmail_ExpiredToken(t *testing.T) {
 }
 
 func TestProvider_UnsubscribeEmail_CreateUnsubscribeFails(t *testing.T) {
-	provider, mockUserRepo, _, ctrl := setupTest(t)
+	provider, mockUserRepo, _, _, ctrl := setupTest(t)
 	defer ctrl.Finish()
 
 	ctx := context.Background()

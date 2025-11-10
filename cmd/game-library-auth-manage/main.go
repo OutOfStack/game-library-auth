@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	conf "github.com/OutOfStack/game-library-auth/pkg/config"
+	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	"github.com/jmoiron/sqlx"
@@ -25,7 +25,7 @@ func main() {
 
 	var dsn string
 	if fromFile {
-		cfg, err := conf.Load()
+		cfg, err := appconf.Get()
 		if err != nil {
 			log.Fatal("read config file:", err)
 		}

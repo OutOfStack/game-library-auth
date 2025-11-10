@@ -83,16 +83,15 @@ func TestDeleteAccountHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
+			_, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.authHeader == "Bearer valid-token" {
 				claims := auth_.Claims{UserID: userID}
-				mockAuth.EXPECT().
-					ValidateToken("valid-token").
+				mockUserFacade.EXPECT().
+					ValidateAccessToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
-				// handled in per-test setupMocks
 			}
 
 			if tt.setupMocks != nil {

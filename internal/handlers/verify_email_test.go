@@ -13,7 +13,6 @@ import (
 	mocks "github.com/OutOfStack/game-library-auth/internal/handlers/mocks"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +27,7 @@ func TestVerifyEmailHandler(t *testing.T) {
 		name           string
 		request        interface{}
 		authHeader     string
-		setupMocks     func(*mocks.MockAuth, *mocks.MockUserFacade)
+		setupMocks     func(*mocks.MockUserFacade)
 		expectedStatus int
 		expectedResp   interface{}
 	}{
@@ -38,13 +37,13 @@ func TestVerifyEmailHandler(t *testing.T) {
 				Code: code,
 			},
 			authHeader: "Bearer valid-token",
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
-				claims := auth.Claims{UserID: userID}
-				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				u := model.User{ID: userID, Username: "testuser", Email: "test@example.com", EmailVerified: true}
 				mockUserFacade.EXPECT().VerifyEmail(gomock.Any(), userID, code).Return(u, nil)
-				mockAuth.EXPECT().CreateUserClaims(u).Return(jwt.MapClaims{})
-				mockAuth.EXPECT().GenerateToken(gomock.Any()).Return("new.jwt.token", nil)
+				mockUserFacade.EXPECT().CreateTokens(gomock.Any(), u).Return(facade.TokenPair{
+					AccessToken:  "new.jwt.token",
+					RefreshToken: facade.RefreshToken{Token: "new.refresh.token"},
+				}, nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedResp:   handlers.TokenResp{AccessToken: "new.jwt.token"},
@@ -65,9 +64,7 @@ func TestVerifyEmailHandler(t *testing.T) {
 				Code: code,
 			},
 			authHeader: "Bearer valid-token",
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
-				claims := auth.Claims{UserID: userID}
-				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().VerifyEmail(gomock.Any(), userID, code).Return(model.User{}, facade.ErrVerifyEmailInvalidOrExpired)
 			},
 			expectedStatus: http.StatusBadRequest,
@@ -79,9 +76,7 @@ func TestVerifyEmailHandler(t *testing.T) {
 				Code: code,
 			},
 			authHeader: "Bearer valid-token",
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
-				claims := auth.Claims{UserID: userID}
-				mockAuth.EXPECT().ValidateToken("valid-token").Return(claims, nil)
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().VerifyEmail(gomock.Any(), userID, code).Return(model.User{}, facade.ErrVerifyEmailAlreadyVerified)
 			},
 			expectedStatus: http.StatusBadRequest,
@@ -91,11 +86,18 @@ func TestVerifyEmailHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
+			_, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
+			if tt.authHeader == "Bearer valid-token" {
+				mockUserFacade.EXPECT().
+					ValidateAccessToken("valid-token").
+					Return(auth.Claims{UserID: userID}, nil).
+					AnyTimes()
+			}
+
 			if tt.setupMocks != nil {
-				tt.setupMocks(mockAuth, mockUserFacade)
+				tt.setupMocks(mockUserFacade)
 			}
 
 			app.Post("/verify-email", authAPI.VerifyEmailHandler)

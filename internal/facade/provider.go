@@ -2,11 +2,13 @@ package facade
 
 import (
 	"context"
+	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/client/resendapi"
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/model"
+	"github.com/golang-jwt/jwt/v4"
 	"go.uber.org/zap"
 )
 
@@ -15,17 +17,27 @@ type Provider struct {
 	log                       *zap.Logger
 	userRepo                  UserRepo
 	emailSender               EmailSender
+	auth                      Auth
 	unsubscribeTokenGenerator *auth.UnsubscribeTokenGenerator
 }
 
 // New creates a new facade provider
-func New(log *zap.Logger, userRepo UserRepo, emailSender EmailSender, unsubscribeTokenGenerator *auth.UnsubscribeTokenGenerator) *Provider {
+func New(log *zap.Logger, userRepo UserRepo, emailSender EmailSender, authService Auth, unsubscribeTokenGenerator *auth.UnsubscribeTokenGenerator) *Provider {
 	return &Provider{
 		log:                       log,
 		userRepo:                  userRepo,
 		emailSender:               emailSender,
+		auth:                      authService,
 		unsubscribeTokenGenerator: unsubscribeTokenGenerator,
 	}
+}
+
+// Auth provides authentication methods
+type Auth interface {
+	GenerateToken(claims jwt.Claims) (string, error)
+	GenerateRefreshToken() (string, time.Time, error)
+	CreateUserClaims(user model.User) jwt.Claims
+	ValidateToken(tokenStr string) (auth.Claims, error)
 }
 
 // UserRepo provides methods for working with user repo
@@ -50,6 +62,11 @@ type UserRepo interface {
 
 	CreateEmailUnsubscribe(ctx context.Context, unsubscribe database.EmailUnsubscribe) error
 	IsEmailUnsubscribed(ctx context.Context, email string) (bool, error)
+
+	CreateRefreshToken(ctx context.Context, refreshToken database.RefreshToken) error
+	GetRefreshTokenByToken(ctx context.Context, token string) (database.RefreshToken, error)
+	DeleteRefreshToken(ctx context.Context, token string) error
+	DeleteRefreshTokensByUserID(ctx context.Context, userID string) error
 }
 
 // EmailSender provides methods for sending emails

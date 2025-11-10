@@ -17,7 +17,7 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("existing user with oauth", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		expectedUser := database.User{
@@ -42,7 +42,7 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 	})
 
 	t.Run("new user creation", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -64,7 +64,7 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 	})
 
 	t.Run("invalid email", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -79,7 +79,7 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 	})
 
 	t.Run("username conflict on creation", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -102,7 +102,7 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("update name only", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		existingUser := database.User{
@@ -143,7 +143,7 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 	})
 
 	t.Run("update password", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		oldPassword := "oldpass"
@@ -184,7 +184,7 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 	})
 
 	t.Run("user not found", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -206,7 +206,7 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 	})
 
 	t.Run("password change not allowed for oauth users", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		existingUser := database.User{
@@ -241,7 +241,7 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 	})
 
 	t.Run("invalid current password", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		wrongPassword := "wrongpass"
@@ -282,7 +282,7 @@ func TestProvider_DeleteUser(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("successful deletion", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -297,7 +297,7 @@ func TestProvider_DeleteUser(t *testing.T) {
 	})
 
 	t.Run("deletion failure", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		expectedErr := database.ErrNotFound
@@ -318,7 +318,7 @@ func TestProvider_SignIn(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("successful sign in", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		password := "testpass"
@@ -346,7 +346,7 @@ func TestProvider_SignIn(t *testing.T) {
 	})
 
 	t.Run("user not found", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -361,7 +361,7 @@ func TestProvider_SignIn(t *testing.T) {
 	})
 
 	t.Run("invalid password", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		correctPassword := "correctpass"
@@ -390,7 +390,7 @@ func TestProvider_SignUp(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("successful user signup", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -426,7 +426,7 @@ func TestProvider_SignUp(t *testing.T) {
 	})
 
 	t.Run("successful publisher signup", func(t *testing.T) {
-		provider, mockUserRepo, mockEmailSender, ctrl := setupTest(t)
+		provider, mockUserRepo, mockEmailSender, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -487,7 +487,7 @@ func TestProvider_SignUp(t *testing.T) {
 	})
 
 	t.Run("username already exists", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		existingUser := database.User{ID: "existing-123", Username: "existinguser"}
@@ -504,7 +504,7 @@ func TestProvider_SignUp(t *testing.T) {
 	})
 
 	t.Run("publisher name already exists", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -523,7 +523,7 @@ func TestProvider_SignUp(t *testing.T) {
 	})
 
 	t.Run("signup without email", func(t *testing.T) {
-		provider, mockUserRepo, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().

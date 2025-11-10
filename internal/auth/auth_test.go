@@ -17,7 +17,7 @@ func TestGenerateValidate(t *testing.T) {
 		t.Fatalf("Generating private key: %v", err)
 	}
 
-	a, err := auth.New("RS256", privateKey, "")
+	a, err := auth.New("RS256", privateKey, "", 15*time.Minute, 7*24*time.Hour)
 	if err != nil {
 		t.Fatalf("Initializing auth service instance: %v", err)
 	}
@@ -51,5 +51,39 @@ func TestGenerateValidate(t *testing.T) {
 	}
 	if userRole := parsedClaims.UserRole; userRole != claims.UserRole {
 		t.Fatalf("Expected UserRole claim to be %v, got %v", claims.UserRole, userRole)
+	}
+}
+
+func TestGenerateRefreshToken(t *testing.T) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("Generating private key: %v", err)
+	}
+
+	a, err := auth.New("RS256", privateKey, "", 15*time.Minute, 7*24*time.Hour)
+	if err != nil {
+		t.Fatalf("Initializing auth service instance: %v", err)
+	}
+
+	token1, _, err := a.GenerateRefreshToken()
+	if err != nil {
+		t.Fatalf("Generating refresh token: %v", err)
+	}
+
+	if token1 == "" {
+		t.Fatal("Expected non-empty refresh token")
+	}
+
+	token2, _, err := a.GenerateRefreshToken()
+	if err != nil {
+		t.Fatalf("Generating second refresh token: %v", err)
+	}
+
+	if token1 == token2 {
+		t.Fatal("Expected different tokens on subsequent calls")
+	}
+
+	if len(token1) < 40 {
+		t.Fatalf("Expected token length to be at least 40 characters, got %d", len(token1))
 	}
 }

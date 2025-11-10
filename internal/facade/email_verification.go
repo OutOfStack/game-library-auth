@@ -18,6 +18,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// errors
+var (
+	ErrResendVerificationNoEmail   = errors.New("resend verification: user has no email")
+	ErrVerifyEmailUserNotFound     = errors.New("verify email: user not found")
+	ErrVerifyEmailAlreadyVerified  = errors.New("verify email: already verified")
+	ErrVerifyEmailInvalidOrExpired = errors.New("verify email: invalid or expired code")
+	ErrSendVerifyEmailUnsubscribed = errors.New("send verify email: user is unsubscribed")
+)
+
 // VerifyEmail verifies user email by provided code
 func (p *Provider) VerifyEmail(ctx context.Context, userID string, code string) (model.User, error) {
 	var user database.User
@@ -136,7 +145,8 @@ func (p *Provider) sendVerificationEmail(ctx context.Context, userID string, ema
 			// if sent before resend cooldown, don't resend
 			// if sent after resend cooldown, resend
 			if time.Since(vrfRecord.DateCreated) < model.ResendVerificationCodeCooldown {
-				return ErrTooManyRequests
+				retryAfter := model.ResendVerificationCodeCooldown - time.Since(vrfRecord.DateCreated)
+				return NewTooManyRequestsError(retryAfter)
 			}
 
 			// mark verification as used

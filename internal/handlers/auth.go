@@ -3,21 +3,15 @@ package handlers
 import (
 	"context"
 	"errors"
+	"strings"
 
-	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/auth"
+	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 	"google.golang.org/api/idtoken"
 )
-
-// Auth provides authentication methods
-type Auth interface {
-	GenerateToken(claims jwt.Claims) (string, error)
-	ValidateToken(tokenStr string) (auth.Claims, error)
-	CreateUserClaims(user model.User) jwt.Claims
-}
 
 // GoogleTokenValidator provides methods for validating Google ID tokens
 type GoogleTokenValidator interface {
@@ -33,30 +27,47 @@ type UserFacade interface {
 	ResendVerificationEmail(ctx context.Context, userID string) error
 	SignIn(ctx context.Context, username, password string) (model.User, error)
 	SignUp(ctx context.Context, username, displayName, email, password string, isPublisher bool) (model.User, error)
+	CreateTokens(ctx context.Context, user model.User) (facade.TokenPair, error)
+	RefreshAccessToken(ctx context.Context, refreshTokenStr string) (string, error)
+	ValidateAccessToken(tokenStr string) (auth.Claims, error)
+}
+
+// AuthAPICfg describes configuration for auth api
+type AuthAPICfg struct {
+	RefreshTokenCookieSameSite string
+	RefreshTokenCookieSecure   bool
+	GoogleOAuthClientID        string
+	ContactEmail               string
 }
 
 // AuthAPI describes dependencies for auth endpoints
 type AuthAPI struct {
 	log                  *zap.Logger
-	auth                 Auth
 	googleTokenValidator GoogleTokenValidator
 	userFacade           UserFacade
-	googleOAuthClientID  string
-	contactEmail         string
+	cfg                  AuthAPICfg
 }
 
 // NewAuthAPI return new instance of auth api
-func NewAuthAPI(log *zap.Logger, cfg *appconf.Cfg, auth Auth, googleTokenValidator GoogleTokenValidator, userFacade UserFacade) (*AuthAPI, error) {
-	if cfg.Auth.GoogleClientID == "" {
+func NewAuthAPI(log *zap.Logger, googleTokenValidator GoogleTokenValidator, userFacade UserFacade, cfg AuthAPICfg) (*AuthAPI, error) {
+	if cfg.GoogleOAuthClientID == "" {
 		return nil, errors.New("google client id is empty")
 	}
 
+	switch strings.ToLower(cfg.RefreshTokenCookieSameSite) {
+	case "lax":
+		cfg.RefreshTokenCookieSameSite = fiber.CookieSameSiteLaxMode
+	case "strict":
+		cfg.RefreshTokenCookieSameSite = fiber.CookieSameSiteStrictMode
+	default:
+		log.Warn("refresh token cookie same site wasn't strict or lax, defaulted to none", zap.String("sameSite", cfg.RefreshTokenCookieSameSite))
+		cfg.RefreshTokenCookieSameSite = fiber.CookieSameSiteNoneMode
+	}
+
 	return &AuthAPI{
-		googleOAuthClientID:  cfg.Auth.GoogleClientID,
-		contactEmail:         cfg.EmailSender.ContactEmail,
-		auth:                 auth,
 		log:                  log,
 		googleTokenValidator: googleTokenValidator,
 		userFacade:           userFacade,
+		cfg:                  cfg,
 	}, nil
 }

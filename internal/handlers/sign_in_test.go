@@ -14,7 +14,6 @@ import (
 	mocks "github.com/OutOfStack/game-library-auth/internal/handlers/mocks"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -24,7 +23,7 @@ func TestSignInHandler(t *testing.T) {
 	tests := []struct {
 		name           string
 		request        handlers.SignInReq
-		setupMocks     func(*mocks.MockAuth, *mocks.MockUserFacade)
+		setupMocks     func(*mocks.MockUserFacade)
 		expectedStatus int
 		expectedResp   interface{}
 	}{
@@ -34,20 +33,19 @@ func TestSignInHandler(t *testing.T) {
 				Username: "testuser",
 				Password: "password123",
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				u := model.User{ID: "uid-1", Username: "testuser"}
 
 				mockUserFacade.EXPECT().
 					SignIn(gomock.Any(), "testuser", "password123").
 					Return(u, nil)
 
-				mockAuth.EXPECT().
-					CreateUserClaims(gomock.Eq(u)).
-					Return(jwt.MapClaims{"sub": u.ID})
-
-				mockAuth.EXPECT().
-					GenerateToken(gomock.Any()).
-					Return("valid.jwt.token", nil)
+				mockUserFacade.EXPECT().
+					CreateTokens(gomock.Any(), u).
+					Return(facade.TokenPair{
+						AccessToken:  "valid.jwt.token",
+						RefreshToken: facade.RefreshToken{Token: "valid.refresh.token"},
+					}, nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedResp: handlers.TokenResp{
@@ -60,7 +58,7 @@ func TestSignInHandler(t *testing.T) {
 				Username: "nonexistent",
 				Password: "password123",
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().
 					SignIn(gomock.Any(), "nonexistent", "password123").
 					Return(model.User{}, facade.ErrSignInInvalidCredentials)
@@ -76,7 +74,7 @@ func TestSignInHandler(t *testing.T) {
 				Username: "testuser",
 				Password: "wrongpassword",
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().
 					SignIn(gomock.Any(), "testuser", "wrongpassword").
 					Return(model.User{}, facade.ErrSignInInvalidCredentials)
@@ -92,7 +90,7 @@ func TestSignInHandler(t *testing.T) {
 				Username: "testuser",
 				Password: "password123",
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().
 					SignIn(gomock.Any(), "testuser", "password123").
 					Return(model.User{}, errors.New("database error"))
@@ -108,20 +106,16 @@ func TestSignInHandler(t *testing.T) {
 				Username: "testuser",
 				Password: "password123",
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				u := model.User{ID: "uid-1", Username: "testuser"}
 
 				mockUserFacade.EXPECT().
 					SignIn(gomock.Any(), "testuser", "password123").
 					Return(u, nil)
 
-				mockAuth.EXPECT().
-					CreateUserClaims(gomock.Eq(u)).
-					Return(jwt.MapClaims{"sub": u.ID})
-
-				mockAuth.EXPECT().
-					GenerateToken(gomock.Any()).
-					Return("", errors.New("token generation error"))
+				mockUserFacade.EXPECT().
+					CreateTokens(gomock.Any(), u).
+					Return(facade.TokenPair{}, errors.New("token generation error"))
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedResp: web.ErrResp{
@@ -132,11 +126,11 @@ func TestSignInHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
+			_, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(mockAuth, mockUserFacade)
+				tt.setupMocks(mockUserFacade)
 			}
 
 			app.Post("/signin", authAPI.SignInHandler)

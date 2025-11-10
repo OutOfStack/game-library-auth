@@ -20,14 +20,15 @@ type Claims struct {
 
 // CreateUserClaims creates claims for user
 func (a *Auth) CreateUserClaims(user model.User) jwt.Claims {
+	now := time.Now()
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    a.claimsIssuer,
 			Subject:   user.ID,
 			Audience:  jwt.ClaimStrings{"game_lib_svc"},
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(360 * time.Hour)),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(now.Add(a.accessTokenTTL)),
+			NotBefore: jwt.NewNumericDate(now),
+			IssuedAt:  jwt.NewNumericDate(now),
 		},
 		UserID:               user.ID,
 		UserRole:             user.Role,

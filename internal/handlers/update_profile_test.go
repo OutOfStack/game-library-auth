@@ -15,7 +15,6 @@ import (
 	mocks "github.com/OutOfStack/game-library-auth/internal/handlers/mocks"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,7 +31,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 		name           string
 		authHeader     string
 		request        handlers.UpdateProfileReq
-		setupMocks     func(*mocks.MockAuth, *mocks.MockUserFacade)
+		setupMocks     func(*mocks.MockUserFacade)
 		expectedStatus int
 		expectedResp   interface{}
 	}{
@@ -42,11 +41,10 @@ func TestUpdateProfileHandler(t *testing.T) {
 			request: handlers.UpdateProfileReq{
 				Name: &newName,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
-				// Mock JWT validation
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				claims := auth_.Claims{UserID: userID}
-				mockAuth.EXPECT().
-					ValidateToken("valid-token").
+				mockUserFacade.EXPECT().
+					ValidateAccessToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
 
@@ -55,13 +53,12 @@ func TestUpdateProfileHandler(t *testing.T) {
 					UpdateUserProfile(gomock.Any(), userID, gomock.Any()).
 					Return(updated, nil)
 
-				mockAuth.EXPECT().
-					CreateUserClaims(updated).
-					Return(jwt.MapClaims{"sub": userID})
-
-				mockAuth.EXPECT().
-					GenerateToken(gomock.Any()).
-					Return("updated.jwt.token", nil)
+				mockUserFacade.EXPECT().
+					CreateTokens(gomock.Any(), updated).
+					Return(facade.TokenPair{
+						AccessToken:  "updated.jwt.token",
+						RefreshToken: facade.RefreshToken{Token: "updated.refresh.token"},
+					}, nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedResp: handlers.TokenResp{
@@ -76,11 +73,10 @@ func TestUpdateProfileHandler(t *testing.T) {
 				NewPassword:        &newPassword,
 				ConfirmNewPassword: &newPassword,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
-				// Mock JWT validation
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				claims := auth_.Claims{UserID: userID}
-				mockAuth.EXPECT().
-					ValidateToken("valid-token").
+				mockUserFacade.EXPECT().
+					ValidateAccessToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
 
@@ -89,13 +85,12 @@ func TestUpdateProfileHandler(t *testing.T) {
 					UpdateUserProfile(gomock.Any(), userID, gomock.Any()).
 					Return(updated, nil)
 
-				mockAuth.EXPECT().
-					CreateUserClaims(updated).
-					Return(jwt.MapClaims{"sub": userID})
-
-				mockAuth.EXPECT().
-					GenerateToken(gomock.Any()).
-					Return("updated.jwt.token", nil)
+				mockUserFacade.EXPECT().
+					CreateTokens(gomock.Any(), updated).
+					Return(facade.TokenPair{
+						AccessToken:  "updated.jwt.token",
+						RefreshToken: facade.RefreshToken{Token: "updated.refresh.token"},
+					}, nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedResp: handlers.TokenResp{
@@ -108,11 +103,10 @@ func TestUpdateProfileHandler(t *testing.T) {
 			request: handlers.UpdateProfileReq{
 				Name: &newName,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
-				// Mock JWT validation
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				claims := auth_.Claims{UserID: userID}
-				mockAuth.EXPECT().
-					ValidateToken("valid-token").
+				mockUserFacade.EXPECT().
+					ValidateAccessToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
 
@@ -133,11 +127,10 @@ func TestUpdateProfileHandler(t *testing.T) {
 				NewPassword:        &newPassword,
 				ConfirmNewPassword: &newPassword,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
-				// Mock JWT validation
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				claims := auth_.Claims{UserID: userID}
-				mockAuth.EXPECT().
-					ValidateToken("valid-token").
+				mockUserFacade.EXPECT().
+					ValidateAccessToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
 				mockUserFacade.EXPECT().
@@ -155,11 +148,10 @@ func TestUpdateProfileHandler(t *testing.T) {
 			request: handlers.UpdateProfileReq{
 				Name: &newName,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
-				// Mock JWT validation
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				claims := auth_.Claims{UserID: userID}
-				mockAuth.EXPECT().
-					ValidateToken("valid-token").
+				mockUserFacade.EXPECT().
+					ValidateAccessToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
 				mockUserFacade.EXPECT().
@@ -177,7 +169,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 			request: handlers.UpdateProfileReq{
 				Name: &newName,
 			},
-			setupMocks:     func(_ *mocks.MockAuth, _ *mocks.MockUserFacade) {},
+			setupMocks:     func(_ *mocks.MockUserFacade) {},
 			expectedStatus: http.StatusUnauthorized,
 			expectedResp: web.ErrResp{
 				Error: "Invalid or missing authorization token",
@@ -189,7 +181,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 			request: handlers.UpdateProfileReq{
 				Name: &newName,
 			},
-			setupMocks:     func(_ *mocks.MockAuth, _ *mocks.MockUserFacade) {},
+			setupMocks:     func(_ *mocks.MockUserFacade) {},
 			expectedStatus: http.StatusUnauthorized,
 			expectedResp: web.ErrResp{
 				Error: "Invalid or missing authorization token",
@@ -199,11 +191,11 @@ func TestUpdateProfileHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockAuth, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
+			_, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(mockAuth, mockUserFacade)
+				tt.setupMocks(mockUserFacade)
 			}
 
 			app.Post("/update_profile", authAPI.UpdateProfileHandler)

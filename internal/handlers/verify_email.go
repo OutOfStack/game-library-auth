@@ -76,17 +76,19 @@ func (a *AuthAPI) VerifyEmailHandler(c *fiber.Ctx) error {
 		}
 	}
 
-	// issue jwt token
-	jwtClaims := a.auth.CreateUserClaims(verifiedUser)
-	tokenStr, err := a.auth.GenerateToken(jwtClaims)
+	// create tokens
+	tokens, err := a.userFacade.CreateTokens(ctx, verifiedUser)
 	if err != nil {
-		a.log.Error("generating user token", zap.Error(err))
+		a.log.Error("creating tokens", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})
 	}
 
+	// set refresh token as a cookie
+	a.setRefreshTokenCookie(c, tokens.RefreshToken)
+
 	return c.JSON(TokenResp{
-		AccessToken: tokenStr,
+		AccessToken: tokens.AccessToken,
 	})
 }

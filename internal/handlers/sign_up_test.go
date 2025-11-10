@@ -15,7 +15,6 @@ import (
 	mocks "github.com/OutOfStack/game-library-auth/internal/handlers/mocks"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -26,7 +25,7 @@ func TestSignUpHandler(t *testing.T) {
 		name                     string
 		request                  interface{}
 		emailVerificationEnabled bool
-		setupMocks               func(*mocks.MockAuth, *mocks.MockUserFacade)
+		setupMocks               func(*mocks.MockUserFacade)
 		expectedStatus           int
 		expectedResp             interface{}
 	}{
@@ -39,13 +38,17 @@ func TestSignUpHandler(t *testing.T) {
 				ConfirmPassword: "password123",
 				IsPublisher:     false,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				u := model.User{ID: "uid-1", Username: "newuser", DisplayName: "New User", Role: "user"}
 				mockUserFacade.EXPECT().SignUp(
 					gomock.Any(), "newuser", "New User", "", "password123", false,
 				).Return(u, nil)
-				mockAuth.EXPECT().CreateUserClaims(u).Return(jwt.MapClaims{"sub": u.ID})
-				mockAuth.EXPECT().GenerateToken(gomock.Any()).Return("test-token", nil)
+				mockUserFacade.EXPECT().
+					CreateTokens(gomock.Any(), gomock.Any()).
+					Return(facade.TokenPair{
+						AccessToken:  "test-token",
+						RefreshToken: facade.RefreshToken{Token: "refresh-token"},
+					}, nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedResp:   handlers.TokenResp{AccessToken: "test-token"},
@@ -59,13 +62,17 @@ func TestSignUpHandler(t *testing.T) {
 				ConfirmPassword: "password123",
 				IsPublisher:     true,
 			},
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				u := model.User{ID: "uid-2", Username: "newpublisher", DisplayName: "Publisher Co", Role: "publisher"}
 				mockUserFacade.EXPECT().SignUp(
 					gomock.Any(), "newpublisher", "Publisher Co", "", "password123", true,
 				).Return(u, nil)
-				mockAuth.EXPECT().CreateUserClaims(u).Return(jwt.MapClaims{"sub": u.ID})
-				mockAuth.EXPECT().GenerateToken(gomock.Any()).Return("test-token", nil)
+				mockUserFacade.EXPECT().
+					CreateTokens(gomock.Any(), gomock.Any()).
+					Return(facade.TokenPair{
+						AccessToken:  "test-token",
+						RefreshToken: facade.RefreshToken{Token: "refresh-token"},
+					}, nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedResp:   handlers.TokenResp{AccessToken: "test-token"},
@@ -81,13 +88,17 @@ func TestSignUpHandler(t *testing.T) {
 				IsPublisher:     false,
 			},
 			emailVerificationEnabled: true,
-			setupMocks: func(mockAuth *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				u := model.User{ID: "uid-3", Username: "newuser_verify", DisplayName: "New User Verify", Email: "verify@example.com", Role: "user"}
 				mockUserFacade.EXPECT().SignUp(
 					gomock.Any(), "newuser_verify", "New User Verify", "verify@example.com", "password123", false,
 				).Return(u, nil)
-				mockAuth.EXPECT().CreateUserClaims(u).Return(jwt.MapClaims{"sub": u.ID})
-				mockAuth.EXPECT().GenerateToken(gomock.Any()).Return("test-token", nil)
+				mockUserFacade.EXPECT().
+					CreateTokens(gomock.Any(), gomock.Any()).
+					Return(facade.TokenPair{
+						AccessToken:  "test-token",
+						RefreshToken: facade.RefreshToken{Token: "refresh-token"},
+					}, nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedResp:   handlers.TokenResp{AccessToken: "test-token"},
@@ -101,7 +112,7 @@ func TestSignUpHandler(t *testing.T) {
 				ConfirmPassword: "password123",
 				IsPublisher:     false,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().SignUp(
 					gomock.Any(), "existinguser", "Existing User", "", "password123", false,
 				).Return(model.User{}, facade.ErrSignUpUsernameExists)
@@ -118,7 +129,7 @@ func TestSignUpHandler(t *testing.T) {
 				ConfirmPassword: "password123",
 				IsPublisher:     true,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().SignUp(
 					gomock.Any(), "newpublisher", "Existing Publisher", "", "password123", true,
 				).Return(model.User{}, facade.ErrSignUpPublisherNameExists)
@@ -135,7 +146,7 @@ func TestSignUpHandler(t *testing.T) {
 				ConfirmPassword: "password123",
 				IsPublisher:     false,
 			},
-			setupMocks: func(_ *mocks.MockAuth, mockUserFacade *mocks.MockUserFacade) {
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().SignUp(
 					gomock.Any(), "newuser", "New User", "", "password123", false,
 				).Return(model.User{}, errors.New("database error"))
@@ -158,11 +169,11 @@ func TestSignUpHandler(t *testing.T) {
 				EmailSender: appconf.EmailSender{},
 				Auth:        appconf.Auth{GoogleClientID: "test-client-id"},
 			}
-			mockAuth, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, cfg)
+			_, authAPI, mockUserFacade, app, ctrl := setupTest(t, cfg)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {
-				tt.setupMocks(mockAuth, mockUserFacade)
+				tt.setupMocks(mockUserFacade)
 			}
 
 			app.Post("/signup", authAPI.SignUpHandler)

@@ -10,15 +10,16 @@ import (
 	"go.uber.org/zap"
 )
 
-func setupTest(t *testing.T) (*facade.Provider, *mocks.MockUserRepo, *mocks.MockEmailSender, *gomock.Controller) {
+func setupTest(t *testing.T) (*facade.Provider, *mocks.MockUserRepo, *mocks.MockEmailSender, *mocks.MockAuth, *gomock.Controller) {
 	t.Helper()
 
 	ctrl := gomock.NewController(t)
 	mockUserRepo := mocks.NewMockUserRepo(ctrl)
 	mockEmailSender := mocks.NewMockEmailSender(ctrl)
-	tokenGenerator := auth.NewUnsubscribeTokenGenerator([]byte("test-secret-key"))
+	mockAuth := mocks.NewMockAuth(ctrl)
+	unsubscribeTokenGenerator := auth.NewUnsubscribeTokenGenerator([]byte("test-secret-key"))
 
-	provider := facade.New(zap.NewNop(), mockUserRepo, mockEmailSender, tokenGenerator)
+	provider := facade.New(zap.NewNop(), mockUserRepo, mockEmailSender, mockAuth, unsubscribeTokenGenerator)
 
-	return provider, mockUserRepo, mockEmailSender, ctrl
+	return provider, mockUserRepo, mockEmailSender, mockAuth, ctrl
 }
