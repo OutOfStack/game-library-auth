@@ -211,6 +211,13 @@ func (p *Provider) UpdateUserProfile(ctx context.Context, userID string, params 
 		if params.Name != nil {
 			user.DisplayName = *params.Name
 		}
+		if params.Password != nil {
+			err = p.userRepo.DeleteRefreshTokensByUserID(ctx, userID)
+			if err != nil {
+				p.log.Error("delete refresh tokens", zap.String("userID", userID), zap.Error(err))
+				return err
+			}
+		}
 
 		// update user info
 		if err = p.userRepo.UpdateUser(ctx, user); err != nil {
