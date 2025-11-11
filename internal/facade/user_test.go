@@ -173,6 +173,10 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 			Return(existingUser, nil)
 
 		mockUserRepo.EXPECT().
+			DeleteRefreshTokensByUserID(ctx, "user-123").
+			Return(nil)
+
+		mockUserRepo.EXPECT().
 			UpdateUser(ctx, gomock.Any()).
 			Return(nil)
 
