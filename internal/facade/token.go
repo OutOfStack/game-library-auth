@@ -62,16 +62,16 @@ func (p *Provider) CreateRefreshToken(ctx context.Context, userID string) (Refre
 	}, nil
 }
 
-// RefreshAccessToken validates refresh token and returns new access token
-func (p *Provider) RefreshAccessToken(ctx context.Context, refreshTokenStr string) (string, error) {
+// RefreshTokens validates refresh token and returns new access and refresh tokens
+func (p *Provider) RefreshTokens(ctx context.Context, refreshTokenStr string) (TokenPair, error) {
 	// get refresh token from database
 	refreshToken, err := p.userRepo.GetRefreshTokenByToken(ctx, refreshTokenStr)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
-			return "", ErrRefreshTokenNotFound
+			return TokenPair{}, ErrRefreshTokenNotFound
 		}
 		p.log.Error("get refresh token", zap.Error(err))
-		return "", err
+		return TokenPair{}, err
 	}
 
 	// check if token is expired
@@ -86,7 +86,7 @@ func (p *Provider) RefreshAccessToken(ctx context.Context, refreshTokenStr strin
 			}
 		}()
 
-		return "", ErrRefreshTokenExpired
+		return TokenPair{}, ErrRefreshTokenExpired
 	}
 
 	// get user
@@ -94,7 +94,7 @@ func (p *Provider) RefreshAccessToken(ctx context.Context, refreshTokenStr strin
 	if err != nil {
 		if !errors.Is(err, database.ErrNotFound) {
 			p.log.Error("get user by id", zap.String("userID", refreshToken.UserID), zap.Error(err))
-			return "", err
+			return TokenPair{}, err
 		}
 
 		// user was deleted, clean up token
@@ -107,18 +107,51 @@ func (p *Provider) RefreshAccessToken(ctx context.Context, refreshTokenStr strin
 			}
 		}()
 
-		return "", ErrRefreshTokenNotFound
+		return TokenPair{}, ErrRefreshTokenNotFound
 	}
 
-	// create new access token
+	// generate new access token
 	claims := p.auth.CreateUserClaims(mapDBUserToUser(user))
 	accessToken, err := p.auth.GenerateToken(claims)
 	if err != nil {
 		p.log.Error("generate access token", zap.String("userID", user.ID), zap.Error(err))
-		return "", err
+		return TokenPair{}, err
 	}
 
-	return accessToken, nil
+	// generate new refresh token
+	newRefreshTokenStr, expiresAt, err := p.auth.GenerateRefreshToken()
+	if err != nil {
+		p.log.Error("generate refresh token", zap.String("userID", user.ID), zap.Error(err))
+		return TokenPair{}, err
+	}
+
+	var newRefreshToken database.RefreshToken
+	err = p.userRepo.RunWithTx(ctx, func(txCtx context.Context) error {
+		// delete old refresh token
+		if err = p.userRepo.DeleteRefreshToken(txCtx, refreshTokenStr); err != nil {
+			return err
+		}
+
+		// create new refresh token
+		newRefreshToken = database.NewRefreshToken(user.ID, newRefreshTokenStr, expiresAt)
+		if err = p.userRepo.CreateRefreshToken(txCtx, newRefreshToken); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		p.log.Error("refresh token rotation transaction", zap.String("userID", user.ID), zap.Error(err))
+		return TokenPair{}, err
+	}
+
+	return TokenPair{
+		AccessToken: accessToken,
+		RefreshToken: RefreshToken{
+			Token:     newRefreshToken.Token,
+			ExpiresAt: newRefreshToken.ExpiresAt,
+		},
+	}, nil
 }
 
 // ValidateAccessToken validates access token and returns claims from it

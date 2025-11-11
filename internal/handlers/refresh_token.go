@@ -11,8 +11,8 @@ import (
 )
 
 // RefreshTokenHandler godoc
-// @Summary      Refresh access token
-// @Description  Use a refresh token from httpOnly cookie to obtain a new access token
+// @Summary      Refresh access and refresh tokens
+// @Description  Use a refresh token from httpOnly cookie to obtain new access and refresh tokens
 // @Tags         auth
 // @Produce      json
 // @Success      200 {object} TokenResp
@@ -32,8 +32,8 @@ func (a *AuthAPI) RefreshTokenHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	// refresh access token
-	accessToken, err := a.userFacade.RefreshAccessToken(ctx, refreshToken)
+	// refresh tokens
+	tokens, err := a.userFacade.RefreshTokens(ctx, refreshToken)
 	if err != nil {
 		switch {
 		case errors.Is(err, facade.ErrRefreshTokenNotFound):
@@ -47,14 +47,17 @@ func (a *AuthAPI) RefreshTokenHandler(c *fiber.Ctx) error {
 				Error: "Refresh token expired",
 			})
 		default:
-			a.log.Error("refresh access token", zap.Error(err))
+			a.log.Error("refresh tokens", zap.Error(err))
 			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 				Error: internalErrorMsg,
 			})
 		}
 	}
 
+	// set new refresh token cookie
+	a.setRefreshTokenCookie(c, tokens.RefreshToken)
+
 	return c.JSON(TokenResp{
-		AccessToken: accessToken,
+		AccessToken: tokens.AccessToken,
 	})
 }

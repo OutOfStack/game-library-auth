@@ -30,8 +30,11 @@ func TestRefreshTokenHandler(t *testing.T) {
 			cookieValue: "valid-refresh-token",
 			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().
-					RefreshAccessToken(gomock.Any(), "valid-refresh-token").
-					Return("new-access-token", nil)
+					RefreshTokens(gomock.Any(), "valid-refresh-token").
+					Return(facade.TokenPair{
+						AccessToken:  "new-access-token",
+						RefreshToken: facade.RefreshToken{Token: "new-refresh-token"},
+					}, nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedResp: handlers.TokenResp{
@@ -53,8 +56,8 @@ func TestRefreshTokenHandler(t *testing.T) {
 			cookieValue: "invalid-token",
 			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().
-					RefreshAccessToken(gomock.Any(), "invalid-token").
-					Return("", facade.ErrRefreshTokenNotFound)
+					RefreshTokens(gomock.Any(), "invalid-token").
+					Return(facade.TokenPair{}, facade.ErrRefreshTokenNotFound)
 			},
 			expectedStatus: http.StatusUnauthorized,
 			expectedResp: web.ErrResp{
@@ -66,8 +69,8 @@ func TestRefreshTokenHandler(t *testing.T) {
 			cookieValue: "expired-token",
 			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().
-					RefreshAccessToken(gomock.Any(), "expired-token").
-					Return("", facade.ErrRefreshTokenExpired)
+					RefreshTokens(gomock.Any(), "expired-token").
+					Return(facade.TokenPair{}, facade.ErrRefreshTokenExpired)
 			},
 			expectedStatus: http.StatusUnauthorized,
 			expectedResp: web.ErrResp{
@@ -79,8 +82,8 @@ func TestRefreshTokenHandler(t *testing.T) {
 			cookieValue: "some-token",
 			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().
-					RefreshAccessToken(gomock.Any(), "some-token").
-					Return("", errors.New("database error"))
+					RefreshTokens(gomock.Any(), "some-token").
+					Return(facade.TokenPair{}, errors.New("database error"))
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedResp: web.ErrResp{

@@ -170,14 +170,14 @@ const docTemplate = `{
         },
         "/refresh": {
             "post": {
-                "description": "Use a refresh token from httpOnly cookie to obtain a new access token",
+                "description": "Use a refresh token from httpOnly cookie to obtain new access and refresh tokens",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "auth"
                 ],
-                "summary": "Refresh access token",
+                "summary": "Refresh access and refresh tokens",
                 "responses": {
                     "200": {
                         "description": "OK",

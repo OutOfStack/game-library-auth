@@ -207,8 +207,8 @@ paths:
       - auth
   /refresh:
     post:
-      description: Use a refresh token from httpOnly cookie to obtain a new access
-        token
+      description: Use a refresh token from httpOnly cookie to obtain new access and
+        refresh tokens
       produces:
       - application/json
       responses:
@@ -224,7 +224,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/web.ErrResp'
-      summary: Refresh access token
+      summary: Refresh access and refresh tokens
       tags:
       - auth
   /resend-verification:

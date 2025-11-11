@@ -127,19 +127,19 @@ func (mr *MockUserFacadeMockRecorder) GoogleOAuth(ctx, oauthID, email any) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GoogleOAuth", reflect.TypeOf((*MockUserFacade)(nil).GoogleOAuth), ctx, oauthID, email)
 }
 
-// RefreshAccessToken mocks base method.
-func (m *MockUserFacade) RefreshAccessToken(ctx context.Context, refreshTokenStr string) (string, error) {
+// RefreshTokens mocks base method.
+func (m *MockUserFacade) RefreshTokens(ctx context.Context, refreshTokenStr string) (facade.TokenPair, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RefreshAccessToken", ctx, refreshTokenStr)
-	ret0, _ := ret[0].(string)
+	ret := m.ctrl.Call(m, "RefreshTokens", ctx, refreshTokenStr)
+	ret0, _ := ret[0].(facade.TokenPair)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// RefreshAccessToken indicates an expected call of RefreshAccessToken.
-func (mr *MockUserFacadeMockRecorder) RefreshAccessToken(ctx, refreshTokenStr any) *gomock.Call {
+// RefreshTokens indicates an expected call of RefreshTokens.
+func (mr *MockUserFacadeMockRecorder) RefreshTokens(ctx, refreshTokenStr any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshAccessToken", reflect.TypeOf((*MockUserFacade)(nil).RefreshAccessToken), ctx, refreshTokenStr)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshTokens", reflect.TypeOf((*MockUserFacade)(nil).RefreshTokens), ctx, refreshTokenStr)
 }
 
 // ResendVerificationEmail mocks base method.
