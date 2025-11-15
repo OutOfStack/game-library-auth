@@ -25,14 +25,15 @@ func (r *UserRepo) CreateRefreshToken(ctx context.Context, refreshToken RefreshT
 	return nil
 }
 
-// GetRefreshTokenByToken retrieves a refresh token by token string
+// GetRefreshTokenByToken retrieves a refresh token by token string with row-level lock
 func (r *UserRepo) GetRefreshTokenByToken(ctx context.Context, token string) (RefreshToken, error) {
 	ctx, span := tracer.Start(ctx, "getRefreshTokenByToken")
 	defer span.End()
 
 	const q = `SELECT id, user_id, token, expires_at, date_created
 		FROM refresh_tokens
-		WHERE token = $1`
+		WHERE token = $1
+		FOR UPDATE`
 
 	var refreshToken RefreshToken
 	if err := r.query().Get(ctx, &refreshToken, q, token); err != nil {

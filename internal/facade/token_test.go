@@ -120,6 +120,12 @@ func TestProvider_RefreshTokens(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
+			RunWithTx(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, fn func(context.Context) error) error {
+				return fn(ctx)
+			})
+
+		mockUserRepo.EXPECT().
 			GetRefreshTokenByToken(gomock.Any(), "invalid-token").
 			Return(database.RefreshToken{}, database.ErrNotFound)
 
@@ -141,13 +147,18 @@ func TestProvider_RefreshTokens(t *testing.T) {
 		}
 
 		mockUserRepo.EXPECT().
+			RunWithTx(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, fn func(context.Context) error) error {
+				return fn(ctx)
+			})
+
+		mockUserRepo.EXPECT().
 			GetRefreshTokenByToken(gomock.Any(), "expired-token").
 			Return(expiredToken, nil)
 
 		mockUserRepo.EXPECT().
 			DeleteRefreshToken(gomock.Any(), "expired-token").
-			Return(nil).
-			AnyTimes()
+			Return(nil)
 
 		_, err := provider.RefreshTokens(ctx, "expired-token")
 		if !errors.Is(err, facade.ErrRefreshTokenExpired) {
@@ -167,6 +178,12 @@ func TestProvider_RefreshTokens(t *testing.T) {
 		}
 
 		mockUserRepo.EXPECT().
+			RunWithTx(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, fn func(context.Context) error) error {
+				return fn(ctx)
+			})
+
+		mockUserRepo.EXPECT().
 			GetRefreshTokenByToken(gomock.Any(), "valid-token").
 			Return(refreshToken, nil)
 
@@ -176,8 +193,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 
 		mockUserRepo.EXPECT().
 			DeleteRefreshToken(gomock.Any(), "valid-token").
-			Return(nil).
-			AnyTimes()
+			Return(nil)
 
 		_, err := provider.RefreshTokens(ctx, "valid-token")
 		if !errors.Is(err, facade.ErrRefreshTokenNotFound) {
@@ -256,6 +272,12 @@ func TestProvider_RefreshTokens(t *testing.T) {
 		}
 
 		mockUserRepo.EXPECT().
+			RunWithTx(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, fn func(context.Context) error) error {
+				return fn(ctx)
+			})
+
+		mockUserRepo.EXPECT().
 			GetRefreshTokenByToken(gomock.Any(), "valid-token").
 			Return(refreshToken, nil)
 
@@ -293,6 +315,12 @@ func TestProvider_RefreshTokens(t *testing.T) {
 			Username: "testuser",
 			Email:    sql.NullString{String: "test@example.com", Valid: true},
 		}
+
+		mockUserRepo.EXPECT().
+			RunWithTx(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, fn func(context.Context) error) error {
+				return fn(ctx)
+			})
 
 		mockUserRepo.EXPECT().
 			GetRefreshTokenByToken(gomock.Any(), "valid-token").

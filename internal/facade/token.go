@@ -3,7 +3,6 @@ package facade
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/database"
@@ -64,69 +63,58 @@ func (p *Provider) CreateRefreshToken(ctx context.Context, userID string) (Refre
 
 // RefreshTokens validates refresh token and returns new access and refresh tokens
 func (p *Provider) RefreshTokens(ctx context.Context, refreshTokenStr string) (TokenPair, error) {
-	// get refresh token from database
-	refreshToken, err := p.userRepo.GetRefreshTokenByToken(ctx, refreshTokenStr)
-	if err != nil {
-		if errors.Is(err, database.ErrNotFound) {
-			return TokenPair{}, ErrRefreshTokenNotFound
-		}
-		p.log.Error("get refresh token", zap.Error(err))
-		return TokenPair{}, err
-	}
-
-	// check if token is expired
-	if refreshToken.IsExpired() {
-		// delete expired token
-		go func() {
-			bCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
-			defer cancel()
-
-			if delErr := p.userRepo.DeleteRefreshToken(bCtx, refreshTokenStr); delErr != nil {
-				p.log.Error("delete expired refresh token", zap.Error(delErr))
-			}
-		}()
-
-		return TokenPair{}, ErrRefreshTokenExpired
-	}
-
-	// get user
-	user, err := p.userRepo.GetUserByID(ctx, refreshToken.UserID)
-	if err != nil {
-		if !errors.Is(err, database.ErrNotFound) {
-			p.log.Error("get user by id", zap.String("userID", refreshToken.UserID), zap.Error(err))
-			return TokenPair{}, err
-		}
-
-		// user was deleted, clean up token
-		go func() {
-			bCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
-			defer cancel()
-
-			if delErr := p.userRepo.DeleteRefreshToken(bCtx, refreshTokenStr); delErr != nil {
-				p.log.Error("delete refresh token for deleted user", zap.Error(delErr))
-			}
-		}()
-
-		return TokenPair{}, ErrRefreshTokenNotFound
-	}
-
-	// generate new access token
-	claims := p.auth.CreateUserClaims(mapDBUserToUser(user))
-	accessToken, err := p.auth.GenerateToken(claims)
-	if err != nil {
-		p.log.Error("generate access token", zap.String("userID", user.ID), zap.Error(err))
-		return TokenPair{}, err
-	}
-
-	// generate new refresh token
-	newRefreshTokenStr, expiresAt, err := p.auth.GenerateRefreshToken()
-	if err != nil {
-		p.log.Error("generate refresh token", zap.String("userID", user.ID), zap.Error(err))
-		return TokenPair{}, err
-	}
-
+	var accessToken string
 	var newRefreshToken database.RefreshToken
-	err = p.userRepo.RunWithTx(ctx, func(txCtx context.Context) error {
+
+	txErr := p.userRepo.RunWithTx(ctx, func(txCtx context.Context) error {
+		// get refresh token
+		refreshToken, err := p.userRepo.GetRefreshTokenByToken(txCtx, refreshTokenStr)
+		if err != nil {
+			if errors.Is(err, database.ErrNotFound) {
+				return ErrRefreshTokenNotFound
+			}
+			p.log.Error("get refresh token", zap.Error(err))
+			return err
+		}
+
+		// check if token is expired
+		if refreshToken.IsExpired() {
+			// delete expired token
+			if err = p.userRepo.DeleteRefreshToken(txCtx, refreshTokenStr); err != nil {
+				p.log.Error("delete expired refresh token", zap.Error(err))
+			}
+			return ErrRefreshTokenExpired
+		}
+
+		// get user
+		user, err := p.userRepo.GetUserByID(txCtx, refreshToken.UserID)
+		if err != nil {
+			if errors.Is(err, database.ErrNotFound) {
+				// user was deleted, clean up token within the transaction
+				if err = p.userRepo.DeleteRefreshToken(txCtx, refreshTokenStr); err != nil {
+					p.log.Error("delete refresh token for deleted user", zap.Error(err))
+				}
+				return ErrRefreshTokenNotFound
+			}
+			p.log.Error("get user by id", zap.String("userID", refreshToken.UserID), zap.Error(err))
+			return err
+		}
+
+		// generate new access token
+		claims := p.auth.CreateUserClaims(mapDBUserToUser(user))
+		accessToken, err = p.auth.GenerateToken(claims)
+		if err != nil {
+			p.log.Error("generate access token", zap.String("userID", user.ID), zap.Error(err))
+			return err
+		}
+
+		// generate new refresh token
+		newRefreshTokenStr, expiresAt, err := p.auth.GenerateRefreshToken()
+		if err != nil {
+			p.log.Error("generate refresh token", zap.String("userID", user.ID), zap.Error(err))
+			return err
+		}
+
 		// delete old refresh token
 		if err = p.userRepo.DeleteRefreshToken(txCtx, refreshTokenStr); err != nil {
 			return err
@@ -140,9 +128,8 @@ func (p *Provider) RefreshTokens(ctx context.Context, refreshTokenStr string) (T
 
 		return nil
 	})
-	if err != nil {
-		p.log.Error("refresh token rotation transaction", zap.String("userID", user.ID), zap.Error(err))
-		return TokenPair{}, err
+	if txErr != nil {
+		return TokenPair{}, txErr
 	}
 
 	return TokenPair{
