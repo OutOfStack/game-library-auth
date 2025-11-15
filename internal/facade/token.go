@@ -65,6 +65,7 @@ func (p *Provider) CreateRefreshToken(ctx context.Context, userID string) (Refre
 func (p *Provider) RefreshTokens(ctx context.Context, refreshTokenStr string) (TokenPair, error) {
 	var accessToken string
 	var newRefreshToken database.RefreshToken
+	var deleteToken bool
 
 	txErr := p.userRepo.RunWithTx(ctx, func(txCtx context.Context) error {
 		// get refresh token
@@ -79,10 +80,7 @@ func (p *Provider) RefreshTokens(ctx context.Context, refreshTokenStr string) (T
 
 		// check if token is expired
 		if refreshToken.IsExpired() {
-			// delete expired token
-			if err = p.userRepo.DeleteRefreshToken(txCtx, refreshTokenStr); err != nil {
-				p.log.Error("delete expired refresh token", zap.Error(err))
-			}
+			deleteToken = true
 			return ErrRefreshTokenExpired
 		}
 
@@ -90,10 +88,8 @@ func (p *Provider) RefreshTokens(ctx context.Context, refreshTokenStr string) (T
 		user, err := p.userRepo.GetUserByID(txCtx, refreshToken.UserID)
 		if err != nil {
 			if errors.Is(err, database.ErrNotFound) {
-				// user was deleted, clean up token within the transaction
-				if err = p.userRepo.DeleteRefreshToken(txCtx, refreshTokenStr); err != nil {
-					p.log.Error("delete refresh token for deleted user", zap.Error(err))
-				}
+				// user was deleted
+				deleteToken = true
 				return ErrRefreshTokenNotFound
 			}
 			p.log.Error("get user by id", zap.String("userID", refreshToken.UserID), zap.Error(err))
@@ -129,6 +125,12 @@ func (p *Provider) RefreshTokens(ctx context.Context, refreshTokenStr string) (T
 		return nil
 	})
 	if txErr != nil {
+		// cleanup expired or orphaned tokens only when transaction failed
+		if deleteToken {
+			if err := p.userRepo.DeleteRefreshToken(ctx, refreshTokenStr); err != nil {
+				p.log.Error("delete stale refresh token", zap.Error(err))
+			}
+		}
 		return TokenPair{}, txErr
 	}
 
