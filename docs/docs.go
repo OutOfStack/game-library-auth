@@ -122,6 +122,26 @@ const docTemplate = `{
                 }
             }
         },
+        "/logout": {
+            "post": {
+                "description": "Revokes the refresh token and clears the refresh token cookie",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Logout user",
+                "responses": {
+                    "204": {
+                        "description": "Successfully logged out"
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    }
+                }
+            }
+        },
         "/oauth/google": {
             "post": {
                 "description": "Handles Google OAuth 2.0 authentication",

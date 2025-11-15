@@ -16,7 +16,7 @@ data:
     AUTH_SIGNINGALG: "RS256"
     AUTH_ISSUER: "https://_UI_URL_"
     AUTH_ACCESSTOKENTTL: "15m"
-    AUTH_REFRESHTOKENTTL: "168h"
+    AUTH_REFRESHTOKENTTL: "360h"
     ZIPKIN_REPORTERURL: "http://zipkin-service.game-library.svc.cluster.local.:9411/api/v2/spans"
     GRAYLOG_ADDR: "graylog-service.game-library.svc.cluster.local.:12201"
     EMAIL_SENDER_API_TIMEOUT: "5s"

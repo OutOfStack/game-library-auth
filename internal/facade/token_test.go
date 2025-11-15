@@ -412,3 +412,63 @@ func TestProvider_CreateTokens(t *testing.T) {
 		}
 	})
 }
+
+func TestProvider_RevokeRefreshToken(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("successful revoke", func(t *testing.T) {
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		mockUserRepo.EXPECT().
+			DeleteRefreshToken(gomock.Any(), "valid-token").
+			Return(nil)
+
+		err := provider.RevokeRefreshToken(ctx, "valid-token")
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+	})
+
+	t.Run("empty token string", func(t *testing.T) {
+		provider, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		err := provider.RevokeRefreshToken(ctx, "")
+		if err != nil {
+			t.Fatalf("expected no error for empty token, got %v", err)
+		}
+	})
+
+	t.Run("token not found", func(t *testing.T) {
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		mockUserRepo.EXPECT().
+			DeleteRefreshToken(gomock.Any(), "non-existent-token").
+			Return(database.ErrNotFound)
+
+		err := provider.RevokeRefreshToken(ctx, "non-existent-token")
+		if err != nil {
+			t.Fatalf("expected no error when token not found, got %v", err)
+		}
+	})
+
+	t.Run("database error", func(t *testing.T) {
+		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		dbError := errors.New("database connection error")
+		mockUserRepo.EXPECT().
+			DeleteRefreshToken(gomock.Any(), "some-token").
+			Return(dbError)
+
+		err := provider.RevokeRefreshToken(ctx, "some-token")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(err, dbError) {
+			t.Errorf("expected database error, got %v", err)
+		}
+	})
+}

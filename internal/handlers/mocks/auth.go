@@ -156,6 +156,20 @@ func (mr *MockUserFacadeMockRecorder) ResendVerificationEmail(ctx, userID any) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResendVerificationEmail", reflect.TypeOf((*MockUserFacade)(nil).ResendVerificationEmail), ctx, userID)
 }
 
+// RevokeRefreshToken mocks base method.
+func (m *MockUserFacade) RevokeRefreshToken(ctx context.Context, refreshTokenStr string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeRefreshToken", ctx, refreshTokenStr)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RevokeRefreshToken indicates an expected call of RevokeRefreshToken.
+func (mr *MockUserFacadeMockRecorder) RevokeRefreshToken(ctx, refreshTokenStr any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeRefreshToken", reflect.TypeOf((*MockUserFacade)(nil).RevokeRefreshToken), ctx, refreshTokenStr)
+}
+
 // SignIn mocks base method.
 func (m *MockUserFacade) SignIn(ctx context.Context, username, password string) (model.User, error) {
 	m.ctrl.T.Helper()

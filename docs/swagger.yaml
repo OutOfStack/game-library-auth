@@ -175,6 +175,19 @@ paths:
       summary: Update user profile
       tags:
       - auth
+  /logout:
+    post:
+      description: Revokes the refresh token and clears the refresh token cookie
+      responses:
+        "204":
+          description: Successfully logged out
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+      summary: Logout user
+      tags:
+      - auth
   /oauth/google:
     post:
       consumes:

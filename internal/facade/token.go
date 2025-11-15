@@ -158,3 +158,21 @@ func (p *Provider) RefreshTokens(ctx context.Context, refreshTokenStr string) (T
 func (p *Provider) ValidateAccessToken(tokenStr string) (auth.Claims, error) {
 	return p.auth.ValidateToken(tokenStr)
 }
+
+// RevokeRefreshToken revokes a refresh token by deleting it from the database
+func (p *Provider) RevokeRefreshToken(ctx context.Context, refreshTokenStr string) error {
+	if refreshTokenStr == "" {
+		return nil
+	}
+
+	if err := p.userRepo.DeleteRefreshToken(ctx, refreshTokenStr); err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			// token doesn't exist, nothing to revoke
+			return nil
+		}
+		p.log.Error("revoke refresh token", zap.Error(err))
+		return err
+	}
+
+	return nil
+}

@@ -92,6 +92,7 @@ func registerRoutes(app *fiber.App, authAPI *AuthAPI, checkAPI *CheckAPI, unsubs
 	// token
 	app.Post("/token/verify", authAPI.VerifyTokenHandler)
 	app.Post("/refresh", authAPI.RefreshTokenHandler)
+	app.Post("/logout", authAPI.LogoutHandler)
 
 	// swagger
 	app.Get("/swagger/*", adaptor.HTTPHandler(swag.Handler()))

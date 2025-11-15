@@ -29,6 +29,7 @@ type UserFacade interface {
 	SignUp(ctx context.Context, username, displayName, email, password string, isPublisher bool) (model.User, error)
 	CreateTokens(ctx context.Context, user model.User) (facade.TokenPair, error)
 	RefreshTokens(ctx context.Context, refreshTokenStr string) (facade.TokenPair, error)
+	RevokeRefreshToken(ctx context.Context, refreshTokenStr string) error
 	ValidateAccessToken(tokenStr string) (auth.Claims, error)
 }
 

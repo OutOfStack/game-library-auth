@@ -37,6 +37,7 @@ func TestAsTooManyRequestsError(t *testing.T) {
 		result := facade.AsTooManyRequestsError(&err)
 		if result == nil {
 			t.Fatal("expected non-nil result")
+			return
 		}
 		if result.RetryAfter != retryAfter {
 			t.Errorf("expected retry after %v, got %v", retryAfter, result.RetryAfter)
