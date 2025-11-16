@@ -86,5 +86,5 @@ func (a *Auth) GenerateRefreshToken() (string, time.Time, error) {
 		return "", time.Time{}, fmt.Errorf("generating random bytes: %w", err)
 	}
 	expiresAt := time.Now().Add(a.refreshTokenTTL)
-	return base64.URLEncoding.EncodeToString(b), expiresAt, nil
+	return base64.StdEncoding.EncodeToString(b), expiresAt, nil
 }

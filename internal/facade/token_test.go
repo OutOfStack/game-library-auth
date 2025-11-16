@@ -3,6 +3,7 @@ package facade_test
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"testing"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"go.uber.org/mock/gomock"
+	"golang.org/x/crypto/blake2b"
 )
 
 func TestProvider_ValidateAccessToken(t *testing.T) {
@@ -58,7 +60,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 
 		refreshToken := database.RefreshToken{
 			UserID:      "user-123",
-			Token:       "old-refresh-token",
+			TokenHash:   "old-refresh-token",
 			ExpiresAt:   time.Now().Add(24 * time.Hour),
 			DateCreated: time.Now(),
 		}
@@ -70,7 +72,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 		}
 
 		mockUserRepo.EXPECT().
-			GetRefreshTokenByToken(gomock.Any(), "old-refresh-token").
+			GetRefreshTokenByHash(gomock.Any(), hashRefreshToken("old-refresh-token")).
 			Return(refreshToken, nil)
 
 		mockUserRepo.EXPECT().
@@ -96,7 +98,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 			})
 
 		mockUserRepo.EXPECT().
-			DeleteRefreshToken(gomock.Any(), "old-refresh-token").
+			DeleteRefreshToken(gomock.Any(), hashRefreshToken("old-refresh-token")).
 			Return(nil)
 
 		mockUserRepo.EXPECT().
@@ -126,7 +128,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 			})
 
 		mockUserRepo.EXPECT().
-			GetRefreshTokenByToken(gomock.Any(), "invalid-token").
+			GetRefreshTokenByHash(gomock.Any(), hashRefreshToken("invalid-token")).
 			Return(database.RefreshToken{}, database.ErrNotFound)
 
 		_, err := provider.RefreshTokens(ctx, "invalid-token")
@@ -141,7 +143,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 
 		expiredToken := database.RefreshToken{
 			UserID:      "user-123",
-			Token:       "expired-token",
+			TokenHash:   "expired-token",
 			ExpiresAt:   time.Now().Add(-1 * time.Hour),
 			DateCreated: time.Now().Add(-25 * time.Hour),
 		}
@@ -153,11 +155,11 @@ func TestProvider_RefreshTokens(t *testing.T) {
 			})
 
 		mockUserRepo.EXPECT().
-			GetRefreshTokenByToken(gomock.Any(), "expired-token").
+			GetRefreshTokenByHash(gomock.Any(), hashRefreshToken("expired-token")).
 			Return(expiredToken, nil)
 
 		mockUserRepo.EXPECT().
-			DeleteRefreshToken(gomock.Any(), "expired-token").
+			DeleteRefreshToken(gomock.Any(), hashRefreshToken("expired-token")).
 			Return(nil)
 
 		_, err := provider.RefreshTokens(ctx, "expired-token")
@@ -172,7 +174,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 
 		refreshToken := database.RefreshToken{
 			UserID:      "user-123",
-			Token:       "valid-token",
+			TokenHash:   "valid-token",
 			ExpiresAt:   time.Now().Add(24 * time.Hour),
 			DateCreated: time.Now(),
 		}
@@ -184,7 +186,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 			})
 
 		mockUserRepo.EXPECT().
-			GetRefreshTokenByToken(gomock.Any(), "valid-token").
+			GetRefreshTokenByHash(gomock.Any(), hashRefreshToken("valid-token")).
 			Return(refreshToken, nil)
 
 		mockUserRepo.EXPECT().
@@ -192,7 +194,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 			Return(database.User{}, database.ErrNotFound)
 
 		mockUserRepo.EXPECT().
-			DeleteRefreshToken(gomock.Any(), "valid-token").
+			DeleteRefreshToken(gomock.Any(), hashRefreshToken("valid-token")).
 			Return(nil)
 
 		_, err := provider.RefreshTokens(ctx, "valid-token")
@@ -207,7 +209,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 
 		refreshToken := database.RefreshToken{
 			UserID:      "user-123",
-			Token:       "valid-token",
+			TokenHash:   "valid-token",
 			ExpiresAt:   time.Now().Add(24 * time.Hour),
 			DateCreated: time.Now(),
 		}
@@ -219,7 +221,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 		}
 
 		mockUserRepo.EXPECT().
-			GetRefreshTokenByToken(gomock.Any(), "valid-token").
+			GetRefreshTokenByHash(gomock.Any(), hashRefreshToken("valid-token")).
 			Return(refreshToken, nil)
 
 		mockUserRepo.EXPECT().
@@ -245,7 +247,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 			})
 
 		mockUserRepo.EXPECT().
-			DeleteRefreshToken(gomock.Any(), "valid-token").
+			DeleteRefreshToken(gomock.Any(), hashRefreshToken("valid-token")).
 			Return(errors.New("database error"))
 
 		_, err := provider.RefreshTokens(ctx, "valid-token")
@@ -260,7 +262,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 
 		refreshToken := database.RefreshToken{
 			UserID:      "user-123",
-			Token:       "valid-token",
+			TokenHash:   "valid-token",
 			ExpiresAt:   time.Now().Add(24 * time.Hour),
 			DateCreated: time.Now(),
 		}
@@ -278,7 +280,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 			})
 
 		mockUserRepo.EXPECT().
-			GetRefreshTokenByToken(gomock.Any(), "valid-token").
+			GetRefreshTokenByHash(gomock.Any(), hashRefreshToken("valid-token")).
 			Return(refreshToken, nil)
 
 		mockUserRepo.EXPECT().
@@ -305,7 +307,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 
 		refreshToken := database.RefreshToken{
 			UserID:      "user-123",
-			Token:       "valid-token",
+			TokenHash:   "valid-token",
 			ExpiresAt:   time.Now().Add(24 * time.Hour),
 			DateCreated: time.Now(),
 		}
@@ -323,7 +325,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 			})
 
 		mockUserRepo.EXPECT().
-			GetRefreshTokenByToken(gomock.Any(), "valid-token").
+			GetRefreshTokenByHash(gomock.Any(), hashRefreshToken("valid-token")).
 			Return(refreshToken, nil)
 
 		mockUserRepo.EXPECT().
@@ -449,7 +451,7 @@ func TestProvider_RevokeRefreshToken(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
-			DeleteRefreshToken(gomock.Any(), "valid-token").
+			DeleteRefreshToken(gomock.Any(), hashRefreshToken("valid-token")).
 			Return(nil)
 
 		err := provider.RevokeRefreshToken(ctx, "valid-token")
@@ -473,7 +475,7 @@ func TestProvider_RevokeRefreshToken(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
-			DeleteRefreshToken(gomock.Any(), "non-existent-token").
+			DeleteRefreshToken(gomock.Any(), hashRefreshToken("non-existent-token")).
 			Return(database.ErrNotFound)
 
 		err := provider.RevokeRefreshToken(ctx, "non-existent-token")
@@ -488,7 +490,7 @@ func TestProvider_RevokeRefreshToken(t *testing.T) {
 
 		dbError := errors.New("database connection error")
 		mockUserRepo.EXPECT().
-			DeleteRefreshToken(gomock.Any(), "some-token").
+			DeleteRefreshToken(gomock.Any(), hashRefreshToken("some-token")).
 			Return(dbError)
 
 		err := provider.RevokeRefreshToken(ctx, "some-token")
@@ -499,4 +501,9 @@ func TestProvider_RevokeRefreshToken(t *testing.T) {
 			t.Errorf("expected database error, got %v", err)
 		}
 	})
+}
+
+func hashRefreshToken(tokenStr string) string {
+	hash := blake2b.Sum384([]byte(tokenStr))
+	return base64.StdEncoding.EncodeToString(hash[:])
 }

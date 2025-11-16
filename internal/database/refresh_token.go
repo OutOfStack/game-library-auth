@@ -14,10 +14,10 @@ func (r *UserRepo) CreateRefreshToken(ctx context.Context, refreshToken RefreshT
 	defer span.End()
 
 	const q = `INSERT INTO refresh_tokens
-		(id, user_id, token, expires_at, date_created)
+		(id, user_id, token_hash, expires_at, date_created)
 		VALUES ($1, $2, $3, $4, NOW())`
 
-	_, err := r.query().Exec(ctx, q, refreshToken.ID, refreshToken.UserID, refreshToken.Token, refreshToken.ExpiresAt)
+	_, err := r.query().Exec(ctx, q, refreshToken.ID, refreshToken.UserID, refreshToken.TokenHash, refreshToken.ExpiresAt)
 	if err != nil {
 		return fmt.Errorf("insert refresh token: %w", err)
 	}
@@ -25,18 +25,18 @@ func (r *UserRepo) CreateRefreshToken(ctx context.Context, refreshToken RefreshT
 	return nil
 }
 
-// GetRefreshTokenByToken retrieves a refresh token by token string with row-level lock
-func (r *UserRepo) GetRefreshTokenByToken(ctx context.Context, token string) (RefreshToken, error) {
-	ctx, span := tracer.Start(ctx, "getRefreshTokenByToken")
+// GetRefreshTokenByHash retrieves a refresh token by token hash string with row-level lock
+func (r *UserRepo) GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error) {
+	ctx, span := tracer.Start(ctx, "getRefreshTokenByHash")
 	defer span.End()
 
-	const q = `SELECT id, user_id, token, expires_at, date_created
+	const q = `SELECT id, user_id, token_hash, expires_at, date_created
 		FROM refresh_tokens
-		WHERE token = $1
+		WHERE token_hash = $1
 		FOR UPDATE`
 
 	var refreshToken RefreshToken
-	if err := r.query().Get(ctx, &refreshToken, q, token); err != nil {
+	if err := r.query().Get(ctx, &refreshToken, q, tokenHash); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return RefreshToken{}, ErrNotFound
 		}
@@ -46,14 +46,14 @@ func (r *UserRepo) GetRefreshTokenByToken(ctx context.Context, token string) (Re
 	return refreshToken, nil
 }
 
-// DeleteRefreshToken deletes a refresh token by token string
-func (r *UserRepo) DeleteRefreshToken(ctx context.Context, token string) error {
+// DeleteRefreshToken deletes a refresh token by token hash string
+func (r *UserRepo) DeleteRefreshToken(ctx context.Context, tokenHash string) error {
 	ctx, span := tracer.Start(ctx, "deleteRefreshToken")
 	defer span.End()
 
-	const q = `DELETE FROM refresh_tokens WHERE token = $1`
+	const q = `DELETE FROM refresh_tokens WHERE token_hash = $1`
 
-	_, err := r.query().Exec(ctx, q, token)
+	_, err := r.query().Exec(ctx, q, tokenHash)
 	if err != nil {
 		return fmt.Errorf("delete refresh token: %w", err)
 	}

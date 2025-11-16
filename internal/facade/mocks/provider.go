@@ -258,19 +258,19 @@ func (mr *MockUserRepoMockRecorder) GetEmailVerificationByUserID(ctx, userID any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEmailVerificationByUserID", reflect.TypeOf((*MockUserRepo)(nil).GetEmailVerificationByUserID), ctx, userID)
 }
 
-// GetRefreshTokenByToken mocks base method.
-func (m *MockUserRepo) GetRefreshTokenByToken(ctx context.Context, token string) (database.RefreshToken, error) {
+// GetRefreshTokenByHash mocks base method.
+func (m *MockUserRepo) GetRefreshTokenByHash(ctx context.Context, tokenHash string) (database.RefreshToken, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRefreshTokenByToken", ctx, token)
+	ret := m.ctrl.Call(m, "GetRefreshTokenByHash", ctx, tokenHash)
 	ret0, _ := ret[0].(database.RefreshToken)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetRefreshTokenByToken indicates an expected call of GetRefreshTokenByToken.
-func (mr *MockUserRepoMockRecorder) GetRefreshTokenByToken(ctx, token any) *gomock.Call {
+// GetRefreshTokenByHash indicates an expected call of GetRefreshTokenByHash.
+func (mr *MockUserRepoMockRecorder) GetRefreshTokenByHash(ctx, tokenHash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRefreshTokenByToken", reflect.TypeOf((*MockUserRepo)(nil).GetRefreshTokenByToken), ctx, token)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRefreshTokenByHash", reflect.TypeOf((*MockUserRepo)(nil).GetRefreshTokenByHash), ctx, tokenHash)
 }
 
 // GetUserByEmail mocks base method.

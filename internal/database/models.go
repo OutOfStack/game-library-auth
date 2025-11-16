@@ -102,17 +102,17 @@ func NewEmailUnsubscribe(email string) EmailUnsubscribe {
 type RefreshToken struct {
 	ID          string    `db:"id"`
 	UserID      string    `db:"user_id"`
-	Token       string    `db:"token"`
+	TokenHash   string    `db:"token_hash"`
 	ExpiresAt   time.Time `db:"expires_at"`
 	DateCreated time.Time `db:"date_created"`
 }
 
 // NewRefreshToken creates a new refresh token
-func NewRefreshToken(userID, token string, expiresAt time.Time) RefreshToken {
+func NewRefreshToken(userID, tokenHash string, expiresAt time.Time) RefreshToken {
 	return RefreshToken{
 		ID:        uuid.New().String(),
 		UserID:    userID,
-		Token:     token,
+		TokenHash: tokenHash,
 		ExpiresAt: expiresAt,
 	}
 }

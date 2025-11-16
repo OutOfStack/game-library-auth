@@ -2,7 +2,7 @@
 CREATE TABLE refresh_tokens (
     id              UUID            DEFAULT gen_random_uuid(),
     user_id         UUID            NOT NULL,
-    token           VARCHAR(255)    NOT NULL    UNIQUE,
+    token_hash      VARCHAR(64)     NOT NULL    UNIQUE,
     expires_at      TIMESTAMPTZ     NOT NULL,
     date_created    TIMESTAMPTZ     NOT NULL    DEFAULT NOW(),
 
@@ -11,7 +11,7 @@ CREATE TABLE refresh_tokens (
 );
 
 CREATE INDEX refresh_tokens_user_id_idx ON refresh_tokens (user_id);
-CREATE INDEX refresh_tokens_token_idx ON refresh_tokens (token);
+CREATE INDEX refresh_tokens_token_idx ON refresh_tokens (token_hash);
 CREATE INDEX refresh_tokens_expires_at_idx ON refresh_tokens (expires_at);
 
 -- +migrate Down

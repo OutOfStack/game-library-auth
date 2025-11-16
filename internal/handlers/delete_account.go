@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
+	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -40,6 +42,9 @@ func (a *AuthAPI) DeleteAccountHandler(c *fiber.Ctx) error {
 			Error: internalErrorMsg,
 		})
 	}
+
+	// clear refresh token cookie
+	a.setRefreshTokenCookie(c, facade.RefreshToken{ExpiresAt: time.Unix(0, 0)})
 
 	return c.SendStatus(http.StatusNoContent)
 }

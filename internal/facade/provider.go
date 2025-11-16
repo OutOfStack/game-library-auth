@@ -64,7 +64,7 @@ type UserRepo interface {
 	IsEmailUnsubscribed(ctx context.Context, email string) (bool, error)
 
 	CreateRefreshToken(ctx context.Context, refreshToken database.RefreshToken) error
-	GetRefreshTokenByToken(ctx context.Context, token string) (database.RefreshToken, error)
+	GetRefreshTokenByHash(ctx context.Context, tokenHash string) (database.RefreshToken, error)
 	DeleteRefreshToken(ctx context.Context, token string) error
 	DeleteRefreshTokensByUserID(ctx context.Context, userID string) error
 }

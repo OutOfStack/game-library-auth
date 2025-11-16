@@ -2,12 +2,15 @@ package facade
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/blake2b"
 )
 
 var (
@@ -48,7 +51,8 @@ func (p *Provider) CreateRefreshToken(ctx context.Context, userID string) (Refre
 		return RefreshToken{}, err
 	}
 
-	refreshToken := database.NewRefreshToken(userID, refreshTokenStr, expiresAt)
+	refreshTokenHashStr := hashRefreshToken(refreshTokenStr)
+	refreshToken := database.NewRefreshToken(userID, refreshTokenHashStr, expiresAt)
 
 	if err = p.userRepo.CreateRefreshToken(ctx, refreshToken); err != nil {
 		p.log.Error("create refresh token in db", zap.String("userID", userID), zap.Error(err))
@@ -64,12 +68,15 @@ func (p *Provider) CreateRefreshToken(ctx context.Context, userID string) (Refre
 // RefreshTokens validates refresh token and returns new access and refresh tokens
 func (p *Provider) RefreshTokens(ctx context.Context, refreshTokenStr string) (TokenPair, error) {
 	var accessToken string
-	var newRefreshToken database.RefreshToken
+	var newRefreshTokenStr string
+	var newRefreshTokenExpiresAt time.Time
 	var deleteToken bool
+
+	refreshTokenHashStr := hashRefreshToken(refreshTokenStr)
 
 	txErr := p.userRepo.RunWithTx(ctx, func(txCtx context.Context) error {
 		// get refresh token
-		refreshToken, err := p.userRepo.GetRefreshTokenByToken(txCtx, refreshTokenStr)
+		refreshToken, err := p.userRepo.GetRefreshTokenByHash(txCtx, refreshTokenHashStr)
 		if err != nil {
 			if errors.Is(err, database.ErrNotFound) {
 				return ErrRefreshTokenNotFound
@@ -105,19 +112,20 @@ func (p *Provider) RefreshTokens(ctx context.Context, refreshTokenStr string) (T
 		}
 
 		// generate new refresh token
-		newRefreshTokenStr, expiresAt, err := p.auth.GenerateRefreshToken()
+		newRefreshTokenStr, newRefreshTokenExpiresAt, err = p.auth.GenerateRefreshToken()
 		if err != nil {
 			p.log.Error("generate refresh token", zap.String("userID", user.ID), zap.Error(err))
 			return err
 		}
 
 		// delete old refresh token
-		if err = p.userRepo.DeleteRefreshToken(txCtx, refreshTokenStr); err != nil {
+		if err = p.userRepo.DeleteRefreshToken(txCtx, refreshTokenHashStr); err != nil {
 			return err
 		}
 
 		// create new refresh token
-		newRefreshToken = database.NewRefreshToken(user.ID, newRefreshTokenStr, expiresAt)
+		newRefreshTokenHashStr := hashRefreshToken(newRefreshTokenStr)
+		newRefreshToken := database.NewRefreshToken(user.ID, newRefreshTokenHashStr, newRefreshTokenExpiresAt)
 		if err = p.userRepo.CreateRefreshToken(txCtx, newRefreshToken); err != nil {
 			return err
 		}
@@ -127,7 +135,7 @@ func (p *Provider) RefreshTokens(ctx context.Context, refreshTokenStr string) (T
 	if txErr != nil {
 		// cleanup expired or orphaned tokens only when transaction failed
 		if deleteToken {
-			if err := p.userRepo.DeleteRefreshToken(ctx, refreshTokenStr); err != nil {
+			if err := p.userRepo.DeleteRefreshToken(ctx, refreshTokenHashStr); err != nil {
 				p.log.Error("delete stale refresh token", zap.Error(err))
 			}
 		}
@@ -137,8 +145,8 @@ func (p *Provider) RefreshTokens(ctx context.Context, refreshTokenStr string) (T
 	return TokenPair{
 		AccessToken: accessToken,
 		RefreshToken: RefreshToken{
-			Token:     newRefreshToken.Token,
-			ExpiresAt: newRefreshToken.ExpiresAt,
+			Token:     newRefreshTokenStr,
+			ExpiresAt: newRefreshTokenExpiresAt,
 		},
 	}, nil
 }
@@ -154,7 +162,9 @@ func (p *Provider) RevokeRefreshToken(ctx context.Context, refreshTokenStr strin
 		return nil
 	}
 
-	if err := p.userRepo.DeleteRefreshToken(ctx, refreshTokenStr); err != nil {
+	refreshTokenHashStr := hashRefreshToken(refreshTokenStr)
+
+	if err := p.userRepo.DeleteRefreshToken(ctx, refreshTokenHashStr); err != nil {
 		if errors.Is(err, database.ErrNotFound) {
 			// token doesn't exist, nothing to revoke
 			return nil
@@ -164,4 +174,9 @@ func (p *Provider) RevokeRefreshToken(ctx context.Context, refreshTokenStr strin
 	}
 
 	return nil
+}
+
+func hashRefreshToken(tokenStr string) string {
+	hash := blake2b.Sum384([]byte(tokenStr))
+	return base64.StdEncoding.EncodeToString(hash[:])
 }

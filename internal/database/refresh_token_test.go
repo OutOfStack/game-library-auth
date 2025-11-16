@@ -25,11 +25,11 @@ func TestCreateRefreshToken_Ok(t *testing.T) {
 	err = s.CreateRefreshToken(ctx, refreshToken)
 	require.NoError(t, err)
 
-	foundToken, err := s.GetRefreshTokenByToken(ctx, refreshToken.Token)
+	foundToken, err := s.GetRefreshTokenByHash(ctx, refreshToken.TokenHash)
 	require.NoError(t, err)
 	require.Equal(t, refreshToken.ID, foundToken.ID)
 	require.Equal(t, refreshToken.UserID, foundToken.UserID)
-	require.Equal(t, refreshToken.Token, foundToken.Token)
+	require.Equal(t, refreshToken.TokenHash, foundToken.TokenHash)
 }
 
 func TestGetRefreshTokenByToken_Ok(t *testing.T) {
@@ -46,11 +46,11 @@ func TestGetRefreshTokenByToken_Ok(t *testing.T) {
 	err = s.CreateRefreshToken(ctx, refreshToken)
 	require.NoError(t, err)
 
-	foundToken, err := s.GetRefreshTokenByToken(ctx, refreshToken.Token)
+	foundToken, err := s.GetRefreshTokenByHash(ctx, refreshToken.TokenHash)
 	require.NoError(t, err)
 	require.Equal(t, refreshToken.ID, foundToken.ID)
 	require.Equal(t, refreshToken.UserID, foundToken.UserID)
-	require.Equal(t, refreshToken.Token, foundToken.Token)
+	require.Equal(t, refreshToken.TokenHash, foundToken.TokenHash)
 	require.False(t, foundToken.IsExpired())
 }
 
@@ -60,7 +60,7 @@ func TestGetRefreshTokenByToken_NotFound(t *testing.T) {
 
 	ctx := context.Background()
 
-	_, err := s.GetRefreshTokenByToken(ctx, "non-existent-token")
+	_, err := s.GetRefreshTokenByHash(ctx, "non-existent-token")
 	require.Error(t, err)
 	require.Equal(t, database.ErrNotFound, err)
 }
@@ -79,10 +79,10 @@ func TestDeleteRefreshToken_Ok(t *testing.T) {
 	err = s.CreateRefreshToken(ctx, refreshToken)
 	require.NoError(t, err)
 
-	err = s.DeleteRefreshToken(ctx, refreshToken.Token)
+	err = s.DeleteRefreshToken(ctx, refreshToken.TokenHash)
 	require.NoError(t, err)
 
-	_, err = s.GetRefreshTokenByToken(ctx, refreshToken.Token)
+	_, err = s.GetRefreshTokenByHash(ctx, refreshToken.TokenHash)
 	require.Error(t, err)
 	require.Equal(t, database.ErrNotFound, err)
 }
@@ -108,11 +108,11 @@ func TestDeleteRefreshTokensByUserID_Ok(t *testing.T) {
 	err = s.DeleteRefreshTokensByUserID(ctx, user.ID)
 	require.NoError(t, err)
 
-	_, err = s.GetRefreshTokenByToken(ctx, token1.Token)
+	_, err = s.GetRefreshTokenByHash(ctx, token1.TokenHash)
 	require.Error(t, err)
 	require.Equal(t, database.ErrNotFound, err)
 
-	_, err = s.GetRefreshTokenByToken(ctx, token2.Token)
+	_, err = s.GetRefreshTokenByHash(ctx, token2.TokenHash)
 	require.Error(t, err)
 	require.Equal(t, database.ErrNotFound, err)
 }
@@ -138,13 +138,13 @@ func TestDeleteExpiredRefreshTokens_Ok(t *testing.T) {
 	err = s.DeleteExpiredRefreshTokens(ctx)
 	require.NoError(t, err)
 
-	_, err = s.GetRefreshTokenByToken(ctx, expiredToken.Token)
+	_, err = s.GetRefreshTokenByHash(ctx, expiredToken.TokenHash)
 	require.Error(t, err)
 	require.Equal(t, database.ErrNotFound, err)
 
-	foundToken, err := s.GetRefreshTokenByToken(ctx, validToken.Token)
+	foundToken, err := s.GetRefreshTokenByHash(ctx, validToken.TokenHash)
 	require.NoError(t, err)
-	require.Equal(t, validToken.Token, foundToken.Token)
+	require.Equal(t, validToken.TokenHash, foundToken.TokenHash)
 }
 
 func TestRefreshToken_IsExpired(t *testing.T) {
