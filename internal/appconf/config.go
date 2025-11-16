@@ -37,12 +37,12 @@ func Get() (*Cfg, error) {
 	return cfg, nil
 }
 
-func readFile() (c *Cfg, err error) {
+func readFile() (*Cfg, error) {
 	viper.AddConfigPath(appEnvFilePath)
 	viper.SetConfigName(appEnvFileName)
 	viper.SetConfigType(appEnvFileExt)
 
-	if err = viper.ReadInConfig(); err != nil {
+	if err := viper.ReadInConfig(); err != nil {
 		// if file not found use env variables only
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if !errors.As(err, &configFileNotFoundError) {
@@ -52,13 +52,14 @@ func readFile() (c *Cfg, err error) {
 
 	viper.AutomaticEnv()
 
-	if err = viper.Unmarshal(&c); err != nil {
+	var c Cfg
+	if err := viper.Unmarshal(&c); err != nil {
 		return nil, err
 	}
 
-	if err = c.Validate(); err != nil {
+	if err := c.Validate(); err != nil {
 		return nil, err
 	}
 
-	return c, nil
+	return &c, nil
 }
