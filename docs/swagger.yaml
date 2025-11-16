@@ -104,7 +104,7 @@ info:
   description: API for game library auth service
   termsOfService: http://swagger.io/terms/
   title: Game library auth API
-  version: "0.3"
+  version: "0.4"
 paths:
   /account:
     delete:
@@ -175,6 +175,19 @@ paths:
       summary: Update user profile
       tags:
       - auth
+  /logout:
+    post:
+      description: Revokes the refresh token and clears the refresh token cookie
+      responses:
+        "204":
+          description: Successfully logged out
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+      summary: Logout user
+      tags:
+      - auth
   /oauth/google:
     post:
       consumes:
@@ -203,6 +216,28 @@ paths:
           schema:
             $ref: '#/definitions/web.ErrResp'
       summary: Google OAuth sign in handler
+      tags:
+      - auth
+  /refresh:
+    post:
+      description: Use a refresh token from httpOnly cookie to obtain new access and
+        refresh tokens
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.TokenResp'
+        "401":
+          description: Invalid or expired refresh token
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+      summary: Refresh access and refresh tokens
       tags:
       - auth
   /resend-verification:

@@ -2,6 +2,7 @@ package facade
 
 import (
 	"errors"
+	"time"
 )
 
 const (
@@ -10,29 +11,47 @@ const (
 	defaultVrfCodeLen = 6
 )
 
-// errors
-var (
-	ErrInvalidEmail                 = errors.New("invalid email")
-	ErrOAuthSignInConflict          = errors.New("oauth sign in name conflict")
-	ErrUpdateProfileUserNotFound    = errors.New("update profile: user not found")
-	ErrUpdateProfileInvalidPassword = errors.New("update profile: invalid current password")
-	ErrUpdateProfileNotAllowed      = errors.New("update profile: password change not allowed for oauth users")
-	ErrTooManyRequests              = errors.New("too many requests")
-	ErrResendVerificationNoEmail    = errors.New("resend verification: user has no email")
-	ErrVerifyEmailUserNotFound      = errors.New("verify email: user not found")
-	ErrVerifyEmailAlreadyVerified   = errors.New("verify email: already verified")
-	ErrVerifyEmailInvalidOrExpired  = errors.New("verify email: invalid or expired code")
-	ErrSignInInvalidCredentials     = errors.New("sign in: invalid credentials")
-	ErrSignUpUsernameExists         = errors.New("sign up: username already exists")
-	ErrSignUpEmailExists            = errors.New("sign up: email already exists")
-	ErrSignUpEmailRequired          = errors.New("sign up: email is required")
-	ErrSignUpPublisherNameExists    = errors.New("sign up: publisher name already exists")
-	ErrSendVerifyEmailUnsubscribed  = errors.New("send verify email: user is unsubscribed")
-)
+// TooManyRequestsError - error with retry after
+type TooManyRequestsError struct {
+	RetryAfter time.Duration
+}
+
+// Error implements error interface
+func (e TooManyRequestsError) Error() string {
+	return "too many requests, retry after" + e.RetryAfter.String()
+}
+
+// NewTooManyRequestsError - creates a new ErrTooManyRequestsRetryAfter
+func NewTooManyRequestsError(retryAfter time.Duration) TooManyRequestsError {
+	return TooManyRequestsError{
+		RetryAfter: retryAfter,
+	}
+}
+
+// AsTooManyRequestsError - returns *TooManyRequestsError if err is of type TooManyRequestsError
+func AsTooManyRequestsError(err error) *TooManyRequestsError {
+	var tooManyRequestsErr *TooManyRequestsError
+	if errors.As(err, &tooManyRequestsErr) {
+		return tooManyRequestsErr
+	}
+	return nil
+}
 
 // emailVerificationResult - result of creating an email verification record
 type emailVerificationResult struct {
 	ID               string
 	Code             string
 	UnsubscribeToken string
+}
+
+// RefreshToken represents a refresh token
+type RefreshToken struct {
+	Token     string
+	ExpiresAt time.Time
+}
+
+// TokenPair represents an access token and refresh token pair
+type TokenPair struct {
+	AccessToken  string
+	RefreshToken RefreshToken
 }

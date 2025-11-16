@@ -6,6 +6,8 @@ const (
 	authErrorMsg               = "Incorrect username or password"
 	invalidAuthTokenMsg        = "Invalid or missing authorization token"
 	invalidOrExpiredVrfCodeMsg = "Invalid or expired verification code"
+
+	refreshTokenCookieName = "refresh_token"
 )
 
 // SignInReq represents user sign in request
@@ -14,7 +16,7 @@ type SignInReq struct {
 	Password string `json:"password" validate:"required,min=8,max=64"`
 }
 
-// TokenResp represents response with JWT
+// TokenResp represents response with JWT access token
 type TokenResp struct {
 	AccessToken string `json:"accessToken"`
 }

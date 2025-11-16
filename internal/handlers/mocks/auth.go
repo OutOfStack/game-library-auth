@@ -14,79 +14,11 @@ import (
 	reflect "reflect"
 
 	auth "github.com/OutOfStack/game-library-auth/internal/auth"
+	facade "github.com/OutOfStack/game-library-auth/internal/facade"
 	model "github.com/OutOfStack/game-library-auth/internal/model"
-	jwt "github.com/golang-jwt/jwt/v4"
 	gomock "go.uber.org/mock/gomock"
 	idtoken "google.golang.org/api/idtoken"
 )
-
-// MockAuth is a mock of Auth interface.
-type MockAuth struct {
-	ctrl     *gomock.Controller
-	recorder *MockAuthMockRecorder
-	isgomock struct{}
-}
-
-// MockAuthMockRecorder is the mock recorder for MockAuth.
-type MockAuthMockRecorder struct {
-	mock *MockAuth
-}
-
-// NewMockAuth creates a new mock instance.
-func NewMockAuth(ctrl *gomock.Controller) *MockAuth {
-	mock := &MockAuth{ctrl: ctrl}
-	mock.recorder = &MockAuthMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockAuth) EXPECT() *MockAuthMockRecorder {
-	return m.recorder
-}
-
-// CreateUserClaims mocks base method.
-func (m *MockAuth) CreateUserClaims(user model.User) jwt.Claims {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateUserClaims", user)
-	ret0, _ := ret[0].(jwt.Claims)
-	return ret0
-}
-
-// CreateUserClaims indicates an expected call of CreateUserClaims.
-func (mr *MockAuthMockRecorder) CreateUserClaims(user any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUserClaims", reflect.TypeOf((*MockAuth)(nil).CreateUserClaims), user)
-}
-
-// GenerateToken mocks base method.
-func (m *MockAuth) GenerateToken(claims jwt.Claims) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateToken", claims)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GenerateToken indicates an expected call of GenerateToken.
-func (mr *MockAuthMockRecorder) GenerateToken(claims any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateToken", reflect.TypeOf((*MockAuth)(nil).GenerateToken), claims)
-}
-
-// ValidateToken mocks base method.
-func (m *MockAuth) ValidateToken(tokenStr string) (auth.Claims, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateToken", tokenStr)
-	ret0, _ := ret[0].(auth.Claims)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ValidateToken indicates an expected call of ValidateToken.
-func (mr *MockAuthMockRecorder) ValidateToken(tokenStr any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateToken", reflect.TypeOf((*MockAuth)(nil).ValidateToken), tokenStr)
-}
 
 // MockGoogleTokenValidator is a mock of GoogleTokenValidator interface.
 type MockGoogleTokenValidator struct {
@@ -151,6 +83,21 @@ func (m *MockUserFacade) EXPECT() *MockUserFacadeMockRecorder {
 	return m.recorder
 }
 
+// CreateTokens mocks base method.
+func (m *MockUserFacade) CreateTokens(ctx context.Context, user model.User) (facade.TokenPair, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTokens", ctx, user)
+	ret0, _ := ret[0].(facade.TokenPair)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTokens indicates an expected call of CreateTokens.
+func (mr *MockUserFacadeMockRecorder) CreateTokens(ctx, user any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTokens", reflect.TypeOf((*MockUserFacade)(nil).CreateTokens), ctx, user)
+}
+
 // DeleteUser mocks base method.
 func (m *MockUserFacade) DeleteUser(ctx context.Context, userID string) error {
 	m.ctrl.T.Helper()
@@ -180,6 +127,21 @@ func (mr *MockUserFacadeMockRecorder) GoogleOAuth(ctx, oauthID, email any) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GoogleOAuth", reflect.TypeOf((*MockUserFacade)(nil).GoogleOAuth), ctx, oauthID, email)
 }
 
+// RefreshTokens mocks base method.
+func (m *MockUserFacade) RefreshTokens(ctx context.Context, refreshTokenStr string) (facade.TokenPair, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshTokens", ctx, refreshTokenStr)
+	ret0, _ := ret[0].(facade.TokenPair)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RefreshTokens indicates an expected call of RefreshTokens.
+func (mr *MockUserFacadeMockRecorder) RefreshTokens(ctx, refreshTokenStr any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshTokens", reflect.TypeOf((*MockUserFacade)(nil).RefreshTokens), ctx, refreshTokenStr)
+}
+
 // ResendVerificationEmail mocks base method.
 func (m *MockUserFacade) ResendVerificationEmail(ctx context.Context, userID string) error {
 	m.ctrl.T.Helper()
@@ -192,6 +154,20 @@ func (m *MockUserFacade) ResendVerificationEmail(ctx context.Context, userID str
 func (mr *MockUserFacadeMockRecorder) ResendVerificationEmail(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResendVerificationEmail", reflect.TypeOf((*MockUserFacade)(nil).ResendVerificationEmail), ctx, userID)
+}
+
+// RevokeRefreshToken mocks base method.
+func (m *MockUserFacade) RevokeRefreshToken(ctx context.Context, refreshTokenStr string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeRefreshToken", ctx, refreshTokenStr)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RevokeRefreshToken indicates an expected call of RevokeRefreshToken.
+func (mr *MockUserFacadeMockRecorder) RevokeRefreshToken(ctx, refreshTokenStr any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeRefreshToken", reflect.TypeOf((*MockUserFacade)(nil).RevokeRefreshToken), ctx, refreshTokenStr)
 }
 
 // SignIn mocks base method.
@@ -237,6 +213,21 @@ func (m *MockUserFacade) UpdateUserProfile(ctx context.Context, userID string, p
 func (mr *MockUserFacadeMockRecorder) UpdateUserProfile(ctx, userID, params any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserProfile", reflect.TypeOf((*MockUserFacade)(nil).UpdateUserProfile), ctx, userID, params)
+}
+
+// ValidateAccessToken mocks base method.
+func (m *MockUserFacade) ValidateAccessToken(tokenStr string) (auth.Claims, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateAccessToken", tokenStr)
+	ret0, _ := ret[0].(auth.Claims)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateAccessToken indicates an expected call of ValidateAccessToken.
+func (mr *MockUserFacadeMockRecorder) ValidateAccessToken(tokenStr any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateAccessToken", reflect.TypeOf((*MockUserFacade)(nil).ValidateAccessToken), tokenStr)
 }
 
 // VerifyEmail mocks base method.

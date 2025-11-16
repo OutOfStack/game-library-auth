@@ -7,13 +7,13 @@ import (
 	"log"
 	_ "net/http/pprof"
 
+	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	auth_ "github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/client/resendapi"
 	store "github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/handlers"
 	"github.com/OutOfStack/game-library-auth/internal/server"
-	conf "github.com/OutOfStack/game-library-auth/pkg/config"
 	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	zaplog "github.com/OutOfStack/game-library-auth/pkg/log"
@@ -22,7 +22,7 @@ import (
 )
 
 // @title Game library auth API
-// @version 0.3
+// @version 0.4
 // @description API for game library auth service
 // @termsOfService http://swagger.io/terms/
 
@@ -37,13 +37,13 @@ func main() {
 }
 
 func run() error {
-	cfg, err := conf.Load()
+	cfg, err := appconf.Get()
 	if err != nil {
 		log.Fatalf("can't parse config: %v", err)
 	}
 
 	// init logger
-	logger := zaplog.New(cfg)
+	logger := zaplog.New(cfg.Log.Level, cfg.Graylog.Address)
 	defer func() {
 		if err = logger.Sync(); err != nil {
 			logger.Error("can't sync logger", zap.Error(err))
@@ -90,7 +90,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("read private key file: %w", err)
 	}
-	auth, err := auth_.New(cfg.Auth.SigningAlgorithm, privateKey, cfg.Auth.Issuer)
+	auth, err := auth_.New(cfg.Auth.SigningAlgorithm, privateKey, cfg.Auth.Issuer, cfg.Auth.AccessTokenTTL, cfg.Auth.RefreshTokenTTL)
 	if err != nil {
 		return fmt.Errorf("create token service instance: %w", err)
 	}
@@ -99,10 +99,15 @@ func run() error {
 	unsubscribeTokenGenerator := auth_.NewUnsubscribeTokenGenerator([]byte(cfg.EmailSender.UnsubscribeSecret))
 
 	// create user facade
-	userFacade := facade.New(logger, userRepo, emailSender, unsubscribeTokenGenerator)
+	userFacade := facade.New(logger, userRepo, emailSender, auth, unsubscribeTokenGenerator)
 
 	// auth api
-	authAPI, err := handlers.NewAuthAPI(logger, &cfg, auth, googleTokenValidator, userFacade)
+	authAPI, err := handlers.NewAuthAPI(logger, googleTokenValidator, userFacade, handlers.AuthAPICfg{
+		RefreshTokenCookieSameSite: cfg.Web.RefreshCookieSameSite,
+		RefreshTokenCookieSecure:   cfg.Web.RefreshCookieSecure,
+		GoogleOAuthClientID:        cfg.Auth.GoogleClientID,
+		ContactEmail:               cfg.EmailSender.ContactEmail,
+	})
 	if err != nil {
 		return fmt.Errorf("create auth api: %w", err)
 	}

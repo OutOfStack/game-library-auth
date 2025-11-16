@@ -61,15 +61,19 @@ func (a *AuthAPI) SignInHandler(c *fiber.Ctx) error {
 		}
 	}
 
-	// issue jwt token
-	claims := a.auth.CreateUserClaims(user)
-	tokenStr, err := a.auth.GenerateToken(claims)
+	// create tokens
+	tokens, err := a.userFacade.CreateTokens(ctx, user)
 	if err != nil {
-		log.Error("generating jwt", zap.Error(err))
+		log.Error("creating tokens", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})
 	}
 
-	return c.JSON(TokenResp{AccessToken: tokenStr})
+	// set refresh token as a cookie
+	a.setRefreshTokenCookie(c, tokens.RefreshToken)
+
+	return c.JSON(TokenResp{
+		AccessToken: tokens.AccessToken,
+	})
 }

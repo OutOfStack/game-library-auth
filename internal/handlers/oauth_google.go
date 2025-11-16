@@ -63,23 +63,26 @@ func (a *AuthAPI) GoogleOAuthHandler(c *fiber.Ctx) error {
 		}
 	}
 
-	// issue jwt token
-	jwtClaims := a.auth.CreateUserClaims(user)
-	tokenStr, err := a.auth.GenerateToken(jwtClaims)
+	// create tokens
+	tokens, err := a.userFacade.CreateTokens(ctx, user)
 	if err != nil {
+		a.log.Error("creating tokens", zap.Error(err))
 		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
 			Error: internalErrorMsg,
 		})
 	}
 
+	// set refresh token a cookie
+	a.setRefreshTokenCookie(c, tokens.RefreshToken)
+
 	return c.JSON(TokenResp{
-		AccessToken: tokenStr,
+		AccessToken: tokens.AccessToken,
 	})
 }
 
 // verifyGoogleIDToken verifies Google ID token and returns claims
 func (a *AuthAPI) verifyGoogleIDToken(ctx context.Context, token string) (*googleIDTokenClaims, error) {
-	payload, err := a.googleTokenValidator.Validate(ctx, token, a.googleOAuthClientID)
+	payload, err := a.googleTokenValidator.Validate(ctx, token, a.cfg.GoogleOAuthClientID)
 	if err != nil {
 		return nil, fmt.Errorf("validate google token: %w", err)
 	}

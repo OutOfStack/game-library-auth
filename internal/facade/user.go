@@ -12,6 +12,20 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// errors
+var (
+	ErrInvalidEmail                 = errors.New("invalid email")
+	ErrOAuthSignInConflict          = errors.New("oauth sign in name conflict")
+	ErrUpdateProfileUserNotFound    = errors.New("update profile: user not found")
+	ErrUpdateProfileInvalidPassword = errors.New("update profile: invalid current password")
+	ErrUpdateProfileNotAllowed      = errors.New("update profile: password change not allowed for oauth users")
+	ErrSignInInvalidCredentials     = errors.New("sign in: invalid credentials")
+	ErrSignUpUsernameExists         = errors.New("sign up: username already exists")
+	ErrSignUpEmailExists            = errors.New("sign up: email already exists")
+	ErrSignUpEmailRequired          = errors.New("sign up: email is required")
+	ErrSignUpPublisherNameExists    = errors.New("sign up: publisher name already exists")
+)
+
 // SignUp creates a new user with provided params and sends verification email if applicable
 func (p *Provider) SignUp(ctx context.Context, username, displayName, email, password string, isPublisher bool) (model.User, error) {
 	// check if user exists
@@ -67,12 +81,17 @@ func (p *Provider) SignUp(ctx context.Context, username, displayName, email, pas
 		// send verification email only for publishers
 		if isPublisher {
 			if err = p.sendVerificationEmail(ctx, user.ID, user.Email.String, user.Username); err != nil {
-				if !errors.Is(err, ErrSendVerifyEmailUnsubscribed) {
+				switch {
+				case errors.Is(err, ErrSendVerifyEmailUnsubscribed):
+					// ignore 'user unsubscribed' error as emails are unique and this situation should not happen
+					p.log.Warn("user is unsubscribed", zap.String("email", user.Email.String))
+				case AsTooManyRequestsError(err) != nil:
+					// ignore 'too many requests' error as emails are unique and this situation should not happen
+					p.log.Warn("vrf code is requested too many times", zap.String("email", user.Email.String))
+				default:
 					p.log.Error("send verification email on signup", zap.Error(err))
 					return err
 				}
-				// ignore 'user unsubscribed' error as emails are unique and this situation should not happen
-				p.log.Warn("user is unsubscribed", zap.String("email", user.Email.String))
 			}
 		}
 		return nil
@@ -104,12 +123,17 @@ func (p *Provider) SignIn(ctx context.Context, username, password string) (model
 	// send verification code to email if publisher has unverified email
 	if !user.EmailVerified && user.Role == model.PublisherRoleName {
 		if err = p.sendVerificationEmail(ctx, user.ID, user.Email.String, user.Username); err != nil {
-			if !errors.Is(err, ErrSendVerifyEmailUnsubscribed) {
+			switch {
+			case errors.Is(err, ErrSendVerifyEmailUnsubscribed):
+				// ignore 'user unsubscribed' error as such error will be displayed on resend email attempt
+				p.log.Warn("user is unsubscribed", zap.String("email", user.Email.String))
+			case AsTooManyRequestsError(err) != nil:
+				// ignore 'too many requests' error as user should already have vrf code sent to them
+				p.log.Warn("vrf code is requested too many times", zap.String("email", user.Email.String))
+			default:
 				p.log.Error("sending verification email on sign in", zap.Error(err))
 				return model.User{}, err
 			}
-			// ignore 'user unsubscribed' error as such error will be display on resend email attempt
-			p.log.Warn("user is unsubscribed", zap.String("email", user.Email.String))
 		}
 	}
 
@@ -186,6 +210,13 @@ func (p *Provider) UpdateUserProfile(ctx context.Context, userID string, params 
 		// update name if provided
 		if params.Name != nil {
 			user.DisplayName = *params.Name
+		}
+		if params.Password != nil {
+			err = p.userRepo.DeleteRefreshTokensByUserID(ctx, userID)
+			if err != nil {
+				p.log.Error("delete refresh tokens", zap.String("userID", userID), zap.Error(err))
+				return err
+			}
 		}
 
 		// update user info

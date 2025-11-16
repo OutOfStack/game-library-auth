@@ -25,7 +25,7 @@ import (
 var tracer = otel.Tracer("api")
 
 // Service creates and configures auth app
-func Service(authAPI *AuthAPI, checkAPI *CheckAPI, unsubscribeAPI *UnsubscribeAPI, cfg appconf.Cfg) (*fiber.App, error) {
+func Service(authAPI *AuthAPI, checkAPI *CheckAPI, unsubscribeAPI *UnsubscribeAPI, cfg *appconf.Cfg) (*fiber.App, error) {
 	err := initTracer(cfg.Zipkin.ReporterURL)
 	if err != nil {
 		return nil, fmt.Errorf("init exporter: %w", err)
@@ -46,9 +46,10 @@ func Service(authAPI *AuthAPI, checkAPI *CheckAPI, unsubscribeAPI *UnsubscribeAP
 	app.Use(otelfiber.Middleware(otelfiber.WithServerName(appconf.ServiceName)))
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: cfg.Web.AllowedCORSOrigin,
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-		AllowMethods: "GET,POST,DELETE,PATCH,OPTIONS",
+		AllowOrigins:     cfg.Web.AllowedCORSOrigin,
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET,POST,DELETE,PATCH,OPTIONS",
+		AllowCredentials: true,
 	}))
 
 	registerRoutes(app, authAPI, checkAPI, unsubscribeAPI)
@@ -90,6 +91,8 @@ func registerRoutes(app *fiber.App, authAPI *AuthAPI, checkAPI *CheckAPI, unsubs
 
 	// token
 	app.Post("/token/verify", authAPI.VerifyTokenHandler)
+	app.Post("/refresh", authAPI.RefreshTokenHandler)
+	app.Post("/logout", authAPI.LogoutHandler)
 
 	// swagger
 	app.Get("/swagger/*", adaptor.HTTPHandler(swag.Handler()))

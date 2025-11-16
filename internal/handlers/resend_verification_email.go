@@ -37,6 +37,7 @@ func (a *AuthAPI) ResendVerificationEmailHandler(c *fiber.Ctx) error {
 
 	// resend verification email
 	if err = a.userFacade.ResendVerificationEmail(ctx, claims.UserID); err != nil {
+		var tooManyRequestErr *facade.TooManyRequestsError
 		switch {
 		case errors.Is(err, facade.ErrVerifyEmailAlreadyVerified):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
@@ -46,13 +47,14 @@ func (a *AuthAPI) ResendVerificationEmailHandler(c *fiber.Ctx) error {
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 				Error: "User does not have an email address",
 			})
-		case errors.Is(err, facade.ErrTooManyRequests):
+		case errors.As(err, &tooManyRequestErr):
+			c.Set("Retry-After", fmt.Sprintf("%.0f", tooManyRequestErr.RetryAfter.Seconds()))
 			return c.Status(http.StatusTooManyRequests).JSON(web.ErrResp{
 				Error: "Please wait before requesting another code",
 			})
 		case errors.Is(err, facade.ErrSendVerifyEmailUnsubscribed):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
-				Error: fmt.Sprintf("User is unsubscribed. You may contact us at mailto:%s to resubscribe", a.contactEmail),
+				Error: fmt.Sprintf("User is unsubscribed. You may contact us at mailto:%s to resubscribe", a.cfg.ContactEmail),
 			})
 		default:
 			a.log.Error("resend verification", zap.Error(err))

@@ -18,11 +18,10 @@ const (
 )
 
 func setupTest(t *testing.T, cfg *appconf.Cfg) (
-	*mocks.MockAuth, *mocks.MockGoogleTokenValidator, *handlers.AuthAPI, *mocks.MockUserFacade, *fiber.App, *gomock.Controller) {
+	*mocks.MockGoogleTokenValidator, *handlers.AuthAPI, *mocks.MockUserFacade, *fiber.App, *gomock.Controller) {
 	t.Helper()
 
 	ctrl := gomock.NewController(t)
-	mockAuth := mocks.NewMockAuth(ctrl)
 	mockGoogleTokenValidator := mocks.NewMockGoogleTokenValidator(ctrl)
 	mockUserFacade := mocks.NewMockUserFacade(ctrl)
 
@@ -32,10 +31,23 @@ func setupTest(t *testing.T, cfg *appconf.Cfg) (
 			Auth: appconf.Auth{
 				GoogleClientID: "test-client-id",
 			},
+			EmailSender: appconf.EmailSender{
+				ContactEmail: "contact@example.com",
+			},
+			Web: appconf.Web{
+				RefreshCookieSameSite: "strict",
+				RefreshCookieSecure:   true,
+			},
 		}
 	}
-	authAPI, err := handlers.NewAuthAPI(logger, cfg, mockAuth, mockGoogleTokenValidator, mockUserFacade)
+	authAPICfg := handlers.AuthAPICfg{
+		GoogleOAuthClientID:        cfg.Auth.GoogleClientID,
+		ContactEmail:               cfg.EmailSender.ContactEmail,
+		RefreshTokenCookieSameSite: cfg.Web.RefreshCookieSameSite,
+		RefreshTokenCookieSecure:   cfg.Web.RefreshCookieSecure,
+	}
+	authAPI, err := handlers.NewAuthAPI(logger, mockGoogleTokenValidator, mockUserFacade, authAPICfg)
 	require.NoError(t, err)
 
-	return mockAuth, mockGoogleTokenValidator, authAPI, mockUserFacade, fiber.New(), ctrl
+	return mockGoogleTokenValidator, authAPI, mockUserFacade, fiber.New(), ctrl
 }

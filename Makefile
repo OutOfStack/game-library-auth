@@ -26,52 +26,32 @@ test:
 cover:
 	go test -cover -coverpkg=./... -coverprofile=coverage.out ./... && go tool cover -func=coverage.out
 
-SWAG_PKG := github.com/swaggo/swag/cmd/swag@v1.16.6
-SWAG_BIN := $(shell go env GOPATH)/bin/swag
+SWAG_VERSION := v1.16
+SWAG_PKG := github.com/swaggo/swag/cmd/swag@$(SWAG_VERSION)
 generate-swag:
-	@if \[ ! -f ${SWAG_BIN} \]; then \
-		echo "Installing swag..."; \
-    	go install ${SWAG_PKG}; \
-  	fi
-	@if \[ -f ${SWAG_BIN} \]; then \
-  		echo "Found swag at '$(SWAG_BIN)', generating documentation..."; \
-	else \
-    	echo "swag not found or the file does not exist"; \
-    	exit 1; \
-  	fi
-	${SWAG_BIN} init \
+	@swag --version >/dev/null 2>&1 || { echo "Installing swag..."; go install ${SWAG_PKG}; }
+	@echo "Found swag, generating documentation..."
+	swag init \
 	-d cmd/game-library-auth,internal/handlers,internal/web
 
-MOCKGEN_PKG := go.uber.org/mock/mockgen@v0.6
-MOCKGEN_BIN := $(shell go env GOPATH)/bin/mockgen
+MOCKGEN_VERSION := v0.6
+MOCKGEN_PKG := go.uber.org/mock/mockgen@$(MOCKGEN_VERSION)
 generate-mocks:
-	@if \[ ! -f ${MOCKGEN_BIN} \]; then \
-		echo "Installing mockgen..."; \
-		go install ${MOCKGEN_PKG}; \
-	fi
-	@if \[ -f ${MOCKGEN_BIN} \]; then \
-		echo "Found mockgen at '$(MOCKGEN_BIN)', generating mocks..."; \
-	else \
-		echo "mockgen not found or the file does not exist"; \
-		exit 1; \
-  	fi
-	${MOCKGEN_BIN} -source=internal/handlers/auth.go -destination=internal/handlers/mocks/auth.go -package=handlers_mocks
-	${MOCKGEN_BIN} -source=internal/handlers/unsubscribe.go -destination=internal/handlers/mocks/unsubscribe.go -package=handlers_mocks
-	${MOCKGEN_BIN} -source=internal/facade/provider.go -destination=internal/facade/mocks/provider.go -package=facade_mocks
-	${MOCKGEN_BIN} -source=pkg/database/tx.go -destination=pkg/database/mocks/tx.go -package=database_mocks
+	@mockgen -version >/dev/null 2>&1 || { echo "Installing mockgen..."; go install ${MOCKGEN_PKG}; }
+	@echo "Found mockgen, generating mocks..."
+	mockgen -source=internal/handlers/auth.go -destination=internal/handlers/mocks/auth.go -package=handlers_mocks
+	mockgen -source=internal/handlers/unsubscribe.go -destination=internal/handlers/mocks/unsubscribe.go -package=handlers_mocks
+	mockgen -source=internal/facade/provider.go -destination=internal/facade/mocks/provider.go -package=facade_mocks
+	mockgen -source=pkg/database/tx.go -destination=pkg/database/mocks/tx.go -package=database_mocks
 
 generate: generate-swag generate-mocks
 
-LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5
-LINT_BIN := $(shell command -v golangci-lint 2>/dev/null || echo $(shell go env GOPATH)/bin/golangci-lint)
+LINT_VERSION := v2.6
+LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(LINT_VERSION)
 lint:
-	@if [ ! -f ${LINT_BIN} ]; then \
-		echo "Installing golangci-lint..."; \
-    	go install ${LINT_PKG}; \
-		LINT_BIN=$(shell go env GOPATH)/bin/golangci-lint; \
-  	fi
-	@echo "Found golangci-lint at '$(LINT_BIN)', running..."; \
-	${LINT_BIN} run
+	@golangci-lint version >/dev/null 2>&1 || { echo "Installing golangci-lint..."; go install ${LINT_PKG}; }
+	@echo "Found golangci-lint, running..."
+	golangci-lint run
 
 ### Manage service
 # apply all migrations

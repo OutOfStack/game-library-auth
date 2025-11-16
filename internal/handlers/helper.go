@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
+	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
@@ -24,7 +25,7 @@ func (a *AuthAPI) getClaims(c *fiber.Ctx) (auth.Claims, error) {
 	}
 
 	tokenStr := parts[1]
-	claims, err := a.auth.ValidateToken(tokenStr)
+	claims, err := a.userFacade.ValidateAccessToken(tokenStr)
 	if err != nil {
 		return auth.Claims{}, fmt.Errorf("invalid or expired token: %w", err)
 	}
@@ -44,4 +45,17 @@ func (a *AuthAPI) getUserIDFromJWT(c *fiber.Ctx) (string, error) {
 	}
 
 	return claims.UserID, nil
+}
+
+// setRefreshTokenCookie sets the refresh token as an httpOnly cookie
+func (a *AuthAPI) setRefreshTokenCookie(c *fiber.Ctx, refreshToken facade.RefreshToken) {
+	c.Cookie(&fiber.Cookie{
+		Name:     refreshTokenCookieName,
+		Value:    refreshToken.Token,
+		Path:     "/",
+		HTTPOnly: true,
+		Secure:   a.cfg.RefreshTokenCookieSecure,
+		SameSite: a.cfg.RefreshTokenCookieSameSite,
+		Expires:  refreshToken.ExpiresAt,
+	})
 }

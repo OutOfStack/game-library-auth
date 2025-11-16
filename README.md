@@ -23,7 +23,9 @@ This service is part of a game-library web application:
 
 ## Installation
 
-Prerequisites: `go`, `Docker`, `Make`. To set up the service, follow these steps:
+Prerequisites:  [`go`](https://go.dev/doc/install), [`Docker`](https://docs.docker.com/desktop/), [`Make`](https://www.gnu.org/software/make/). 
+
+To set up the service, follow these steps:
 
 1. Clone the repository:
    ```bash
@@ -42,12 +44,12 @@ Prerequisites: `go`, `Docker`, `Make`. To set up the service, follow these steps
    make keygen # creates private/public key pair files
    ```
 
-4. Create the `app.env` file based on [app.example.env](./app.example.env) and update it with your local configuration settings.
+4. Create the `app.env` file based on [`app.example.env`](./app.example.env) and update it with your local configuration settings.
 
-5. Get Google API Client ID for Google OAuth and set it in [app.env](./app.env):
+5. Get Google API Client ID for Google OAuth and set it in `app.env`:
    https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid
 
-6. Get Resend API key and set it along with the sender details in [app.env](./app.env):
+6. Get Resend API key and set it along with the sender details in `app.env`:
     https://resend.com/api-keys
 
 7. Build and run the service:
@@ -79,9 +81,9 @@ Refer to the [List of Make Commands](#list-of-make-commands) for a complete list
 
 ## Configuration
 
-- The service can be configured using [app.env](./app.env) or environment variables, described in [settings.go](./internal/appconf/settings.go)
-- CI/CD configs are in [./github/workflows/](./.github/workflows/)
-- k8s deployment configs are in [./k8s](./.k8s/)
+- The service can be configured using `app.env` or environment variables, described in [`settings.go`](./internal/appconf/settings.go)
+- CI/CD configs are in [`./github/workflows/`](./.github/workflows/)
+- k8s deployment configs are in [`./k8s`](./.k8s/)
 
 ## Documentation
 
