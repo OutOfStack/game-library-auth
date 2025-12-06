@@ -11,6 +11,9 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+// ErrInvalidToken represents error when token is invalid or expired
+var ErrInvalidToken = errors.New("invalid or expired token")
+
 // Auth represents dependencies for auth methods
 type Auth struct {
 	algorithm       string
@@ -59,8 +62,8 @@ func (a *Auth) GenerateToken(claims jwt.Claims) (string, error) {
 	return tokenStr, nil
 }
 
-// ValidateToken validates token and returns claims from it
-func (a *Auth) ValidateToken(tokenStr string) (Claims, error) {
+// GetClaimsFromToken validates token and returns claims from it
+func (a *Auth) GetClaimsFromToken(tokenStr string) (Claims, error) {
 	var claims Claims
 	token, err := a.parser.ParseWithClaims(tokenStr, &claims, a.keyFunc)
 	if err != nil {
@@ -68,12 +71,11 @@ func (a *Auth) ValidateToken(tokenStr string) (Claims, error) {
 	}
 
 	if !token.Valid {
-		return Claims{}, errors.New("invalid token")
+		return Claims{}, ErrInvalidToken
 	}
 
-	active := claims.VerifyExpiresAt(time.Now(), true)
-	if !active {
-		return Claims{}, errors.New("token expired")
+	if !claims.VerifyExpiresAt(time.Now(), true) {
+		return Claims{}, ErrInvalidToken
 	}
 
 	return claims, nil

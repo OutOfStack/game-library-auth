@@ -112,6 +112,21 @@ func (mr *MockUserFacadeMockRecorder) DeleteUser(ctx, userID any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockUserFacade)(nil).DeleteUser), ctx, userID)
 }
 
+// GetClaimsFromAccessToken mocks base method.
+func (m *MockUserFacade) GetClaimsFromAccessToken(tokenStr string) (auth.Claims, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClaimsFromAccessToken", tokenStr)
+	ret0, _ := ret[0].(auth.Claims)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClaimsFromAccessToken indicates an expected call of GetClaimsFromAccessToken.
+func (mr *MockUserFacadeMockRecorder) GetClaimsFromAccessToken(tokenStr any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClaimsFromAccessToken", reflect.TypeOf((*MockUserFacade)(nil).GetClaimsFromAccessToken), tokenStr)
+}
+
 // GoogleOAuth mocks base method.
 func (m *MockUserFacade) GoogleOAuth(ctx context.Context, oauthID, email string) (model.User, error) {
 	m.ctrl.T.Helper()
@@ -216,12 +231,11 @@ func (mr *MockUserFacadeMockRecorder) UpdateUserProfile(ctx, userID, params any)
 }
 
 // ValidateAccessToken mocks base method.
-func (m *MockUserFacade) ValidateAccessToken(tokenStr string) (auth.Claims, error) {
+func (m *MockUserFacade) ValidateAccessToken(tokenStr string) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateAccessToken", tokenStr)
-	ret0, _ := ret[0].(auth.Claims)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(bool)
+	return ret0
 }
 
 // ValidateAccessToken indicates an expected call of ValidateAccessToken.

@@ -25,7 +25,7 @@ func (a *AuthAPI) getClaims(c *fiber.Ctx) (auth.Claims, error) {
 	}
 
 	tokenStr := parts[1]
-	claims, err := a.userFacade.ValidateAccessToken(tokenStr)
+	claims, err := a.userFacade.GetClaimsFromAccessToken(tokenStr)
 	if err != nil {
 		return auth.Claims{}, fmt.Errorf("invalid or expired token: %w", err)
 	}

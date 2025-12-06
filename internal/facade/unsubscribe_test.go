@@ -1,7 +1,6 @@
 package facade_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -11,10 +10,10 @@ import (
 )
 
 func TestProvider_UnsubscribeEmail_Success(t *testing.T) {
-	provider, mockUserRepo, _, _, ctrl := setupTest(t)
+	provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 	defer ctrl.Finish()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	email := "test@example.com"
 	expiresAt := time.Now().Add(24 * time.Hour)
@@ -36,10 +35,10 @@ func TestProvider_UnsubscribeEmail_Success(t *testing.T) {
 }
 
 func TestProvider_UnsubscribeEmail_InvalidToken(t *testing.T) {
-	provider, _, _, _, ctrl := setupTest(t) //nolint
+	provider, _, _, _, _, ctrl := setupTest(t)
 	defer ctrl.Finish()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	invalidToken := "invalid-token"
 
@@ -50,10 +49,10 @@ func TestProvider_UnsubscribeEmail_InvalidToken(t *testing.T) {
 }
 
 func TestProvider_UnsubscribeEmail_ExpiredToken(t *testing.T) {
-	provider, _, _, _, ctrl := setupTest(t) //nolint
+	provider, _, _, _, _, ctrl := setupTest(t)
 	defer ctrl.Finish()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	email := "test@example.com"
 	expiresAt := time.Now().Add(-1 * time.Hour) // Expired token
@@ -67,10 +66,10 @@ func TestProvider_UnsubscribeEmail_ExpiredToken(t *testing.T) {
 }
 
 func TestProvider_UnsubscribeEmail_CreateUnsubscribeFails(t *testing.T) {
-	provider, mockUserRepo, _, _, ctrl := setupTest(t)
+	provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 	defer ctrl.Finish()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	email := "test@example.com"
 	expiresAt := time.Now().Add(24 * time.Hour)

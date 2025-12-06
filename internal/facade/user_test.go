@@ -3,21 +3,22 @@ package facade_test
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"testing"
 
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func TestProvider_GoogleOAuth(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("existing user with oauth", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		expectedUser := database.User{
@@ -33,16 +34,12 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 
 		result, err := provider.GoogleOAuth(ctx, "oauth-123", "test@example.com")
 
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
-		if result.ID != expectedUser.ID {
-			t.Errorf("expected user ID %s, got %s", expectedUser.ID, result.ID)
-		}
+		require.NoError(t, err)
+		assert.Equal(t, expectedUser.ID, result.ID)
 	})
 
 	t.Run("new user creation", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -55,16 +52,12 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 
 		result, err := provider.GoogleOAuth(ctx, "oauth-123", "newuser@example.com")
 
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
-		if result.Username != "newuser" {
-			t.Errorf("expected username newuser, got %s", result.Username)
-		}
+		require.NoError(t, err)
+		assert.Equal(t, "newuser", result.Username)
 	})
 
 	t.Run("invalid email", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -73,13 +66,11 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 
 		_, err := provider.GoogleOAuth(ctx, "oauth-123", "invalid-email")
 
-		if !errors.Is(err, facade.ErrInvalidEmail) {
-			t.Errorf("expected ErrInvalidEmail, got %v", err)
-		}
+		assert.ErrorIs(t, err, facade.ErrInvalidEmail)
 	})
 
 	t.Run("username conflict on creation", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -92,17 +83,15 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 
 		_, err := provider.GoogleOAuth(ctx, "oauth-123", "existing@example.com")
 
-		if !errors.Is(err, facade.ErrOAuthSignInConflict) {
-			t.Errorf("expected ErrOAuthSignInConflict, got %v", err)
-		}
+		assert.ErrorIs(t, err, facade.ErrOAuthSignInConflict)
 	})
 }
 
 func TestProvider_UpdateUserProfile(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("update name only", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		existingUser := database.User{
@@ -134,16 +123,12 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 
 		result, err := provider.UpdateUserProfile(ctx, "user-123", params)
 
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
-		if result.DisplayName != "New Name" {
-			t.Errorf("expected display name 'New Name', got %s", result.DisplayName)
-		}
+		require.NoError(t, err)
+		assert.Equal(t, "New Name", result.DisplayName)
 	})
 
 	t.Run("update password", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		oldPassword := "oldpass"
@@ -182,13 +167,11 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 
 		_, err := provider.UpdateUserProfile(ctx, "user-123", params)
 
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
+		require.NoError(t, err)
 	})
 
 	t.Run("user not found", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -204,13 +187,11 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 		params := model.UpdateProfileParams{}
 		_, err := provider.UpdateUserProfile(ctx, "nonexistent", params)
 
-		if !errors.Is(err, facade.ErrUpdateProfileUserNotFound) {
-			t.Errorf("expected ErrUpdateProfileUserNotFound, got %v", err)
-		}
+		assert.ErrorIs(t, err, facade.ErrUpdateProfileUserNotFound)
 	})
 
 	t.Run("password change not allowed for oauth users", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		existingUser := database.User{
@@ -239,13 +220,11 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 
 		_, err := provider.UpdateUserProfile(ctx, "user-123", params)
 
-		if !errors.Is(err, facade.ErrUpdateProfileNotAllowed) {
-			t.Errorf("expected ErrUpdateProfileNotAllowed, got %v", err)
-		}
+		assert.ErrorIs(t, err, facade.ErrUpdateProfileNotAllowed)
 	})
 
 	t.Run("invalid current password", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		wrongPassword := "wrongpass"
@@ -276,17 +255,15 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 
 		_, err := provider.UpdateUserProfile(ctx, "user-123", params)
 
-		if !errors.Is(err, facade.ErrUpdateProfileInvalidPassword) {
-			t.Errorf("expected ErrUpdateProfileInvalidPassword, got %v", err)
-		}
+		assert.ErrorIs(t, err, facade.ErrUpdateProfileInvalidPassword)
 	})
 }
 
 func TestProvider_DeleteUser(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("successful deletion", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -295,13 +272,11 @@ func TestProvider_DeleteUser(t *testing.T) {
 
 		err := provider.DeleteUser(ctx, "user-123")
 
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
+		require.NoError(t, err)
 	})
 
 	t.Run("deletion failure", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		expectedErr := database.ErrNotFound
@@ -312,17 +287,15 @@ func TestProvider_DeleteUser(t *testing.T) {
 
 		err := provider.DeleteUser(ctx, "nonexistent")
 
-		if err != expectedErr {
-			t.Fatalf("expected %v, got %v", expectedErr, err)
-		}
+		assert.Equal(t, expectedErr, err)
 	})
 }
 
 func TestProvider_SignIn(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("successful sign in", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		password := "testpass"
@@ -341,16 +314,12 @@ func TestProvider_SignIn(t *testing.T) {
 
 		result, err := provider.SignIn(ctx, "testuser", password)
 
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
-		if result.Username != "testuser" {
-			t.Errorf("expected username testuser, got %s", result.Username)
-		}
+		require.NoError(t, err)
+		assert.Equal(t, "testuser", result.Username)
 	})
 
 	t.Run("user not found", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -359,13 +328,11 @@ func TestProvider_SignIn(t *testing.T) {
 
 		_, err := provider.SignIn(ctx, "nonexistent", "password")
 
-		if !errors.Is(err, facade.ErrSignInInvalidCredentials) {
-			t.Errorf("expected ErrSignInInvalidCredentials, got %v", err)
-		}
+		assert.ErrorIs(t, err, facade.ErrSignInInvalidCredentials)
 	})
 
 	t.Run("invalid password", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		correctPassword := "correctpass"
@@ -384,17 +351,15 @@ func TestProvider_SignIn(t *testing.T) {
 
 		_, err := provider.SignIn(ctx, "testuser", "wrongpass")
 
-		if !errors.Is(err, facade.ErrSignInInvalidCredentials) {
-			t.Errorf("expected ErrSignInInvalidCredentials, got %v", err)
-		}
+		assert.ErrorIs(t, err, facade.ErrSignInInvalidCredentials)
 	})
 }
 
 func TestProvider_SignUp(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("successful user signup", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -415,22 +380,14 @@ func TestProvider_SignUp(t *testing.T) {
 
 		result, err := provider.SignUp(ctx, "newuser", "New User", "", "password", false)
 
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
-		if result.Username != "newuser" {
-			t.Errorf("expected username newuser, got %s", result.Username)
-		}
-		if result.Role != string(model.UserRoleName) {
-			t.Errorf("expected role %s, got %s", model.UserRoleName, result.Role)
-		}
-		if result.Email != "" {
-			t.Errorf("expected no email for regular user, got %s", result.Email)
-		}
+		require.NoError(t, err)
+		assert.Equal(t, "newuser", result.Username)
+		assert.Equal(t, string(model.UserRoleName), result.Role)
+		assert.Empty(t, result.Email)
 	})
 
 	t.Run("successful publisher signup", func(t *testing.T) {
-		provider, mockUserRepo, mockEmailSender, _, ctrl := setupTest(t)
+		provider, mockUserRepo, mockEmailSender, _, mockInfoAPIClient, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -439,6 +396,10 @@ func TestProvider_SignUp(t *testing.T) {
 
 		mockUserRepo.EXPECT().
 			CheckUserExists(ctx, "Publisher Name", model.PublisherRoleName).
+			Return(false, nil)
+
+		mockInfoAPIClient.EXPECT().
+			CompanyExists(ctx, "Publisher Name").
 			Return(false, nil)
 
 		mockUserRepo.EXPECT().
@@ -479,19 +440,13 @@ func TestProvider_SignUp(t *testing.T) {
 
 		result, err := provider.SignUp(ctx, "newpublisher", "Publisher Name", "pub@example.com", "password", true)
 
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
-		if result.Role != string(model.PublisherRoleName) {
-			t.Errorf("expected role %s, got %s", model.PublisherRoleName, result.Role)
-		}
-		if result.EmailVerified {
-			t.Error("expected publisher email to not be auto-verified")
-		}
+		require.NoError(t, err)
+		assert.Equal(t, string(model.PublisherRoleName), result.Role)
+		assert.False(t, result.EmailVerified)
 	})
 
 	t.Run("username already exists", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		existingUser := database.User{ID: "existing-123", Username: "existinguser"}
@@ -502,13 +457,11 @@ func TestProvider_SignUp(t *testing.T) {
 
 		_, err := provider.SignUp(ctx, "existinguser", "Display Name", "email@example.com", "password", false)
 
-		if !errors.Is(err, facade.ErrSignUpUsernameExists) {
-			t.Errorf("expected ErrSignUpUsernameExists, got %v", err)
-		}
+		assert.ErrorIs(t, err, facade.ErrSignUpUsernameExists)
 	})
 
 	t.Run("publisher name already exists", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -521,13 +474,11 @@ func TestProvider_SignUp(t *testing.T) {
 
 		_, err := provider.SignUp(ctx, "newpublisher", "Existing Publisher", "pub@example.com", "password", true)
 
-		if !errors.Is(err, facade.ErrSignUpPublisherNameExists) {
-			t.Errorf("expected ErrSignUpPublisherNameExists, got %v", err)
-		}
+		assert.ErrorIs(t, err, facade.ErrSignUpPublisherNameExists)
 	})
 
 	t.Run("signup without email", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -546,11 +497,7 @@ func TestProvider_SignUp(t *testing.T) {
 
 		result, err := provider.SignUp(ctx, "newuser", "New User", "", "password", false)
 
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
-		if result.Email != "" {
-			t.Errorf("expected empty email, got %s", result.Email)
-		}
+		require.NoError(t, err)
+		assert.Empty(t, result.Email)
 	})
 }

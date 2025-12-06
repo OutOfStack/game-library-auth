@@ -111,7 +111,7 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 
 			if tt.authHeader == "Bearer valid-token" {
 				mockUserFacade.EXPECT().
-					ValidateAccessToken("valid-token").
+					GetClaimsFromAccessToken("valid-token").
 					Return(auth.Claims{UserID: userID}, nil).
 					AnyTimes()
 			}

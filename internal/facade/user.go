@@ -38,22 +38,34 @@ func (p *Provider) SignUp(ctx context.Context, username, displayName, email, pas
 	}
 
 	// if publisher, check name uniqueness
-	//nolint:godox
-	// TODO: check if publisher is one of well-known publisher/developer names using game-library api
 	userRole := model.UserRoleName
 	if isPublisher {
+		userRole = model.PublisherRoleName
+
 		// email is required for publishers
 		if email == "" {
 			return model.User{}, ErrSignUpEmailRequired
 		}
-		exists, uErr := p.userRepo.CheckUserExists(ctx, displayName, model.PublisherRoleName)
-		if uErr != nil {
-			p.log.Error("check publisher name exists", zap.String("name", displayName), zap.Error(uErr))
-			return model.User{}, uErr
-		} else if exists {
+
+		// check if publisher name already exists in database
+		companyExists, cErr := p.userRepo.CheckUserExists(ctx, displayName, model.PublisherRoleName)
+		if cErr != nil {
+			p.log.Error("check publisher name exists", zap.String("name", displayName), zap.Error(cErr))
+			return model.User{}, cErr
+		} else if companyExists {
 			return model.User{}, ErrSignUpPublisherNameExists
 		}
-		userRole = model.PublisherRoleName
+
+		// check if publisher is one of well-known companies
+		companyExists, cErr = p.infoAPIClient.CompanyExists(ctx, displayName)
+		if cErr != nil {
+			p.log.Error("check company exists in game library", zap.String("name", displayName), zap.Error(cErr))
+			return model.User{}, cErr
+		}
+		if companyExists {
+			p.log.Warn("attempt to use well-known company name", zap.String("name", displayName))
+			return model.User{}, ErrSignUpPublisherNameExists
+		}
 	}
 
 	// hash password
