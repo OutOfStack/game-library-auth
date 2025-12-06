@@ -65,7 +65,7 @@ Refer to the [List of Make Commands](#list-of-make-commands) for a complete list
 After installation, you can use the following Make commands to develop the service:
 
 - `make test`: Runs tests for the whole project.
-- `make generate`: Generates documentation for Swagger UI.
+- `make generate`: Generates proto files, documentation for Swagger UI and mocks for testing.
 - `make lint`: Runs golangci-lint for code analysis.
 
 Refer to the [List of Make Commands](#list-of-make-commands) for a complete list of commands.
@@ -90,6 +90,27 @@ Refer to the [List of Make Commands](#list-of-make-commands) for a complete list
 API documentation is available via [Swagger UI](http://localhost:8001/swagger/index.html). To generate the documentation, run:
 ```bash
 make generate
+```
+
+### gRPC
+
+The service exposes a gRPC endpoint for internal service-to-service communication.
+
+**Address:** `localhost:9001` (configurable via `APP_GRPC_ADDRESS` in `app.env`)
+
+**Protocol Buffer Schema:** [`api/proto/authapi/v1/authapi.proto`](./api/proto/authapi/v1/authapi.proto)
+
+**Testing with grpcurl:**
+
+```bash
+# list services
+grpcurl -plaintext localhost:9001 list
+
+# Inspect service details
+grpcurl -plaintext localhost:9001 describe authapi.v1.AuthApiService
+
+# Call VerifyToken method
+grpcurl -plaintext -d '{"token": "your-jwt-token-here"}' -emit-defaults localhost:9001 authapi.v1.AuthApiService/VerifyToken
 ```
 
 ## List of Make Commands

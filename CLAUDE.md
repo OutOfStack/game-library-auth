@@ -6,19 +6,29 @@
 ## Code Documentation
 - Write comments for all exported functions and structs
 - Do NOT use periods (`.`) at the end of comments unless there are several sentences
-- Start comments with a lower-case letter unless it's a new sentence, a title or a method/struct name
+- Start comments with a lower-case letter when describing code parts (not methods/structs)
 - Write proper openapi-style specs for handlers.
 
 # Code practices:
 - For introducing config params, add new params to @app.example.env, then to @internal/appconf/settings.go and then to @.k8s/config.yaml
 - After adding new package, run `go mod tidy`
 
+## gRPC
+- Protocol buffer definitions are in @api/proto/*api/v*/*.proto for serviced (server)
+- Protocol buffer definitions for external services (clients) are in @api/proto/*api/v*/*.proto
+- Generated code is placed in @pkg/proto/*api/v*/*.pb.go and should NOT be manually edited
+- Use `buf.yaml` and `buf.gen.yaml` for protocol buffer build configuration
+- After modifying .proto files, run `make generate-proto` to regenerate code
+- The service exposes gRPC on port 9001 (configurable via APP_GRPC_ADDRESS)
+
 ## Testing Requirements
 - Write tests for all exported functions
 - Place tests in separate files using the `*package*_test` naming convention
 - Test files should be in the same directory as the code being tested
-- If test already uses mock or requires updated or new mock, use `make generate` or add new line into `generate` command in `Makefile` file
+- If test already uses mock or requires new or updated mock, use `make generate` or add new line into `generate` command in `Makefile` file
 - DO NOT write comments in tests unless they explain something that is not self-evident
+- Use `github.com/stretchr/testify` for assertions and requires checks
+- Use t.Context()
 
 ## Build and Quality Checks
 - Run validation commands before completing work:

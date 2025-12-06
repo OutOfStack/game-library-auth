@@ -1,7 +1,6 @@
 package database_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/OutOfStack/game-library-auth/internal/database"
@@ -14,7 +13,7 @@ func TestCreateUser_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	user.SetEmail("test@example.com", false)
@@ -35,7 +34,7 @@ func TestCreateUser_DuplicateUsername(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user1 := database.NewUser("testuser", "Test User 1", []byte("hashedpassword1"), model.UserRoleName)
 	user2 := database.NewUser("testuser", "Test User 2", []byte("hashedpassword2"), model.UserRoleName)
@@ -52,7 +51,7 @@ func TestGetUserByID_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	user.SetEmail("test@example.com", true)
@@ -73,7 +72,7 @@ func TestGetUserByID_NotFound(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := s.GetUserByID(ctx, uuid.New().String())
 	require.Error(t, err)
@@ -84,7 +83,7 @@ func TestGetUserByUsername_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.PublisherRoleName)
 	err := s.CreateUser(ctx, user)
@@ -101,7 +100,7 @@ func TestGetUserByUsername_NotFound(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := s.GetUserByUsername(ctx, "nonexistent")
 	require.Error(t, err)
@@ -112,7 +111,7 @@ func TestCheckUserExists_True(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
@@ -127,7 +126,7 @@ func TestCheckUserExists_False(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	exists, err := s.CheckUserExists(ctx, "Nonexistent User", model.UserRoleName)
 	require.NoError(t, err)
@@ -138,7 +137,7 @@ func TestGetUserByOAuth_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	user.SetOAuthID("google", "google123456")
@@ -157,7 +156,7 @@ func TestGetUserByOAuth_NotFound(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := s.GetUserByOAuth(ctx, "google", "nonexistent")
 	require.Error(t, err)
@@ -168,7 +167,7 @@ func TestUpdateUser_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
@@ -190,7 +189,7 @@ func TestDeleteUser_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
@@ -208,7 +207,7 @@ func TestGetUserByEmail_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	user.SetEmail("test@example.com", true)
@@ -226,7 +225,7 @@ func TestGetUserByEmail_NotFound(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := s.GetUserByEmail(ctx, "nonexistent@example.com")
 	require.Error(t, err)
@@ -237,7 +236,7 @@ func TestUpdateUserEmail_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)

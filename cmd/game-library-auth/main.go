@@ -5,20 +5,30 @@ import (
 	_ "expvar"
 	"fmt"
 	"log"
+	"net"
 	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
+	"github.com/OutOfStack/game-library-auth/internal/api/grpc/authapi"
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	auth_ "github.com/OutOfStack/game-library-auth/internal/auth"
+	"github.com/OutOfStack/game-library-auth/internal/client/infoapi"
 	"github.com/OutOfStack/game-library-auth/internal/client/resendapi"
 	store "github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/handlers"
-	"github.com/OutOfStack/game-library-auth/internal/server"
 	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	zaplog "github.com/OutOfStack/game-library-auth/pkg/log"
+	authpb "github.com/OutOfStack/game-library-auth/pkg/proto/authapi/v1"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	"google.golang.org/api/idtoken"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 // @title Game library auth API
@@ -98,8 +108,25 @@ func run() error {
 	// create unsubscribe token generator
 	unsubscribeTokenGenerator := auth_.NewUnsubscribeTokenGenerator([]byte(cfg.EmailSender.UnsubscribeSecret))
 
+	// create infoapi client
+	infoAPIClient, err := infoapi.NewClient(ctx, infoapi.Config{
+		Address: cfg.InfoAPI.Address,
+		Timeout: cfg.InfoAPI.Timeout,
+		DialOptions: []grpc.DialOption{
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("create infoapi client: %w", err)
+	}
+	defer func() {
+		if err = infoAPIClient.Close(); err != nil {
+			logger.Error("close infoapi client", zap.Error(err))
+		}
+	}()
+
 	// create user facade
-	userFacade := facade.New(logger, userRepo, emailSender, auth, unsubscribeTokenGenerator)
+	userFacade := facade.New(logger, userRepo, emailSender, auth, unsubscribeTokenGenerator, infoAPIClient)
 
 	// auth api
 	authAPI, err := handlers.NewAuthAPI(logger, googleTokenValidator, userFacade, handlers.AuthAPICfg{
@@ -119,20 +146,62 @@ func run() error {
 	checkAPI := handlers.NewCheckAPI(db)
 
 	// start debug service
+	serverErrors := make(chan error, 3)
+
 	go func() {
 		debugApp := handlers.DebugService()
 		logger.Info("Debug service started", zap.String("address", cfg.Web.DebugAddress))
-		err = server.Start(debugApp, cfg.Web.DebugAddress)
-		if err != nil {
-			logger.Info("Debug service stopped", zap.Error(err))
-		}
+		serverErrors <- debugApp.Listen(cfg.Web.DebugAddress)
 	}()
 
-	// start auth service
+	// start http service
 	app, err := handlers.Service(authAPI, checkAPI, unsubscribeAPI, cfg)
 	if err != nil {
 		return fmt.Errorf("creating auth service: %w", err)
 	}
-	logger.Info("Auth service started", zap.String("address", cfg.Web.Address))
-	return server.StartWithGracefulShutdown(app, logger, cfg.Web.Address)
+
+	go func() {
+		logger.Info("Auth service started", zap.String("address", cfg.Web.HTTPAddress))
+		serverErrors <- app.Listen(cfg.Web.HTTPAddress)
+	}()
+
+	// start grpc service
+	grpcServer := grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+	)
+	authService := authapi.NewAuthService(logger, userFacade)
+	authpb.RegisterAuthApiServiceServer(grpcServer, authService)
+	// register reflection service for grpcurl and other tools
+	reflection.Register(grpcServer)
+
+	grpcListenConfig := net.ListenConfig{}
+	listener, err := grpcListenConfig.Listen(ctx, "tcp", cfg.Web.GRPCAddress)
+	if err != nil {
+		return fmt.Errorf("failed to create gRPC listener: %w", err)
+	}
+	go func() {
+		logger.Info("gRPC service started", zap.String("address", cfg.Web.GRPCAddress))
+		serverErrors <- grpcServer.Serve(listener)
+	}()
+
+	// wait for shutdown signal
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case err = <-serverErrors:
+		return fmt.Errorf("server error: %w", err)
+	case sig := <-shutdown:
+		logger.Info("shutdown signal received", zap.String("signal", sig.String()))
+
+		// stop grpc server
+		grpcServer.GracefulStop()
+
+		// stop http server
+		if err = app.ShutdownWithTimeout(5 * time.Second); err != nil {
+			return fmt.Errorf("graceful shutdown failed: %w", err)
+		}
+
+		return nil
+	}
 }

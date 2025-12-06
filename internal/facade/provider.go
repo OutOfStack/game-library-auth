@@ -19,16 +19,18 @@ type Provider struct {
 	emailSender               EmailSender
 	auth                      Auth
 	unsubscribeTokenGenerator *auth.UnsubscribeTokenGenerator
+	infoAPIClient             InfoAPIClient
 }
 
 // New creates a new facade provider
-func New(log *zap.Logger, userRepo UserRepo, emailSender EmailSender, authService Auth, unsubscribeTokenGenerator *auth.UnsubscribeTokenGenerator) *Provider {
+func New(log *zap.Logger, userRepo UserRepo, emailSender EmailSender, authService Auth, unsubscribeTokenGenerator *auth.UnsubscribeTokenGenerator, infoAPIClient InfoAPIClient) *Provider {
 	return &Provider{
 		log:                       log,
 		userRepo:                  userRepo,
 		emailSender:               emailSender,
 		auth:                      authService,
 		unsubscribeTokenGenerator: unsubscribeTokenGenerator,
+		infoAPIClient:             infoAPIClient,
 	}
 }
 
@@ -37,7 +39,7 @@ type Auth interface {
 	GenerateToken(claims jwt.Claims) (string, error)
 	GenerateRefreshToken() (string, time.Time, error)
 	CreateUserClaims(user model.User) jwt.Claims
-	ValidateToken(tokenStr string) (auth.Claims, error)
+	GetClaimsFromToken(tokenStr string) (auth.Claims, error)
 }
 
 // UserRepo provides methods for working with user repo
@@ -72,4 +74,9 @@ type UserRepo interface {
 // EmailSender provides methods for sending emails
 type EmailSender interface {
 	SendEmailVerification(ctx context.Context, req resendapi.SendEmailVerificationRequest) (string, error)
+}
+
+// InfoAPIClient provides methods for interacting with game library info API
+type InfoAPIClient interface {
+	CompanyExists(ctx context.Context, companyName string) (bool, error)
 }
