@@ -6,7 +6,7 @@
 ## Code Documentation
 - Write comments for all exported functions and structs
 - Do NOT use periods (`.`) at the end of comments unless there are several sentences
-- Start comments with a lower-case letter unless it's a new sentence, a title or a method/struct name
+- Start comments with a lower-case letter when describing code parts (not methods/structs)
 - Write proper openapi-style specs for handlers.
 
 # Code practices:
@@ -19,7 +19,7 @@
 - Generated code is placed in @pkg/proto/*api/v*/*.pb.go and should NOT be manually edited
 - Use `buf.yaml` and `buf.gen.yaml` for protocol buffer build configuration
 - After modifying .proto files, run `make generate-proto` to regenerate code
-- The service exposes gRPC on port 9000 (configurable via APP_GRPC_ADDRESS)
+- The service exposes gRPC on port 9001 (configurable via APP_GRPC_ADDRESS)
 
 ## Testing Requirements
 - Write tests for all exported functions

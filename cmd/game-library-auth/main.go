@@ -146,13 +146,12 @@ func run() error {
 	checkAPI := handlers.NewCheckAPI(db)
 
 	// start debug service
+	serverErrors := make(chan error, 3)
+
 	go func() {
 		debugApp := handlers.DebugService()
 		logger.Info("Debug service started", zap.String("address", cfg.Web.DebugAddress))
-		err = debugApp.Listen(cfg.Web.DebugAddress)
-		if err != nil {
-			logger.Info("Debug service stopped", zap.Error(err))
-		}
+		serverErrors <- debugApp.Listen(cfg.Web.DebugAddress)
 	}()
 
 	// start http service
@@ -160,7 +159,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("creating auth service: %w", err)
 	}
-	serverErrors := make(chan error, 1)
+
 	go func() {
 		logger.Info("Auth service started", zap.String("address", cfg.Web.HTTPAddress))
 		serverErrors <- app.Listen(cfg.Web.HTTPAddress)

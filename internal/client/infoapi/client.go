@@ -67,7 +67,7 @@ func (c *Client) CompanyExists(ctx context.Context, companyName string) (bool, e
 		return false, errors.New("company name is required")
 	}
 
-	ctx, cancel := withTimeout(ctx, c.cfg.Timeout)
+	ctx, cancel := CtxWithTimeout(ctx, c.cfg.Timeout)
 	defer cancel()
 
 	req := &infoapipb.CompanyExistsRequest{}
@@ -75,15 +75,21 @@ func (c *Client) CompanyExists(ctx context.Context, companyName string) (bool, e
 
 	resp, err := c.api.CompanyExists(ctx, req)
 	if err != nil {
-		return false, fmt.Errorf("company exists: %w", err)
+		return false, fmt.Errorf("check company exists: %w", err)
 	}
 
 	return resp.GetExists(), nil
 }
 
-func withTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
-	if _, ok := ctx.Deadline(); ok || timeout <= 0 {
-		return ctx, func() {}
+// CtxWithTimeout returns context and cancel fn with provided timeout if no deadline set in context,
+// otherwise returns original context and cancel fc
+func CtxWithTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	if _, ok := ctx.Deadline(); ok {
+		return context.WithCancel(ctx)
+	}
+
+	if timeout <= 0 {
+		return context.WithCancel(ctx)
 	}
 
 	return context.WithTimeout(ctx, timeout)

@@ -104,13 +104,13 @@ The service exposes a gRPC endpoint for internal service-to-service communicatio
 
 ```bash
 # list services
-grpcurl -plaintext localhost:9000 list
+grpcurl -plaintext localhost:9001 list
 
 # Inspect service details
-grpcurl -plaintext localhost:9000 describe authapi.v1.AuthApiService
+grpcurl -plaintext localhost:9001 describe authapi.v1.AuthApiService
 
 # Call VerifyToken method
-grpcurl -plaintext -d '{"token": "your-jwt-token-here"}' -emit-defaults localhost:9000 authapi.v1.AuthApiService/VerifyToken
+grpcurl -plaintext -d '{"token": "your-jwt-token-here"}' -emit-defaults localhost:9001 authapi.v1.AuthApiService/VerifyToken
 ```
 
 ## List of Make Commands

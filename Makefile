@@ -43,6 +43,7 @@ generate-mocks:
 	mockgen -source=internal/handlers/unsubscribe.go -destination=internal/handlers/mocks/unsubscribe.go -package=handlers_mocks
 	mockgen -source=internal/facade/provider.go -destination=internal/facade/mocks/provider.go -package=facade_mocks
 	mockgen -source=pkg/database/tx.go -destination=pkg/database/mocks/tx.go -package=database_mocks
+	mockgen -source=internal/api/grpc/authapi/service.go -destination=internal/api/grpc/authapi/mocks/auth_facade.go -package=authapi_mocks
 
 BUF_VERSION := v1.61
 PROTOC_GEN_GO_VERSION := v1.36.10
