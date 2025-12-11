@@ -47,7 +47,7 @@ func (p *Provider) SignUp(ctx context.Context, username, displayName, email, pas
 			return model.User{}, ErrSignUpEmailRequired
 		}
 
-		// check if publisher name already exists in database
+		// check if publisher name already exists in user database
 		companyExists, cErr := p.userRepo.CheckUserExists(ctx, displayName, model.PublisherRoleName)
 		if cErr != nil {
 			p.log.Error("check publisher name exists", zap.String("name", displayName), zap.Error(cErr))

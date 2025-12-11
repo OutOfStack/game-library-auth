@@ -9,6 +9,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -145,11 +146,11 @@ func run() error {
 	// health api
 	checkAPI := handlers.NewCheckAPI(db)
 
-	// start debug service
 	serverErrors := make(chan error, 3)
 
+	// start debug service
+	debugApp := handlers.DebugService()
 	go func() {
-		debugApp := handlers.DebugService()
 		logger.Info("Debug service started", zap.String("address", cfg.Web.DebugAddress))
 		serverErrors <- debugApp.Listen(cfg.Web.DebugAddress)
 	}()
@@ -159,7 +160,6 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("creating auth service: %w", err)
 	}
-
 	go func() {
 		logger.Info("Auth service started", zap.String("address", cfg.Web.HTTPAddress))
 		serverErrors <- app.Listen(cfg.Web.HTTPAddress)
@@ -194,14 +194,30 @@ func run() error {
 	case sig := <-shutdown:
 		logger.Info("shutdown signal received", zap.String("signal", sig.String()))
 
+		const shutdownTimeout = 5 * time.Second
+		var wg sync.WaitGroup
+
 		// stop grpc server
-		grpcServer.GracefulStop()
+		wg.Go(func() {
+			grpcServer.GracefulStop()
+		})
 
 		// stop http server
-		if err = app.ShutdownWithTimeout(5 * time.Second); err != nil {
-			return fmt.Errorf("graceful shutdown failed: %w", err)
-		}
+		wg.Go(func() {
+			if err = app.ShutdownWithTimeout(shutdownTimeout); err != nil {
+				logger.Error("http service graceful shutdown failed", zap.Error(err))
+			}
+		})
 
-		return nil
+		// stop debug service
+		wg.Go(func() {
+			if err = debugApp.ShutdownWithTimeout(shutdownTimeout); err != nil {
+				logger.Error("debug service graceful shutdown failed", zap.Error(err))
+			}
+		})
+
+		wg.Wait()
 	}
+
+	return nil
 }
