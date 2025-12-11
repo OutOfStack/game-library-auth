@@ -1,0 +1,23 @@
+edition = "2023";
+
+package authapi.v1;
+
+option go_package = "github.com/OutOfStack/game-library-auth/pkg/proto/authapi;authapi";
+
+import "google/protobuf/go_features.proto";
+option features.(pb.go).api_level = API_OPAQUE;
+
+service AuthApiService {
+  // VerifyToken verifies JWT access token
+  rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
+}
+
+message VerifyTokenRequest {
+  string token = 1;
+}
+
+message VerifyTokenResponse {
+  bool valid = 1;
+}
+
+

@@ -5,8 +5,9 @@ metadata:
     namespace: game-library
 data:
     LOG_LEVEL: "INFO"
-    APP_ADDRESS: "0.0.0.0:8000"
-    DEBUG_ADDRESS: "0.0.0.0:6060"
+    APP_HTTP_ADDRESS: "0.0.0.0:8000"
+    APP_GRPC_ADDRESS: "0.0.0.0:9000"
+    APP_DEBUG_ADDRESS: "0.0.0.0:6060"
     APP_READTIMEOUT: "3s"
     APP_WRITETIMEOUT: "3s"
     APP_ALLOWEDCORSORIGIN: "https://_K8S_URL_,https://_UI_URL_"
@@ -20,7 +21,9 @@ data:
     ZIPKIN_REPORTERURL: "http://zipkin-service.game-library.svc.cluster.local.:9411/api/v2/spans"
     GRAYLOG_ADDR: "graylog-service.game-library.svc.cluster.local.:12201"
     EMAIL_SENDER_API_TIMEOUT: "5s"
-    EMAIL_SENDER_EMAIL_FROM: "Game Library <info@_UI_URL_>"
+    EMAIL_SENDER_EMAIL_FROM: "info@_UI_URL_"
     EMAIL_SENDER_CONTACT_EMAIL: "_CONTACT_EMAIL_"
     EMAIL_SENDER_BASE_URL: "_UI_URL_"
     EMAIL_SENDER_UNSUBSCRIBE_URL: "https://_K8S_URL_/_auth/unsubscribe"
+    INFOAPI_ADDRESS: "game-library-service.game-library.svc.cluster.local.:9000"
+    INFOAPI_TIMEOUT: "5s"

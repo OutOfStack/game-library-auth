@@ -1,7 +1,6 @@
 package database_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -14,7 +13,7 @@ func TestCreateRefreshToken_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
@@ -36,7 +35,7 @@ func TestGetRefreshTokenByToken_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
@@ -58,7 +57,7 @@ func TestGetRefreshTokenByToken_NotFound(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := s.GetRefreshTokenByHash(ctx, "non-existent-token")
 	require.Error(t, err)
@@ -69,7 +68,7 @@ func TestDeleteRefreshToken_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
@@ -91,7 +90,7 @@ func TestDeleteRefreshTokensByUserID_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
@@ -121,7 +120,7 @@ func TestDeleteExpiredRefreshTokens_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)

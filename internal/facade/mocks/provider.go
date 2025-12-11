@@ -91,19 +91,19 @@ func (mr *MockAuthMockRecorder) GenerateToken(claims any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateToken", reflect.TypeOf((*MockAuth)(nil).GenerateToken), claims)
 }
 
-// ValidateToken mocks base method.
-func (m *MockAuth) ValidateToken(tokenStr string) (auth.Claims, error) {
+// GetClaimsFromToken mocks base method.
+func (m *MockAuth) GetClaimsFromToken(tokenStr string) (auth.Claims, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateToken", tokenStr)
+	ret := m.ctrl.Call(m, "GetClaimsFromToken", tokenStr)
 	ret0, _ := ret[0].(auth.Claims)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ValidateToken indicates an expected call of ValidateToken.
-func (mr *MockAuthMockRecorder) ValidateToken(tokenStr any) *gomock.Call {
+// GetClaimsFromToken indicates an expected call of GetClaimsFromToken.
+func (mr *MockAuthMockRecorder) GetClaimsFromToken(tokenStr any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateToken", reflect.TypeOf((*MockAuth)(nil).ValidateToken), tokenStr)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClaimsFromToken", reflect.TypeOf((*MockAuth)(nil).GetClaimsFromToken), tokenStr)
 }
 
 // MockUserRepo is a mock of UserRepo interface.
@@ -469,4 +469,43 @@ func (m *MockEmailSender) SendEmailVerification(ctx context.Context, req resenda
 func (mr *MockEmailSenderMockRecorder) SendEmailVerification(ctx, req any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendEmailVerification", reflect.TypeOf((*MockEmailSender)(nil).SendEmailVerification), ctx, req)
+}
+
+// MockInfoAPIClient is a mock of InfoAPIClient interface.
+type MockInfoAPIClient struct {
+	ctrl     *gomock.Controller
+	recorder *MockInfoAPIClientMockRecorder
+	isgomock struct{}
+}
+
+// MockInfoAPIClientMockRecorder is the mock recorder for MockInfoAPIClient.
+type MockInfoAPIClientMockRecorder struct {
+	mock *MockInfoAPIClient
+}
+
+// NewMockInfoAPIClient creates a new mock instance.
+func NewMockInfoAPIClient(ctrl *gomock.Controller) *MockInfoAPIClient {
+	mock := &MockInfoAPIClient{ctrl: ctrl}
+	mock.recorder = &MockInfoAPIClientMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockInfoAPIClient) EXPECT() *MockInfoAPIClientMockRecorder {
+	return m.recorder
+}
+
+// CompanyExists mocks base method.
+func (m *MockInfoAPIClient) CompanyExists(ctx context.Context, companyName string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CompanyExists", ctx, companyName)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CompanyExists indicates an expected call of CompanyExists.
+func (mr *MockInfoAPIClientMockRecorder) CompanyExists(ctx, companyName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompanyExists", reflect.TypeOf((*MockInfoAPIClient)(nil).CompanyExists), ctx, companyName)
 }

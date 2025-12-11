@@ -1,7 +1,6 @@
 package database_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -14,7 +13,7 @@ func TestCreateEmailUnsubscribe_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	email := "test@example.com"
 	unsubscribe := database.NewEmailUnsubscribe(email)
@@ -31,7 +30,7 @@ func TestCreateEmailUnsubscribe_Duplicate(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	email := "duplicate@example.com"
 	unsubscribe1 := database.NewEmailUnsubscribe(email)
@@ -52,7 +51,7 @@ func TestIsEmailUnsubscribed_NotUnsubscribed(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	isUnsubscribed, err := s.IsEmailUnsubscribed(ctx, "notunsubscribed@example.com")
 	require.NoError(t, err)
@@ -63,7 +62,7 @@ func TestIsEmailUnsubscribed_Unsubscribed(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	email := "unsubscribed@example.com"
 	unsubscribe := database.NewEmailUnsubscribe(email)
@@ -80,7 +79,7 @@ func TestSetUnsubscribeToken_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	user.SetEmail("test@example.com", false)

@@ -39,15 +39,9 @@ func (a *AuthAPI) VerifyTokenHandler(c *fiber.Ctx) error {
 	}
 
 	// validate token
-	_, err := a.userFacade.ValidateAccessToken(verifyToken.Token)
-	if err != nil {
-		a.log.Error("token validation failed", zap.Error(err))
-		return c.JSON(VerifyTokenResp{
-			Valid: false,
-		})
-	}
+	valid := a.userFacade.ValidateAccessToken(verifyToken.Token)
 
 	return c.JSON(VerifyTokenResp{
-		Valid: true,
+		Valid: valid,
 	})
 }

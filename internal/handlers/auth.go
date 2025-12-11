@@ -30,7 +30,8 @@ type UserFacade interface {
 	CreateTokens(ctx context.Context, user model.User) (facade.TokenPair, error)
 	RefreshTokens(ctx context.Context, refreshTokenStr string) (facade.TokenPair, error)
 	RevokeRefreshToken(ctx context.Context, refreshTokenStr string) error
-	ValidateAccessToken(tokenStr string) (auth.Claims, error)
+	ValidateAccessToken(tokenStr string) bool
+	GetClaimsFromAccessToken(tokenStr string) (auth.Claims, error)
 }
 
 // AuthAPICfg describes configuration for auth api

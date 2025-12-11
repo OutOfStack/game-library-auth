@@ -44,7 +44,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				claims := auth_.Claims{UserID: userID}
 				mockUserFacade.EXPECT().
-					ValidateAccessToken("valid-token").
+					GetClaimsFromAccessToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
 
@@ -76,7 +76,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				claims := auth_.Claims{UserID: userID}
 				mockUserFacade.EXPECT().
-					ValidateAccessToken("valid-token").
+					GetClaimsFromAccessToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
 
@@ -106,7 +106,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				claims := auth_.Claims{UserID: userID}
 				mockUserFacade.EXPECT().
-					ValidateAccessToken("valid-token").
+					GetClaimsFromAccessToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
 
@@ -130,7 +130,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				claims := auth_.Claims{UserID: userID}
 				mockUserFacade.EXPECT().
-					ValidateAccessToken("valid-token").
+					GetClaimsFromAccessToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
 				mockUserFacade.EXPECT().
@@ -151,7 +151,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				claims := auth_.Claims{UserID: userID}
 				mockUserFacade.EXPECT().
-					ValidateAccessToken("valid-token").
+					GetClaimsFromAccessToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
 				mockUserFacade.EXPECT().

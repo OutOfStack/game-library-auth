@@ -152,8 +152,21 @@ func (p *Provider) RefreshTokens(ctx context.Context, refreshTokenStr string) (T
 }
 
 // ValidateAccessToken validates access token and returns claims from it
-func (p *Provider) ValidateAccessToken(tokenStr string) (auth.Claims, error) {
-	return p.auth.ValidateToken(tokenStr)
+func (p *Provider) ValidateAccessToken(tokenStr string) bool {
+	_, err := p.auth.GetClaimsFromToken(tokenStr)
+	if err != nil {
+		if !errors.Is(err, auth.ErrInvalidToken) {
+			p.log.Error("validate access token", zap.Error(err))
+		}
+		return false
+	}
+
+	return true
+}
+
+// GetClaimsFromAccessToken returns claims from access token
+func (p *Provider) GetClaimsFromAccessToken(tokenStr string) (auth.Claims, error) {
+	return p.auth.GetClaimsFromToken(tokenStr)
 }
 
 // RevokeRefreshToken revokes a refresh token by deleting it from the database

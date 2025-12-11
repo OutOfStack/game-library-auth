@@ -89,7 +89,7 @@ func TestDeleteAccountHandler(t *testing.T) {
 			if tt.authHeader == "Bearer valid-token" {
 				claims := auth_.Claims{UserID: userID}
 				mockUserFacade.EXPECT().
-					ValidateAccessToken("valid-token").
+					GetClaimsFromAccessToken("valid-token").
 					Return(claims, nil).
 					AnyTimes()
 			}

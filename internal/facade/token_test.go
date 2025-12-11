@@ -18,44 +18,39 @@ import (
 
 func TestProvider_ValidateAccessToken(t *testing.T) {
 	t.Run("valid token", func(t *testing.T) {
-		provider, _, _, mockAuth, ctrl := setupTest(t)
+		provider, _, _, mockAuth, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
-		expected := auth.Claims{UserID: "user-123", Username: "testuser"}
-
 		mockAuth.EXPECT().
-			ValidateToken("valid.jwt.token").
-			Return(expected, nil)
+			GetClaimsFromToken("valid.jwt.token").
+			Return(auth.Claims{UserID: "user-123", Username: "testuser"}, nil)
 
-		got, err := provider.ValidateAccessToken("valid.jwt.token")
-		if err != nil {
-			t.Fatalf("expected no error, got %v", err)
-		}
-		if got.UserID != expected.UserID || got.Username != expected.Username {
-			t.Errorf("unexpected claims: got=%+v expected=%+v", got, expected)
+		valid := provider.ValidateAccessToken("valid.jwt.token")
+		if !valid {
+			t.Error("expected token to be valid")
 		}
 	})
 
 	t.Run("invalid token", func(t *testing.T) {
-		provider, _, _, mockAuth, ctrl := setupTest(t)
+		provider, _, _, mockAuth, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockAuth.EXPECT().
-			ValidateToken("invalid.jwt.token").
-			Return(auth.Claims{}, errors.New("invalid token"))
+			GetClaimsFromToken("invalid.jwt.token").
+			Return(auth.Claims{}, auth.ErrInvalidToken)
 
-		_, err := provider.ValidateAccessToken("invalid.jwt.token")
-		if err == nil {
-			t.Fatal("expected error, got nil")
+		valid := provider.ValidateAccessToken("invalid.jwt.token")
+		if valid {
+			t.Error("expected token to be invalid")
 		}
 	})
 }
 
 func TestProvider_RefreshTokens(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("successful refresh", func(t *testing.T) {
-		provider, mockUserRepo, _, mockAuth, ctrl := setupTest(t)
+		provider, mockUserRepo, _, mockAuth, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		refreshToken := database.RefreshToken{
@@ -118,7 +113,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 	})
 
 	t.Run("token not found", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -138,7 +133,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 	})
 
 	t.Run("expired token", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		expiredToken := database.RefreshToken{
@@ -169,7 +164,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 	})
 
 	t.Run("user not found", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		refreshToken := database.RefreshToken{
@@ -204,7 +199,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 	})
 
 	t.Run("error deleting old token", func(t *testing.T) {
-		provider, mockUserRepo, _, mockAuth, ctrl := setupTest(t)
+		provider, mockUserRepo, _, mockAuth, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		refreshToken := database.RefreshToken{
@@ -257,7 +252,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 	})
 
 	t.Run("error creating new access token", func(t *testing.T) {
-		provider, mockUserRepo, _, mockAuth, ctrl := setupTest(t)
+		provider, mockUserRepo, _, mockAuth, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		refreshToken := database.RefreshToken{
@@ -302,7 +297,7 @@ func TestProvider_RefreshTokens(t *testing.T) {
 	})
 
 	t.Run("error creating new refresh token", func(t *testing.T) {
-		provider, mockUserRepo, _, mockAuth, ctrl := setupTest(t)
+		provider, mockUserRepo, _, mockAuth, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		refreshToken := database.RefreshToken{
@@ -352,10 +347,10 @@ func TestProvider_RefreshTokens(t *testing.T) {
 }
 
 func TestProvider_CreateTokens(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("successful creation", func(t *testing.T) {
-		provider, mockUserRepo, _, mockAuth, ctrl := setupTest(t)
+		provider, mockUserRepo, _, mockAuth, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		user := model.User{
@@ -393,7 +388,7 @@ func TestProvider_CreateTokens(t *testing.T) {
 	})
 
 	t.Run("error generating access token", func(t *testing.T) {
-		provider, _, _, mockAuth, ctrl := setupTest(t)
+		provider, _, _, mockAuth, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		user := model.User{
@@ -416,7 +411,7 @@ func TestProvider_CreateTokens(t *testing.T) {
 	})
 
 	t.Run("error creating refresh token", func(t *testing.T) {
-		provider, _, _, mockAuth, ctrl := setupTest(t)
+		provider, _, _, mockAuth, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		user := model.User{
@@ -444,10 +439,10 @@ func TestProvider_CreateTokens(t *testing.T) {
 }
 
 func TestProvider_RevokeRefreshToken(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("successful revoke", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -461,7 +456,7 @@ func TestProvider_RevokeRefreshToken(t *testing.T) {
 	})
 
 	t.Run("empty token string", func(t *testing.T) {
-		provider, _, _, _, ctrl := setupTest(t)
+		provider, _, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		err := provider.RevokeRefreshToken(ctx, "")
@@ -471,7 +466,7 @@ func TestProvider_RevokeRefreshToken(t *testing.T) {
 	})
 
 	t.Run("token not found", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -485,7 +480,7 @@ func TestProvider_RevokeRefreshToken(t *testing.T) {
 	})
 
 	t.Run("database error", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		dbError := errors.New("database connection error")

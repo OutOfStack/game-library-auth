@@ -18,6 +18,7 @@ type Cfg struct {
 	Graylog     Graylog     `mapstructure:",squash"`
 	Log         Log         `mapstructure:",squash"`
 	EmailSender EmailSender `mapstructure:",squash"`
+	InfoAPI     InfoAPI     `mapstructure:",squash"`
 }
 
 // DB represents settings related to database
@@ -27,8 +28,9 @@ type DB struct {
 
 // Web represents settings related to web server
 type Web struct {
-	Address               string        `mapstructure:"APP_ADDRESS"`
-	DebugAddress          string        `mapstructure:"DEBUG_ADDRESS"`
+	HTTPAddress           string        `mapstructure:"APP_HTTP_ADDRESS"`
+	GRPCAddress           string        `mapstructure:"APP_GRPC_ADDRESS"`
+	DebugAddress          string        `mapstructure:"APP_DEBUG_ADDRESS"`
 	ReadTimeout           time.Duration `mapstructure:"APP_READTIMEOUT"`
 	WriteTimeout          time.Duration `mapstructure:"APP_WRITETIMEOUT"`
 	AllowedCORSOrigin     string        `mapstructure:"APP_ALLOWEDCORSORIGIN"`
@@ -72,6 +74,12 @@ type EmailSender struct {
 	UnsubscribeSecret string        `mapstructure:"EMAIL_SENDER_UNSUBSCRIBE_SECRET"`
 }
 
+// InfoAPI represents settings for InfoAPI gRPC client
+type InfoAPI struct {
+	Address string        `mapstructure:"INFOAPI_ADDRESS"`
+	Timeout time.Duration `mapstructure:"INFOAPI_TIMEOUT"`
+}
+
 // Validate validates configuration
 func (cfg *Cfg) Validate() error {
 	if cfg == nil {
@@ -84,11 +92,14 @@ func (cfg *Cfg) Validate() error {
 	}
 
 	// Web validation
-	if cfg.Web.Address == "" {
-		return errors.New("APP_ADDRESS is required")
+	if cfg.Web.HTTPAddress == "" {
+		return errors.New("APP_HTTP_ADDRESS is required")
+	}
+	if cfg.Web.GRPCAddress == "" {
+		return errors.New("APP_GRPC_ADDRESS is required")
 	}
 	if cfg.Web.DebugAddress == "" {
-		return errors.New("DEBUG_ADDRESS is required")
+		return errors.New("APP_DEBUG_ADDRESS is required")
 	}
 	if cfg.Web.ReadTimeout <= 0 {
 		return errors.New("APP_READTIMEOUT must be greater than 0")
@@ -162,6 +173,14 @@ func (cfg *Cfg) Validate() error {
 	}
 	if cfg.EmailSender.UnsubscribeSecret == "" {
 		return errors.New("EMAIL_SENDER_UNSUBSCRIBE_SECRET is required")
+	}
+
+	// InfoAPI validation
+	if cfg.InfoAPI.Address == "" {
+		return errors.New("INFOAPI_ADDRESS is required")
+	}
+	if cfg.InfoAPI.Timeout <= 0 {
+		return errors.New("INFOAPI_TIMEOUT must be greater than 0")
 	}
 
 	return nil

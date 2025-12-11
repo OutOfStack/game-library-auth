@@ -3,13 +3,11 @@ package handlers_test
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/handlers"
 	mocks "github.com/OutOfStack/game-library-auth/internal/handlers/mocks"
 	"github.com/stretchr/testify/assert"
@@ -32,7 +30,7 @@ func TestVerifyToken(t *testing.T) {
 			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().
 					ValidateAccessToken("valid.jwt.token").
-					Return(auth.Claims{}, nil)
+					Return(true)
 			},
 			expectedStatus: http.StatusOK,
 			expectedResp: handlers.VerifyTokenResp{
@@ -47,7 +45,7 @@ func TestVerifyToken(t *testing.T) {
 			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
 				mockUserFacade.EXPECT().
 					ValidateAccessToken("invalid.jwt.token").
-					Return(auth.Claims{}, errors.New("token validation error"))
+					Return(false)
 			},
 			expectedStatus: http.StatusOK,
 			expectedResp: handlers.VerifyTokenResp{

@@ -92,6 +92,7 @@ linters:
           - gosec
           - wsl
           - goconst
+          - dogsled
       - linters:
         - revive # disable "should have a package comment"
         text: "package comment"

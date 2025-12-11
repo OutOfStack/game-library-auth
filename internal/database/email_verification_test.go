@@ -1,7 +1,6 @@
 package database_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -15,7 +14,7 @@ func TestCreateEmailVerification_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
@@ -38,7 +37,7 @@ func TestGetEmailVerificationByUserID_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
@@ -59,7 +58,7 @@ func TestGetEmailVerificationByUserID_NotFound(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := s.GetEmailVerificationByUserID(ctx, uuid.New().String())
 	require.Error(t, err)
@@ -70,7 +69,7 @@ func TestGetEmailVerificationByUserID_MostRecent(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
@@ -98,7 +97,7 @@ func TestSetEmailVerificationMessageID_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)
@@ -122,7 +121,7 @@ func TestSetEmailVerificationUsed_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
 	err := s.CreateUser(ctx, user)

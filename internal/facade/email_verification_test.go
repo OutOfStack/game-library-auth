@@ -15,10 +15,10 @@ import (
 )
 
 func TestProvider_VerifyEmail(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("successful email verification", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		user := database.User{
@@ -71,7 +71,7 @@ func TestProvider_VerifyEmail(t *testing.T) {
 	})
 
 	t.Run("user not found", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
@@ -92,7 +92,7 @@ func TestProvider_VerifyEmail(t *testing.T) {
 	})
 
 	t.Run("email already verified", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		user := database.User{
@@ -120,7 +120,7 @@ func TestProvider_VerifyEmail(t *testing.T) {
 	})
 
 	t.Run("verification not found", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		user := database.User{
@@ -152,7 +152,7 @@ func TestProvider_VerifyEmail(t *testing.T) {
 	})
 
 	t.Run("verification expired", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		user := database.User{
@@ -197,7 +197,7 @@ func TestProvider_VerifyEmail(t *testing.T) {
 	})
 
 	t.Run("invalid verification code", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		user := database.User{
@@ -239,10 +239,10 @@ func TestProvider_VerifyEmail(t *testing.T) {
 }
 
 func TestProvider_ResendVerificationEmail(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("successful resend with email sender enabled", func(t *testing.T) {
-		provider, mockUserRepo, mockEmailSender, _, ctrl := setupTest(t)
+		provider, mockUserRepo, mockEmailSender, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		user := database.User{
@@ -297,7 +297,7 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 	})
 
 	t.Run("email already verified", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		user := database.User{
@@ -320,7 +320,7 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 	})
 
 	t.Run("user has no email", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		user := database.User{
@@ -343,7 +343,7 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 	})
 
 	t.Run("regular user does not require verification", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		user := database.User{
@@ -366,7 +366,7 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 	})
 
 	t.Run("user not found", func(t *testing.T) {
-		provider, mockUserRepo, _, _, ctrl := setupTest(t)
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
