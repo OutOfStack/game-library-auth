@@ -1,0 +1,87 @@
+package auth_test
+
+import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/OutOfStack/game-library-auth/internal/api/auth"
+	mocks "github.com/OutOfStack/game-library-auth/internal/api/auth/mocks"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestVerifyToken(t *testing.T) {
+	tests := []struct {
+		name           string
+		request        auth.VerifyTokenReq
+		setupMocks     func(*mocks.MockUserFacade)
+		expectedStatus int
+		expectedResp   auth.VerifyTokenResp
+	}{
+		{
+			name: "valid token",
+			request: auth.VerifyTokenReq{
+				Token: "valid.jwt.token",
+			},
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
+				mockUserFacade.EXPECT().
+					ValidateAccessToken("valid.jwt.token").
+					Return(true)
+			},
+			expectedStatus: http.StatusOK,
+			expectedResp: auth.VerifyTokenResp{
+				Valid: true,
+			},
+		},
+		{
+			name: "invalid token",
+			request: auth.VerifyTokenReq{
+				Token: "invalid.jwt.token",
+			},
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
+				mockUserFacade.EXPECT().
+					ValidateAccessToken("invalid.jwt.token").
+					Return(false)
+			},
+			expectedStatus: http.StatusOK,
+			expectedResp: auth.VerifyTokenResp{
+				Valid: false,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
+			defer ctrl.Finish()
+
+			if tt.setupMocks != nil {
+				tt.setupMocks(mockUserFacade)
+			}
+
+			app.Post("/token/verify", authAPI.VerifyTokenHandler)
+
+			reqBody, _ := json.Marshal(tt.request)
+			req := httptest.NewRequest(http.MethodPost, "/token/verify", bytes.NewReader(reqBody))
+			req.Header.Set("Content-Type", "application/json")
+
+			resp, err := app.Test(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+
+			var actual auth.VerifyTokenResp
+			err = json.Unmarshal(body, &actual)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedResp, actual)
+		})
+	}
+}

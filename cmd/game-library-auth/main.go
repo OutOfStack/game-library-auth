@@ -13,14 +13,17 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/OutOfStack/game-library-auth/internal/api"
+	"github.com/OutOfStack/game-library-auth/internal/api/auth"
 	"github.com/OutOfStack/game-library-auth/internal/api/grpc/authapi"
+	"github.com/OutOfStack/game-library-auth/internal/api/tools"
+	"github.com/OutOfStack/game-library-auth/internal/api/unsubscribe"
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
-	auth_ "github.com/OutOfStack/game-library-auth/internal/auth"
+	authsvc "github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/client/infoapi"
 	"github.com/OutOfStack/game-library-auth/internal/client/resendapi"
 	store "github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
-	"github.com/OutOfStack/game-library-auth/internal/handlers"
 	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	zaplog "github.com/OutOfStack/game-library-auth/pkg/log"
@@ -101,13 +104,13 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("read private key file: %w", err)
 	}
-	auth, err := auth_.New(cfg.Auth.SigningAlgorithm, privateKey, cfg.Auth.Issuer, cfg.Auth.AccessTokenTTL, cfg.Auth.RefreshTokenTTL)
+	authService, err := authsvc.New(cfg.Auth.SigningAlgorithm, privateKey, cfg.Auth.Issuer, cfg.Auth.AccessTokenTTL, cfg.Auth.RefreshTokenTTL)
 	if err != nil {
 		return fmt.Errorf("create token service instance: %w", err)
 	}
 
 	// create unsubscribe token generator
-	unsubscribeTokenGenerator := auth_.NewUnsubscribeTokenGenerator([]byte(cfg.EmailSender.UnsubscribeSecret))
+	unsubscribeTokenGenerator := authsvc.NewUnsubscribeTokenGenerator([]byte(cfg.EmailSender.UnsubscribeSecret))
 
 	// create infoapi client
 	infoAPIClient, err := infoapi.NewClient(ctx, infoapi.Config{
@@ -127,10 +130,10 @@ func run() error {
 	}()
 
 	// create user facade
-	userFacade := facade.New(logger, userRepo, emailSender, auth, unsubscribeTokenGenerator, infoAPIClient)
+	userFacade := facade.New(logger, userRepo, emailSender, authService, unsubscribeTokenGenerator, infoAPIClient)
 
 	// auth api
-	authAPI, err := handlers.NewAuthAPI(logger, googleTokenValidator, userFacade, handlers.AuthAPICfg{
+	authAPI, err := auth.NewAPI(logger, googleTokenValidator, userFacade, auth.APICfg{
 		RefreshTokenCookieSameSite: cfg.Web.RefreshCookieSameSite,
 		RefreshTokenCookieSecure:   cfg.Web.RefreshCookieSecure,
 		GoogleOAuthClientID:        cfg.Auth.GoogleClientID,
@@ -141,22 +144,22 @@ func run() error {
 	}
 
 	// unsubscribe api
-	unsubscribeAPI := handlers.NewUnsubscribeAPI(logger, unsubscribeTokenGenerator, userFacade, cfg.EmailSender.ContactEmail)
+	unsubscribeAPI := unsubscribe.NewAPI(logger, unsubscribeTokenGenerator, userFacade, cfg.EmailSender.ContactEmail)
 
-	// health api
-	checkAPI := handlers.NewCheckAPI(db)
+	// health check api
+	checkAPI := tools.NewHealthcheckAPI(db)
 
 	serverErrors := make(chan error, 3)
 
 	// start debug service
-	debugApp := handlers.DebugService()
+	debugApp := api.DebugService()
 	go func() {
 		logger.Info("Debug service started", zap.String("address", cfg.Web.DebugAddress))
 		serverErrors <- debugApp.Listen(cfg.Web.DebugAddress)
 	}()
 
 	// start http service
-	app, err := handlers.Service(authAPI, checkAPI, unsubscribeAPI, cfg)
+	app, err := api.Service(authAPI, checkAPI, unsubscribeAPI, cfg)
 	if err != nil {
 		return fmt.Errorf("creating auth service: %w", err)
 	}
@@ -169,8 +172,8 @@ func run() error {
 	grpcServer := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 	)
-	authService := authapi.NewAuthService(logger, userFacade)
-	authpb.RegisterAuthApiServiceServer(grpcServer, authService)
+	grpcAuthService := authapi.NewAuthService(logger, userFacade)
+	authpb.RegisterAuthApiServiceServer(grpcServer, grpcAuthService)
 	// register reflection service for grpcurl and other tools
 	reflection.Register(grpcServer)
 

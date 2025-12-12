@@ -81,7 +81,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.UpdateProfileReq"
+                            "$ref": "#/definitions/auth.UpdateProfileReq"
                         }
                     }
                 ],
@@ -89,7 +89,7 @@
                     "200": {
                         "description": "Returns new access token",
                         "schema": {
-                            "$ref": "#/definitions/handlers.TokenResp"
+                            "$ref": "#/definitions/auth.TokenResp"
                         }
                     },
                     "400": {
@@ -159,7 +159,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.GoogleOAuthRequest"
+                            "$ref": "#/definitions/auth.GoogleOAuthRequest"
                         }
                     }
                 ],
@@ -167,7 +167,7 @@
                     "200": {
                         "description": "User credentials",
                         "schema": {
-                            "$ref": "#/definitions/handlers.TokenResp"
+                            "$ref": "#/definitions/auth.TokenResp"
                         }
                     },
                     "400": {
@@ -199,7 +199,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.TokenResp"
+                            "$ref": "#/definitions/auth.TokenResp"
                         }
                     },
                     "401": {
@@ -283,7 +283,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.SignInReq"
+                            "$ref": "#/definitions/auth.SignInReq"
                         }
                     }
                 ],
@@ -291,7 +291,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.TokenResp"
+                            "$ref": "#/definitions/auth.TokenResp"
                         }
                     },
                     "400": {
@@ -335,7 +335,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.SignUpReq"
+                            "$ref": "#/definitions/auth.SignUpReq"
                         }
                     }
                 ],
@@ -343,7 +343,7 @@
                     "200": {
                         "description": "User credentials",
                         "schema": {
-                            "$ref": "#/definitions/handlers.TokenResp"
+                            "$ref": "#/definitions/auth.TokenResp"
                         }
                     },
                     "400": {
@@ -387,7 +387,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.VerifyTokenReq"
+                            "$ref": "#/definitions/auth.VerifyTokenReq"
                         }
                     }
                 ],
@@ -395,7 +395,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.VerifyTokenResp"
+                            "$ref": "#/definitions/auth.VerifyTokenResp"
                         }
                     },
                     "400": {
@@ -432,7 +432,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.VerifyEmailReq"
+                            "$ref": "#/definitions/auth.VerifyEmailReq"
                         }
                     }
                 ],
@@ -440,7 +440,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.TokenResp"
+                            "$ref": "#/definitions/auth.TokenResp"
                         }
                     },
                     "400": {
@@ -472,7 +472,7 @@
         }
     },
     "definitions": {
-        "handlers.GoogleOAuthRequest": {
+        "auth.GoogleOAuthRequest": {
             "type": "object",
             "required": [
                 "idToken"
@@ -483,7 +483,7 @@
                 }
             }
         },
-        "handlers.SignInReq": {
+        "auth.SignInReq": {
             "type": "object",
             "required": [
                 "password",
@@ -502,7 +502,7 @@
                 }
             }
         },
-        "handlers.SignUpReq": {
+        "auth.SignUpReq": {
             "type": "object",
             "required": [
                 "name",
@@ -533,7 +533,7 @@
                 }
             }
         },
-        "handlers.TokenResp": {
+        "auth.TokenResp": {
             "type": "object",
             "properties": {
                 "accessToken": {
@@ -541,7 +541,7 @@
                 }
             }
         },
-        "handlers.UpdateProfileReq": {
+        "auth.UpdateProfileReq": {
             "type": "object",
             "properties": {
                 "confirmNewPassword": {
@@ -564,7 +564,7 @@
                 }
             }
         },
-        "handlers.VerifyEmailReq": {
+        "auth.VerifyEmailReq": {
             "type": "object",
             "required": [
                 "code"
@@ -575,7 +575,7 @@
                 }
             }
         },
-        "handlers.VerifyTokenReq": {
+        "auth.VerifyTokenReq": {
             "type": "object",
             "properties": {
                 "token": {
@@ -583,7 +583,7 @@
                 }
             }
         },
-        "handlers.VerifyTokenResp": {
+        "auth.VerifyTokenResp": {
             "type": "object",
             "properties": {
                 "valid": {

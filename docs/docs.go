@@ -84,7 +84,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.UpdateProfileReq"
+                            "$ref": "#/definitions/auth.UpdateProfileReq"
                         }
                     }
                 ],
@@ -92,7 +92,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Returns new access token",
                         "schema": {
-                            "$ref": "#/definitions/handlers.TokenResp"
+                            "$ref": "#/definitions/auth.TokenResp"
                         }
                     },
                     "400": {
@@ -162,7 +162,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.GoogleOAuthRequest"
+                            "$ref": "#/definitions/auth.GoogleOAuthRequest"
                         }
                     }
                 ],
@@ -170,7 +170,7 @@ const docTemplate = `{
                     "200": {
                         "description": "User credentials",
                         "schema": {
-                            "$ref": "#/definitions/handlers.TokenResp"
+                            "$ref": "#/definitions/auth.TokenResp"
                         }
                     },
                     "400": {
@@ -202,7 +202,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.TokenResp"
+                            "$ref": "#/definitions/auth.TokenResp"
                         }
                     },
                     "401": {
@@ -286,7 +286,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.SignInReq"
+                            "$ref": "#/definitions/auth.SignInReq"
                         }
                     }
                 ],
@@ -294,7 +294,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.TokenResp"
+                            "$ref": "#/definitions/auth.TokenResp"
                         }
                     },
                     "400": {
@@ -338,7 +338,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.SignUpReq"
+                            "$ref": "#/definitions/auth.SignUpReq"
                         }
                     }
                 ],
@@ -346,7 +346,7 @@ const docTemplate = `{
                     "200": {
                         "description": "User credentials",
                         "schema": {
-                            "$ref": "#/definitions/handlers.TokenResp"
+                            "$ref": "#/definitions/auth.TokenResp"
                         }
                     },
                     "400": {
@@ -390,7 +390,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.VerifyTokenReq"
+                            "$ref": "#/definitions/auth.VerifyTokenReq"
                         }
                     }
                 ],
@@ -398,7 +398,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.VerifyTokenResp"
+                            "$ref": "#/definitions/auth.VerifyTokenResp"
                         }
                     },
                     "400": {
@@ -435,7 +435,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.VerifyEmailReq"
+                            "$ref": "#/definitions/auth.VerifyEmailReq"
                         }
                     }
                 ],
@@ -443,7 +443,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.TokenResp"
+                            "$ref": "#/definitions/auth.TokenResp"
                         }
                     },
                     "400": {
@@ -475,7 +475,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "handlers.GoogleOAuthRequest": {
+        "auth.GoogleOAuthRequest": {
             "type": "object",
             "required": [
                 "idToken"
@@ -486,7 +486,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.SignInReq": {
+        "auth.SignInReq": {
             "type": "object",
             "required": [
                 "password",
@@ -505,7 +505,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.SignUpReq": {
+        "auth.SignUpReq": {
             "type": "object",
             "required": [
                 "name",
@@ -536,7 +536,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.TokenResp": {
+        "auth.TokenResp": {
             "type": "object",
             "properties": {
                 "accessToken": {
@@ -544,7 +544,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.UpdateProfileReq": {
+        "auth.UpdateProfileReq": {
             "type": "object",
             "properties": {
                 "confirmNewPassword": {
@@ -567,7 +567,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.VerifyEmailReq": {
+        "auth.VerifyEmailReq": {
             "type": "object",
             "required": [
                 "code"
@@ -578,7 +578,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.VerifyTokenReq": {
+        "auth.VerifyTokenReq": {
             "type": "object",
             "properties": {
                 "token": {
@@ -586,7 +586,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.VerifyTokenResp": {
+        "auth.VerifyTokenResp": {
             "type": "object",
             "properties": {
                 "valid": {
