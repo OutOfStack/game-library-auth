@@ -10,11 +10,11 @@ import (
 	"go.uber.org/zap"
 )
 
-func setupTest(t *testing.T) (*unsubscribe.API, *mocks.MockUnsubscribeFacade, *gomock.Controller, *auth.UnsubscribeTokenGenerator, *mocks.MockViews) {
+func setupTest(t *testing.T) (*unsubscribe.API, *mocks.MockFacade, *gomock.Controller, *auth.UnsubscribeTokenGenerator, *mocks.MockViews) {
 	t.Helper()
 
 	ctrl := gomock.NewController(t)
-	mockFacade := mocks.NewMockUnsubscribeFacade(ctrl)
+	mockFacade := mocks.NewMockFacade(ctrl)
 	tokenGen := auth.NewUnsubscribeTokenGenerator([]byte("test-secret-key"))
 	mockViews := mocks.NewMockViews(ctrl)
 
