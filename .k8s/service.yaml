@@ -13,5 +13,9 @@ spec:
         name: debug
         port: 6060
         targetPort: debug
+      - protocol: TCP
+        name: grpc
+        port: 9000
+        targetPort: grpc
     selector:
         app: game-library-auth

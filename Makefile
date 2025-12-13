@@ -32,23 +32,24 @@ generate-swag:
 	@swag --version >/dev/null 2>&1 || { echo "Installing swag..."; go install ${SWAG_PKG}; }
 	@echo "Found swag, generating documentation..."
 	swag init \
-	-d cmd/game-library-auth,internal/handlers,internal/web
+	-d cmd/game-library-auth,internal/api,internal/web
 
 MOCKGEN_VERSION := v0.6
 MOCKGEN_PKG := go.uber.org/mock/mockgen@$(MOCKGEN_VERSION)
 generate-mocks:
 	@mockgen -version >/dev/null 2>&1 || { echo "Installing mockgen..."; go install ${MOCKGEN_PKG}; }
 	@echo "Found mockgen, generating mocks..."
-	mockgen -source=internal/handlers/auth.go -destination=internal/handlers/mocks/auth.go -package=handlers_mocks
-	mockgen -source=internal/handlers/unsubscribe.go -destination=internal/handlers/mocks/unsubscribe.go -package=handlers_mocks
+	mockgen -source=internal/api/auth/api.go -destination=internal/api/auth/mocks/api.go -package=auth_mocks
+	mockgen -source=internal/api/unsubscribe/api.go -destination=internal/api/unsubscribe/mocks/api.go -package=unsubscribe_mocks
+	mockgen -destination=internal/api/unsubscribe/mocks/views.go -package=unsubscribe_mocks github.com/gofiber/fiber/v2 Views
 	mockgen -source=internal/facade/provider.go -destination=internal/facade/mocks/provider.go -package=facade_mocks
 	mockgen -source=pkg/database/tx.go -destination=pkg/database/mocks/tx.go -package=database_mocks
-	mockgen -source=internal/api/grpc/authapi/service.go -destination=internal/api/grpc/authapi/mocks/auth_facade.go -package=authapi_mocks
+	mockgen -source=internal/api/grpc/authapi/service.go -destination=internal/api/grpc/authapi/mocks/service.go -package=authapi_mocks
 
 BUF_VERSION := v1.61
 PROTOC_GEN_GO_VERSION := v1.36.10
 PROTOC_GEN_GO_GRPC_VERSION := v1.6.0
-BUF_PKG := github.com/bufbuild/buf/cmd/buf@$(BUF_VERSION)
+BUF_PKG := github.com/bufbuild/buf/cmd/buf@${BUF_VERSION}
 PROTOC_GEN_GO_PKG := google.golang.org/protobuf/cmd/protoc-gen-go@${PROTOC_GEN_GO_VERSION}
 PROTOC_GEN_GO_GRPC_PKG := google.golang.org/grpc/cmd/protoc-gen-go-grpc@${PROTOC_GEN_GO_GRPC_VERSION}
 generate-proto:

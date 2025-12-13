@@ -1,13 +1,13 @@
 basePath: /
 definitions:
-  handlers.GoogleOAuthRequest:
+  auth.GoogleOAuthRequest:
     properties:
       idToken:
         type: string
     required:
     - idToken
     type: object
-  handlers.SignInReq:
+  auth.SignInReq:
     properties:
       password:
         maxLength: 64
@@ -21,7 +21,7 @@ definitions:
     - password
     - username
     type: object
-  handlers.SignUpReq:
+  auth.SignUpReq:
     properties:
       confirmPassword:
         type: string
@@ -43,12 +43,12 @@ definitions:
     - password
     - username
     type: object
-  handlers.TokenResp:
+  auth.TokenResp:
     properties:
       accessToken:
         type: string
     type: object
-  handlers.UpdateProfileReq:
+  auth.UpdateProfileReq:
     properties:
       confirmNewPassword:
         maxLength: 64
@@ -65,19 +65,19 @@ definitions:
         minLength: 8
         type: string
     type: object
-  handlers.VerifyEmailReq:
+  auth.VerifyEmailReq:
     properties:
       code:
         type: string
     required:
     - code
     type: object
-  handlers.VerifyTokenReq:
+  auth.VerifyTokenReq:
     properties:
       token:
         type: string
     type: object
-  handlers.VerifyTokenResp:
+  auth.VerifyTokenResp:
     properties:
       valid:
         type: boolean
@@ -146,14 +146,14 @@ paths:
         name: profile
         required: true
         schema:
-          $ref: '#/definitions/handlers.UpdateProfileReq'
+          $ref: '#/definitions/auth.UpdateProfileReq'
       produces:
       - application/json
       responses:
         "200":
           description: Returns new access token
           schema:
-            $ref: '#/definitions/handlers.TokenResp'
+            $ref: '#/definitions/auth.TokenResp'
         "400":
           description: Bad request
           schema:
@@ -199,14 +199,14 @@ paths:
         name: token
         required: true
         schema:
-          $ref: '#/definitions/handlers.GoogleOAuthRequest'
+          $ref: '#/definitions/auth.GoogleOAuthRequest'
       produces:
       - application/json
       responses:
         "200":
           description: User credentials
           schema:
-            $ref: '#/definitions/handlers.TokenResp'
+            $ref: '#/definitions/auth.TokenResp'
         "400":
           description: Bad Request
           schema:
@@ -228,7 +228,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.TokenResp'
+            $ref: '#/definitions/auth.TokenResp'
         "401":
           description: Invalid or expired refresh token
           schema:
@@ -280,14 +280,14 @@ paths:
         name: signin
         required: true
         schema:
-          $ref: '#/definitions/handlers.SignInReq'
+          $ref: '#/definitions/auth.SignInReq'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.TokenResp'
+            $ref: '#/definitions/auth.TokenResp'
         "400":
           description: Bad Request
           schema:
@@ -314,14 +314,14 @@ paths:
         name: signup
         required: true
         schema:
-          $ref: '#/definitions/handlers.SignUpReq'
+          $ref: '#/definitions/auth.SignUpReq'
       produces:
       - application/json
       responses:
         "200":
           description: User credentials
           schema:
-            $ref: '#/definitions/handlers.TokenResp'
+            $ref: '#/definitions/auth.TokenResp'
         "400":
           description: Invalid input data
           schema:
@@ -348,14 +348,14 @@ paths:
         name: token
         required: true
         schema:
-          $ref: '#/definitions/handlers.VerifyTokenReq'
+          $ref: '#/definitions/auth.VerifyTokenReq'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.VerifyTokenResp'
+            $ref: '#/definitions/auth.VerifyTokenResp'
         "400":
           description: Bad Request
           schema:
@@ -374,14 +374,14 @@ paths:
         name: verification
         required: true
         schema:
-          $ref: '#/definitions/handlers.VerifyEmailReq'
+          $ref: '#/definitions/auth.VerifyEmailReq'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.TokenResp'
+            $ref: '#/definitions/auth.TokenResp'
         "400":
           description: Invalid or expired verification code
           schema:

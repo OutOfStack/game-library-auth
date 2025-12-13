@@ -39,6 +39,8 @@ spec:
                     containerPort: 8000
                   - name: debug
                     containerPort: 6060
+                  - name: grpc
+                    containerPort: 9000
                 env:
                   - name: KUBERNETES_NAMESPACE
                     valueFrom:
