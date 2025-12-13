@@ -72,7 +72,7 @@ func (a *API) GoogleOAuthHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	// set refresh token a cookie
+	// set refresh token as a cookie
 	a.setRefreshTokenCookie(c, tokens.RefreshToken)
 
 	return c.JSON(TokenResp{

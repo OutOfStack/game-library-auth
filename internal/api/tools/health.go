@@ -26,8 +26,8 @@ type HealthCheckAPI struct {
 	db *sqlx.DB
 }
 
-// NewHealthcheckAPI returns new instance of healthcheck api
-func NewHealthcheckAPI(db *sqlx.DB) *HealthCheckAPI {
+// NewHealthCheckAPI returns new instance of healthcheck api
+func NewHealthCheckAPI(db *sqlx.DB) *HealthCheckAPI {
 	return &HealthCheckAPI{
 		db: db,
 	}

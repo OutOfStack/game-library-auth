@@ -147,7 +147,7 @@ func run() error {
 	unsubscribeAPI := unsubscribe.NewAPI(logger, unsubscribeTokenGenerator, userFacade, cfg.EmailSender.ContactEmail)
 
 	// health check api
-	checkAPI := tools.NewHealthcheckAPI(db)
+	checkAPI := tools.NewHealthCheckAPI(db)
 
 	serverErrors := make(chan error, 3)
 
