@@ -8,6 +8,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/api/tools"
 	"github.com/OutOfStack/game-library-auth/internal/api/unsubscribe"
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
+	"github.com/ansrivas/fiberprometheus/v2"
 	"github.com/gofiber/adaptor/v2"
 	"github.com/gofiber/contrib/otelfiber"
 	"github.com/gofiber/fiber/v2"
@@ -43,6 +44,8 @@ func Service(authAPI *auth.API, checkAPI *tools.HealthCheckAPI, unsubscribeAPI *
 	})
 
 	// apply middleware
+	prometheus := fiberprometheus.NewWithDefaultRegistry(appconf.ServiceName)
+	app.Use(prometheus.Middleware)
 	app.Use(rec.New())
 	app.Use(otelfiber.Middleware(otelfiber.WithServerName(appconf.ServiceName)))
 	app.Use(logger.New())
@@ -53,7 +56,7 @@ func Service(authAPI *auth.API, checkAPI *tools.HealthCheckAPI, unsubscribeAPI *
 		AllowCredentials: true,
 	}))
 
-	registerRoutes(app, authAPI, checkAPI, unsubscribeAPI)
+	registerRoutes(app, authAPI, checkAPI, unsubscribeAPI, prometheus)
 
 	return app, nil
 }
@@ -70,7 +73,10 @@ func DebugService() *fiber.App {
 	return app
 }
 
-func registerRoutes(app *fiber.App, authAPI *auth.API, checkAPI *tools.HealthCheckAPI, unsubscribeAPI *unsubscribe.API) {
+func registerRoutes(app *fiber.App, authAPI *auth.API, checkAPI *tools.HealthCheckAPI, unsubscribeAPI *unsubscribe.API, prometheus *fiberprometheus.FiberPrometheus) {
+	// metrics
+	prometheus.RegisterAt(app, "/metrics")
+
 	// health
 	app.Get("/readiness", checkAPI.Readiness)
 	app.Get("/liveness", checkAPI.Liveness)
@@ -81,6 +87,7 @@ func registerRoutes(app *fiber.App, authAPI *auth.API, checkAPI *tools.HealthChe
 	app.Patch("/account", authAPI.UpdateProfileHandler)
 	app.Delete("/account", authAPI.DeleteAccountHandler)
 	app.Post("/oauth/google", authAPI.GoogleOAuthHandler)
+	app.Post("/logout", authAPI.LogoutHandler)
 
 	// email verification
 	app.Post("/verify-email", authAPI.VerifyEmailHandler)
@@ -91,9 +98,7 @@ func registerRoutes(app *fiber.App, authAPI *auth.API, checkAPI *tools.HealthChe
 	app.Post("/unsubscribe", unsubscribeAPI.UnsubscribeConfirmHandler)
 
 	// token
-	app.Post("/token/verify", authAPI.VerifyTokenHandler)
 	app.Post("/refresh", authAPI.RefreshTokenHandler)
-	app.Post("/logout", authAPI.LogoutHandler)
 
 	// swagger
 	app.Get("/swagger/*", adaptor.HTTPHandler(swag.Handler()))

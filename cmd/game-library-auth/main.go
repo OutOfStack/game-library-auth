@@ -24,10 +24,12 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/client/resendapi"
 	store "github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
-	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
+	"github.com/OutOfStack/game-library-auth/pkg/keys"
 	zaplog "github.com/OutOfStack/game-library-auth/pkg/log"
 	authpb "github.com/OutOfStack/game-library-auth/pkg/proto/authapi/v1"
+	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	"google.golang.org/api/idtoken"
@@ -100,7 +102,7 @@ func run() error {
 	}
 
 	// create auth token service
-	privateKey, err := crypto.ReadPrivateKey(cfg.Auth.PrivateKeyFile)
+	privateKey, err := keys.ReadPrivateKey(cfg.Auth.PrivateKeyFile)
 	if err != nil {
 		return fmt.Errorf("read private key file: %w", err)
 	}
@@ -113,11 +115,14 @@ func run() error {
 	unsubscribeTokenGenerator := authsvc.NewUnsubscribeTokenGenerator([]byte(cfg.EmailSender.UnsubscribeSecret))
 
 	// create infoapi client
+	grpcClientMetrics := grpcprom.NewClientMetrics()
+	prometheus.MustRegister(grpcClientMetrics)
 	infoAPIClient, err := infoapi.NewClient(ctx, infoapi.Config{
 		Address: cfg.InfoAPI.Address,
 		Timeout: cfg.InfoAPI.Timeout,
 		DialOptions: []grpc.DialOption{
 			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+			grpc.WithChainUnaryInterceptor(grpcClientMetrics.UnaryClientInterceptor()),
 		},
 	})
 	if err != nil {
@@ -169,13 +174,17 @@ func run() error {
 	}()
 
 	// start grpc service
+	grpcServerMetrics := grpcprom.NewServerMetrics()
+	prometheus.MustRegister(grpcServerMetrics)
 	grpcServer := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+		grpc.ChainUnaryInterceptor(grpcServerMetrics.UnaryServerInterceptor()),
 	)
 	grpcAuthService := authapi.NewAuthService(logger, userFacade)
 	authpb.RegisterAuthApiServiceServer(grpcServer, grpcAuthService)
 	// register reflection service for grpcurl and other tools
 	reflection.Register(grpcServer)
+	grpcServerMetrics.InitializeMetrics(grpcServer)
 
 	grpcListenConfig := net.ListenConfig{}
 	listener, err := grpcListenConfig.Listen(ctx, "tcp", cfg.Web.GRPCAddress)
@@ -207,15 +216,15 @@ func run() error {
 
 		// stop http server
 		wg.Go(func() {
-			if err = app.ShutdownWithTimeout(shutdownTimeout); err != nil {
-				logger.Error("http service graceful shutdown failed", zap.Error(err))
+			if shutdownErr := app.ShutdownWithTimeout(shutdownTimeout); shutdownErr != nil {
+				logger.Error("http service graceful shutdown failed", zap.Error(shutdownErr))
 			}
 		})
 
 		// stop debug service
 		wg.Go(func() {
-			if err = debugApp.ShutdownWithTimeout(shutdownTimeout); err != nil {
-				logger.Error("debug service graceful shutdown failed", zap.Error(err))
+			if shutdownErr := debugApp.ShutdownWithTimeout(shutdownTimeout); shutdownErr != nil {
+				logger.Error("debug service graceful shutdown failed", zap.Error(shutdownErr))
 			}
 		})
 

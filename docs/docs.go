@@ -370,46 +370,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/token/verify": {
-            "post": {
-                "description": "Validates a JWT token and returns if it's valid",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Verify JWT token",
-                "parameters": [
-                    {
-                        "description": "Token to verify",
-                        "name": "token",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/auth.VerifyTokenReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/auth.VerifyTokenResp"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/web.ErrResp"
-                        }
-                    }
-                }
-            }
-        },
         "/verify-email": {
             "post": {
                 "security": [
@@ -575,22 +535,6 @@ const docTemplate = `{
             "properties": {
                 "code": {
                     "type": "string"
-                }
-            }
-        },
-        "auth.VerifyTokenReq": {
-            "type": "object",
-            "properties": {
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
-        "auth.VerifyTokenResp": {
-            "type": "object",
-            "properties": {
-                "valid": {
-                    "type": "boolean"
                 }
             }
         },

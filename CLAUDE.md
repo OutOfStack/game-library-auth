@@ -6,7 +6,7 @@
 ## Code Documentation
 - Write comments for all exported functions and structs
 - Do NOT use periods (`.`) at the end of comments unless there are several sentences
-- Start comments with a lower-case letter when describing code parts (not methods/structs)
+- Start comments with a lower-case letter inside funcs/methods
 - Write proper openapi-style specs for handlers.
 
 # Code practices:

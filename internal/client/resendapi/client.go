@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/OutOfStack/game-library-auth/pkg/observability"
 	"github.com/resend/resend-go/v2"
 	"go.opentelemetry.io/otel"
 )
@@ -22,7 +23,7 @@ var (
 	// ErrDailyQuotaExceeded is returned when the daily email quota is exceeded
 	ErrDailyQuotaExceeded = errors.New("daily quota exceeded")
 
-	tracer = otel.Tracer("resendapi")
+	tracer = otel.Tracer("resend_api_client")
 )
 
 // Client represents Resend client
@@ -50,7 +51,8 @@ type Config struct {
 // NewClient creates a new Resend client
 func NewClient(cfg Config) (*Client, error) {
 	httpClient := &http.Client{
-		Timeout: cfg.Timeout,
+		Timeout:   cfg.Timeout,
+		Transport: observability.NewTransport("game_library_auth", "resend_api_client"),
 	}
 	client := resend.NewCustomClient(httpClient, cfg.APIToken)
 
