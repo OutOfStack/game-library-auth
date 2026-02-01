@@ -2,6 +2,7 @@ package observability
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -9,8 +10,23 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
-// NewTransport creates a new instrumented http.RoundTripper
+var (
+	transportsMu sync.Mutex
+	transports   = make(map[string]http.RoundTripper)
+)
+
+// NewTransport creates a new instrumented http.RoundTripper.
+// It is safe to call multiple times with the same namespace/subsystem - subsequent
+// calls will return the same transport instance to avoid duplicate metric registration.
 func NewTransport(namespace, subsystem string) http.RoundTripper {
+	key := namespace + "/" + subsystem
+
+	transportsMu.Lock()
+	defer transportsMu.Unlock()
+	if t, ok := transports[key]; ok {
+		return t
+	}
+
 	inFlight := promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Subsystem: subsystem,
@@ -45,5 +61,8 @@ func NewTransport(namespace, subsystem string) http.RoundTripper {
 		),
 	)
 
-	return otelhttp.NewTransport(promTransport)
+	t := otelhttp.NewTransport(promTransport)
+	transports[key] = t
+
+	return t
 }

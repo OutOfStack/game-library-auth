@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/OutOfStack/game-library-auth/pkg/ctxutil"
 	infoapipb "github.com/OutOfStack/game-library-auth/pkg/proto/infoapi/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -67,7 +68,7 @@ func (c *Client) CompanyExists(ctx context.Context, companyName string) (bool, e
 		return false, errors.New("company name is required")
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, c.cfg.Timeout)
+	ctx, cancel := ctxutil.CtxWithTimeout(ctx, c.cfg.Timeout)
 	defer cancel()
 
 	req := &infoapipb.CompanyExistsRequest{}
