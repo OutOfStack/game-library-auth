@@ -72,16 +72,6 @@ definitions:
     required:
     - code
     type: object
-  auth.VerifyTokenReq:
-    properties:
-      token:
-        type: string
-    type: object
-  auth.VerifyTokenResp:
-    properties:
-      valid:
-        type: boolean
-    type: object
   web.ErrResp:
     properties:
       error:
@@ -335,32 +325,6 @@ paths:
           schema:
             $ref: '#/definitions/web.ErrResp'
       summary: Register a new user
-      tags:
-      - auth
-  /token/verify:
-    post:
-      consumes:
-      - application/json
-      description: Validates a JWT token and returns if it's valid
-      parameters:
-      - description: Token to verify
-        in: body
-        name: token
-        required: true
-        schema:
-          $ref: '#/definitions/auth.VerifyTokenReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/auth.VerifyTokenResp'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/web.ErrResp'
-      summary: Verify JWT token
       tags:
       - auth
   /verify-email:

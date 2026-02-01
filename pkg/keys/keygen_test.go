@@ -1,4 +1,4 @@
-package crypto_test
+package keys_test
 
 import (
 	"crypto/x509"
@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/OutOfStack/game-library-auth/pkg/crypto"
+	"github.com/OutOfStack/game-library-auth/pkg/keys"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +17,7 @@ func TestKeyGen(t *testing.T) {
 
 		t.Chdir(tempDir)
 
-		err := crypto.KeyGen()
+		err := keys.KeyGen()
 		require.NoError(t, err)
 
 		privateKeyData, err := os.ReadFile("private.pem")
@@ -55,7 +55,7 @@ func TestKeyGen(t *testing.T) {
 		err = os.WriteFile("public.pem", []byte("old public key"), 0600)
 		require.NoError(t, err)
 
-		err = crypto.KeyGen()
+		err = keys.KeyGen()
 		require.NoError(t, err)
 
 		privateKeyData, err := os.ReadFile("private.pem")
@@ -74,29 +74,29 @@ func TestKeyGen(t *testing.T) {
 
 func TestGenerateSecret(t *testing.T) {
 	t.Run("generates secret of correct length", func(t *testing.T) {
-		secret, err := crypto.GenerateSecret(32)
+		secret, err := keys.GenerateSecret(32)
 		require.NoError(t, err)
 		assert.NotEmpty(t, secret)
 	})
 
 	t.Run("generates unique secrets each time", func(t *testing.T) {
-		secret1, err := crypto.GenerateSecret(32)
+		secret1, err := keys.GenerateSecret(32)
 		require.NoError(t, err)
 
-		secret2, err := crypto.GenerateSecret(32)
+		secret2, err := keys.GenerateSecret(32)
 		require.NoError(t, err)
 
 		assert.NotEqual(t, secret1, secret2)
 	})
 
 	t.Run("generates secrets of different lengths", func(t *testing.T) {
-		secret16, err := crypto.GenerateSecret(16)
+		secret16, err := keys.GenerateSecret(16)
 		require.NoError(t, err)
 
-		secret32, err := crypto.GenerateSecret(32)
+		secret32, err := keys.GenerateSecret(32)
 		require.NoError(t, err)
 
-		secret64, err := crypto.GenerateSecret(64)
+		secret64, err := keys.GenerateSecret(64)
 		require.NoError(t, err)
 
 		assert.NotEmpty(t, secret16)
@@ -107,13 +107,13 @@ func TestGenerateSecret(t *testing.T) {
 	})
 
 	t.Run("handles zero length", func(t *testing.T) {
-		secret, err := crypto.GenerateSecret(0)
+		secret, err := keys.GenerateSecret(0)
 		require.NoError(t, err)
 		assert.Empty(t, secret)
 	})
 
 	t.Run("generates valid base64 encoded string", func(t *testing.T) {
-		secret, err := crypto.GenerateSecret(32)
+		secret, err := keys.GenerateSecret(32)
 		require.NoError(t, err)
 		assert.Regexp(t, "^[A-Za-z0-9+/]+=*$", secret)
 	})

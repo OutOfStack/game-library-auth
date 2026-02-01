@@ -1,4 +1,4 @@
-package crypto_test
+package keys_test
 
 import (
 	"crypto/rand"
@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/OutOfStack/game-library-auth/pkg/crypto"
+	"github.com/OutOfStack/game-library-auth/pkg/keys"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +35,7 @@ func TestReadPrivateKey(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, privateKeyFile.Close())
 
-		readKey, err := crypto.ReadPrivateKey(keyPath)
+		readKey, err := keys.ReadPrivateKey(keyPath)
 		require.NoError(t, err)
 		assert.NotNil(t, readKey)
 		assert.Equal(t, privateKey.D, readKey.D)
@@ -43,7 +43,7 @@ func TestReadPrivateKey(t *testing.T) {
 	})
 
 	t.Run("returns error when file does not exist", func(t *testing.T) {
-		key, err := crypto.ReadPrivateKey("/nonexistent/path/private.pem")
+		key, err := keys.ReadPrivateKey("/nonexistent/path/private.pem")
 		require.Error(t, err)
 		assert.Nil(t, key)
 		assert.Contains(t, err.Error(), "reading private key file")
@@ -56,7 +56,7 @@ func TestReadPrivateKey(t *testing.T) {
 		err := os.WriteFile(keyPath, []byte("invalid pem content"), 0600)
 		require.NoError(t, err)
 
-		key, err := crypto.ReadPrivateKey(keyPath)
+		key, err := keys.ReadPrivateKey(keyPath)
 		require.Error(t, err)
 		assert.Nil(t, key)
 		assert.Contains(t, err.Error(), "parsing private key")
@@ -84,7 +84,7 @@ func TestReadPrivateKey(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, publicKeyFile.Close())
 
-		key, err := crypto.ReadPrivateKey(keyPath)
+		key, err := keys.ReadPrivateKey(keyPath)
 		require.Error(t, err)
 		assert.Nil(t, key)
 		assert.Contains(t, err.Error(), "parsing private key")
@@ -97,7 +97,7 @@ func TestReadPrivateKey(t *testing.T) {
 		err := os.WriteFile(keyPath, []byte{}, 0600)
 		require.NoError(t, err)
 
-		key, err := crypto.ReadPrivateKey(keyPath)
+		key, err := keys.ReadPrivateKey(keyPath)
 		require.Error(t, err)
 		assert.Nil(t, key)
 		assert.Contains(t, err.Error(), "parsing private key")

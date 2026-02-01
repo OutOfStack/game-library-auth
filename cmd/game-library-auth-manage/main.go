@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
-	"github.com/OutOfStack/game-library-auth/pkg/crypto"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
+	"github.com/OutOfStack/game-library-auth/pkg/keys"
 	"github.com/jmoiron/sqlx"
 	migrate "github.com/rubenv/sql-migrate"
 )
@@ -112,14 +112,14 @@ func rollbackMigration(dsn string, migrations *migrate.FileMigrationSource) erro
 }
 
 func keygen() {
-	if err := crypto.KeyGen(); err != nil {
+	if err := keys.KeyGen(); err != nil {
 		log.Fatalf("Error creating private/public keypair: %v", err)
 	}
 	fmt.Println("Private/public key files successfully created")
 }
 
 func secretgen() {
-	secret, err := crypto.GenerateSecret(32)
+	secret, err := keys.GenerateSecret(32)
 	if err != nil {
 		log.Fatalf("Error generating secret: %v", err)
 	}
