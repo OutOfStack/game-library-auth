@@ -78,3 +78,18 @@ func TestCtxWithTimeout_ExistingDeadline_CancelFuncWorks(t *testing.T) {
 		t.Fatal("context should be canceled")
 	}
 }
+
+func TestCtxWithTimeout_TimeoutEqualsExistingDeadline(t *testing.T) {
+	parentTimeout := 100 * time.Millisecond
+	parentCtx, parentCancel := context.WithTimeout(t.Context(), parentTimeout)
+	defer parentCancel()
+
+	parentDeadline, _ := parentCtx.Deadline()
+
+	ctx, cancel := ctxutil.CtxWithTimeout(parentCtx, parentTimeout)
+	defer cancel()
+
+	deadline, ok := ctx.Deadline()
+	require.True(t, ok, "should have deadline")
+	assert.Equal(t, parentDeadline, deadline, "should preserve parent deadline when timeout equals existing")
+}

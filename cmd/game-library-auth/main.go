@@ -116,7 +116,10 @@ func run() error {
 
 	// create infoapi client
 	grpcClientMetrics := grpcprom.NewClientMetrics()
-	prometheus.MustRegister(grpcClientMetrics)
+	err = prometheus.Register(grpcClientMetrics)
+	if err != nil {
+		return fmt.Errorf("register prometheus grpc client metrics: %w", err)
+	}
 	infoAPIClient, err := infoapi.NewClient(ctx, infoapi.Config{
 		Address: cfg.InfoAPI.Address,
 		Timeout: cfg.InfoAPI.Timeout,
@@ -175,7 +178,10 @@ func run() error {
 
 	// start grpc service
 	grpcServerMetrics := grpcprom.NewServerMetrics()
-	prometheus.MustRegister(grpcServerMetrics)
+	err = prometheus.Register(grpcServerMetrics)
+	if err != nil {
+		return fmt.Errorf("register prometheus grpc server metrics: %w", err)
+	}
 	grpcServer := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(grpcServerMetrics.UnaryServerInterceptor()),
