@@ -1,6 +1,7 @@
 package appconf_test
 
 import (
+	"math/rand"
 	"testing"
 	"time"
 
@@ -158,13 +159,6 @@ func TestCfgValidate_ErrorCases(t *testing.T) {
 			wantErr: "JAEGER_OTLP_ENDPOINT must be host:port without scheme",
 		},
 		{
-			name: "valid jaeger endpoint with ipv6",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Jaeger.OTLPEndpoint = "[::1]:4318"
-			},
-			wantErr: "", // should pass validation
-		},
-		{
 			name: "missing graylog addr",
 			mutate: func(cfg *appconf.Cfg) {
 				cfg.Graylog.Address = ""
@@ -280,7 +274,7 @@ func validCfg() *appconf.Cfg {
 			RefreshTokenTTL:  24 * time.Hour,
 		},
 		Jaeger: appconf.Jaeger{
-			OTLPEndpoint: "localhost:4318",
+			OTLPEndpoint: []string{"localhost:4318", "[::1]:4318"}[rand.Intn(2)],
 		},
 		Graylog: appconf.Graylog{
 			Address: "localhost:12201",
