@@ -5,6 +5,7 @@ metadata:
     namespace: game-library
 data:
     LOG_LEVEL: "INFO"
+    # app
     APP_HTTP_ADDRESS: "0.0.0.0:8000"
     APP_GRPC_ADDRESS: "0.0.0.0:9000"
     APP_DEBUG_ADDRESS: "0.0.0.0:6060"
@@ -13,17 +14,22 @@ data:
     APP_ALLOWEDCORSORIGIN: "https://_K8S_URL_,https://_UI_URL_"
     APP_REFRESH_TOKEN_COOKIE_SAMESITE: "strict"
     APP_REFRESH_TOKEN_COOKIE_SECURE: "true"
+    # auth
     AUTH_PRIVATEKEYFILE: "/etc/gla/private"
     AUTH_SIGNINGALG: "RS256"
     AUTH_ISSUER: "https://_UI_URL_"
     AUTH_ACCESSTOKENTTL: "15m"
     AUTH_REFRESHTOKENTTL: "360h"
-    ZIPKIN_REPORTERURL: "http://zipkin-service.game-library.svc.cluster.local.:9411/api/v2/spans"
+    # tracing
+    JAEGER_OTLP_ENDPOINT: "jaeger-service.game-library-infra.svc.cluster.local:4318"
+    # graylog
     GRAYLOG_ADDR: "graylog-service.game-library.svc.cluster.local.:12201"
+    # email notifications
     EMAIL_SENDER_API_TIMEOUT: "5s"
     EMAIL_SENDER_EMAIL_FROM: "info@_UI_URL_"
     EMAIL_SENDER_CONTACT_EMAIL: "_CONTACT_EMAIL_"
     EMAIL_SENDER_BASE_URL: "_UI_URL_"
     EMAIL_SENDER_UNSUBSCRIBE_URL: "https://_K8S_URL_/_auth/unsubscribe"
+    # info api
     INFOAPI_ADDRESS: "game-library-service.game-library.svc.cluster.local.:9000"
     INFOAPI_TIMEOUT: "5s"

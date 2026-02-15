@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	_ "github.com/OutOfStack/game-library-auth/docs" // swagger docs
 	"github.com/OutOfStack/game-library-auth/internal/api/auth"
@@ -10,27 +12,34 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/ansrivas/fiberprometheus/v2"
 	"github.com/gofiber/adaptor/v2"
+	"github.com/gofiber/contrib/fiberzap"
 	"github.com/gofiber/contrib/otelfiber"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
 	rec "github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/template/html/v2"
 	swag "github.com/swaggo/http-swagger/v2"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/zipkin"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
+	"go.uber.org/zap"
 )
 
 // Service creates and configures auth app
-func Service(authAPI *auth.API, checkAPI *tools.HealthCheckAPI, unsubscribeAPI *unsubscribe.API, cfg *appconf.Cfg) (*fiber.App, error) {
-	err := initTracer(cfg.Zipkin.ReporterURL)
+func Service(
+	log *zap.Logger,
+	authAPI *auth.API,
+	checkAPI *tools.HealthCheckAPI,
+	unsubscribeAPI *unsubscribe.API,
+	cfg *appconf.Cfg,
+) (*fiber.App, *trace.TracerProvider, error) {
+	tp, err := initTracer(log, cfg.Jaeger.OTLPEndpoint)
 	if err != nil {
-		return nil, fmt.Errorf("init exporter: %w", err)
+		return nil, nil, fmt.Errorf("init exporter: %w", err)
 	}
 
 	// initialize HTML template engine
@@ -48,7 +57,9 @@ func Service(authAPI *auth.API, checkAPI *tools.HealthCheckAPI, unsubscribeAPI *
 	app.Use(prometheus.Middleware)
 	app.Use(rec.New())
 	app.Use(otelfiber.Middleware(otelfiber.WithServerName(appconf.ServiceName)))
-	app.Use(logger.New())
+	app.Use(fiberzap.New(fiberzap.Config{
+		Logger: log,
+	}))
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.Web.AllowedCORSOrigin,
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
@@ -58,7 +69,7 @@ func Service(authAPI *auth.API, checkAPI *tools.HealthCheckAPI, unsubscribeAPI *
 
 	registerRoutes(app, authAPI, checkAPI, unsubscribeAPI, prometheus)
 
-	return app, nil
+	return app, tp, nil
 }
 
 // DebugService creates and configures debug app
@@ -104,10 +115,17 @@ func registerRoutes(app *fiber.App, authAPI *auth.API, checkAPI *tools.HealthChe
 	app.Get("/swagger/*", adaptor.HTTPHandler(swag.Handler()))
 }
 
-func initTracer(reporterURL string) error {
-	exporter, err := zipkin.New(reporterURL)
+func initTracer(log *zap.Logger, otlpEndpoint string) (*trace.TracerProvider, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	exporter, err := otlptracehttp.New(
+		ctx,
+		otlptracehttp.WithEndpoint(otlpEndpoint),
+		otlptracehttp.WithInsecure(),
+	)
 	if err != nil {
-		return fmt.Errorf("can't create new exporter: %w", err)
+		return nil, fmt.Errorf("create new exporter: %w", err)
 	}
 
 	tp := trace.NewTracerProvider(
@@ -120,8 +138,14 @@ func initTracer(reporterURL string) error {
 			)),
 	)
 
-	otel.SetTextMapPropagator(propagation.TraceContext{})
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	))
+	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
+		log.Error("otel error", zap.Error(err))
+	}))
 	otel.SetTracerProvider(tp)
 
-	return nil
+	return tp, nil
 }

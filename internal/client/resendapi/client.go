@@ -23,7 +23,7 @@ var (
 	// ErrDailyQuotaExceeded is returned when the daily email quota is exceeded
 	ErrDailyQuotaExceeded = errors.New("daily quota exceeded")
 
-	tracer = otel.Tracer("resend_api_client")
+	tracer = otel.Tracer("resendapi")
 )
 
 // Client represents Resend client
@@ -52,7 +52,7 @@ type Config struct {
 func NewClient(cfg Config) (*Client, error) {
 	httpClient := &http.Client{
 		Timeout:   cfg.Timeout,
-		Transport: observability.NewTransport("game_library_auth", "resend_api_client"),
+		Transport: observability.NewTransport("resend_api_client", observability.WithOtel()),
 	}
 	client := resend.NewCustomClient(httpClient, cfg.APIToken)
 

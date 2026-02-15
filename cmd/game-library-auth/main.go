@@ -26,7 +26,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	"github.com/OutOfStack/game-library-auth/pkg/keys"
-	zaplog "github.com/OutOfStack/game-library-auth/pkg/log"
+	zaplog "github.com/OutOfStack/game-library-auth/pkg/logger"
 	authpb "github.com/OutOfStack/game-library-auth/pkg/proto/authapi/v1"
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
@@ -167,7 +167,7 @@ func run() error {
 	}()
 
 	// start http service
-	app, err := api.Service(authAPI, checkAPI, unsubscribeAPI, cfg)
+	app, tracerProvider, err := api.Service(logger, authAPI, checkAPI, unsubscribeAPI, cfg)
 	if err != nil {
 		return fmt.Errorf("creating auth service: %w", err)
 	}
@@ -212,7 +212,9 @@ func run() error {
 	case sig := <-shutdown:
 		logger.Info("shutdown signal received", zap.String("signal", sig.String()))
 
-		const shutdownTimeout = 5 * time.Second
+		bCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+
 		var wg sync.WaitGroup
 
 		// stop grpc server
@@ -222,19 +224,25 @@ func run() error {
 
 		// stop http server
 		wg.Go(func() {
-			if shutdownErr := app.ShutdownWithTimeout(shutdownTimeout); shutdownErr != nil {
-				logger.Error("http service graceful shutdown failed", zap.Error(shutdownErr))
+			if shutdownErr := app.ShutdownWithContext(bCtx); shutdownErr != nil {
+				logger.Error("http service shutdown failed", zap.Error(shutdownErr))
 			}
 		})
 
 		// stop debug service
 		wg.Go(func() {
-			if shutdownErr := debugApp.ShutdownWithTimeout(shutdownTimeout); shutdownErr != nil {
-				logger.Error("debug service graceful shutdown failed", zap.Error(shutdownErr))
+			if shutdownErr := debugApp.ShutdownWithContext(bCtx); shutdownErr != nil {
+				logger.Error("debug service shutdown failed", zap.Error(shutdownErr))
 			}
 		})
 
 		wg.Wait()
+
+		// stop tracer provider after http and grpc servers in order to wait for all requests to finish
+		logger.Info("stop tracer provider")
+		if shutdownErr := tracerProvider.Shutdown(bCtx); shutdownErr != nil {
+			logger.Error("tracer provider shutdown failed", zap.Error(shutdownErr))
+		}
 	}
 
 	return nil
