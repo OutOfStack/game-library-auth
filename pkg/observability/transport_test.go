@@ -11,22 +11,22 @@ import (
 )
 
 func TestNewTransport(t *testing.T) {
-	transport := observability.NewTransport("test", "transport")
+	transport := observability.NewTransport("test")
 	require.NotNil(t, transport)
 }
 
-func TestNewTransportReturnsSameInstance(t *testing.T) {
-	transport1 := observability.NewTransport("test", "same")
-	transport2 := observability.NewTransport("test", "same")
+func TestNewTransportReturnsDistinctInstances(t *testing.T) {
+	transport1 := observability.NewTransport("test")
+	transport2 := observability.NewTransport("test")
 
-	assert.Same(t, transport1, transport2, "should return same instance for same namespace/subsystem")
+	assert.NotSame(t, transport1, transport2, "should return distinct instances per call")
 }
 
 func TestNewTransportDifferentInstances(t *testing.T) {
-	transport1 := observability.NewTransport("test", "diff1")
-	transport2 := observability.NewTransport("test", "diff2")
+	transport1 := observability.NewTransport("diff1")
+	transport2 := observability.NewTransport("diff2")
 
-	assert.NotSame(t, transport1, transport2, "should return different instances for different subsystems")
+	assert.NotSame(t, transport1, transport2, "should return different instances for different client names")
 }
 
 func TestNewTransportMakesRequest(t *testing.T) {
@@ -35,7 +35,7 @@ func TestNewTransportMakesRequest(t *testing.T) {
 	}))
 	defer server.Close()
 
-	transport := observability.NewTransport("test", "request")
+	transport := observability.NewTransport("request")
 	client := &http.Client{Transport: transport}
 
 	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, server.URL, nil)

@@ -2,6 +2,7 @@ package appconf
 
 import (
 	"errors"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -14,7 +15,7 @@ type Cfg struct {
 	DB          DB          `mapstructure:",squash"`
 	Web         Web         `mapstructure:",squash"`
 	Auth        Auth        `mapstructure:",squash"`
-	Zipkin      Zipkin      `mapstructure:",squash"`
+	Jaeger      Jaeger      `mapstructure:",squash"`
 	Graylog     Graylog     `mapstructure:",squash"`
 	Log         Log         `mapstructure:",squash"`
 	EmailSender EmailSender `mapstructure:",squash"`
@@ -48,9 +49,9 @@ type Auth struct {
 	RefreshTokenTTL  time.Duration `mapstructure:"AUTH_REFRESHTOKENTTL"`
 }
 
-// Zipkin represents settings related to zipkin trace storage
-type Zipkin struct {
-	ReporterURL string `mapstructure:"ZIPKIN_REPORTERURL"`
+// Jaeger represents settings for Jaeger OTLP trace export
+type Jaeger struct {
+	OTLPEndpoint string `mapstructure:"JAEGER_OTLP_ENDPOINT"`
 }
 
 // Graylog represents settings related to Graylog integration
@@ -137,9 +138,14 @@ func (cfg *Cfg) Validate() error {
 		return errors.New("AUTH_REFRESHTOKENTTL must be greater than 0")
 	}
 
-	// Zipkin validation
-	if cfg.Zipkin.ReporterURL == "" {
-		return errors.New("ZIPKIN_REPORTERURL is required")
+	// Jaeger validation
+	if cfg.Jaeger.OTLPEndpoint == "" {
+		return errors.New("JAEGER_OTLP_ENDPOINT is required")
+	}
+	// validate endpoint format (must be host:port without scheme)
+	u, err := url.Parse("http://" + cfg.Jaeger.OTLPEndpoint)
+	if err != nil || u.Host != cfg.Jaeger.OTLPEndpoint {
+		return errors.New("JAEGER_OTLP_ENDPOINT must be host:port without scheme")
 	}
 
 	// Graylog validation

@@ -2,67 +2,139 @@ package observability
 
 import (
 	"net/http"
-	"sync"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
-var (
-	transportsMu sync.Mutex
-	transports   = make(map[string]http.RoundTripper)
+// metrics labels
+const (
+	ClientLabel = "client"
+	URLLabel    = "url"
+	MethodLabel = "method"
+	CodeLabel   = "code"
 )
+
+const (
+	maxURLSegments = 4
+)
+
+var (
+	httpClientInFlight = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "http_client_in_flight_requests",
+		Help: "A gauge of in-flight requests for the HTTP client",
+	}, []string{ClientLabel})
+
+	httpClientRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "http_client_requests_total",
+		Help: "Total number of HTTP client requests",
+	}, []string{ClientLabel, MethodLabel, CodeLabel, URLLabel})
+
+	httpClientRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "http_client_request_duration_seconds",
+		Help:    "A histogram of HTTP client request latencies",
+		Buckets: prometheus.DefBuckets,
+	}, []string{ClientLabel, MethodLabel, URLLabel})
+
+	httpClientRequestErrors = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "http_client_request_errors_total",
+		Help: "Total number of HTTP client transport errors",
+	}, []string{ClientLabel, MethodLabel, URLLabel})
+)
+
+// TransportOption configures a monitoredTransport
+type TransportOption func(*transportOptions)
+
+type transportOptions struct {
+	rt       http.RoundTripper
+	withOtel bool
+}
+
+// WithRoundTripper sets the base RoundTripper to wrap
+func WithRoundTripper(rt http.RoundTripper) TransportOption {
+	return func(o *transportOptions) {
+		o.rt = rt
+	}
+}
+
+// WithOtel wraps the transport with OpenTelemetry instrumentation for trace propagation
+func WithOtel() TransportOption {
+	return func(o *transportOptions) {
+		o.withOtel = true
+	}
+}
+
+// transport wraps an http.RoundTripper to add metrics
+type transport struct {
+	rt         http.RoundTripper
+	clientName string
+}
 
 // NewTransport creates a new instrumented http.RoundTripper.
 // It is safe to call multiple times with the same namespace/subsystem - subsequent
 // calls will return the same transport instance to avoid duplicate metric registration.
-func NewTransport(namespace, subsystem string) http.RoundTripper {
-	key := namespace + "/" + subsystem
-
-	transportsMu.Lock()
-	defer transportsMu.Unlock()
-	if t, ok := transports[key]; ok {
-		return t
+func NewTransport(clientName string, opts ...TransportOption) http.RoundTripper {
+	options := &transportOptions{
+		rt: http.DefaultTransport,
+	}
+	for _, opt := range opts {
+		opt(options)
 	}
 
-	inFlight := promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: namespace,
-		Subsystem: subsystem,
-		Name:      "client_in_flight_requests",
-		Help:      "A gauge of in-flight requests for the client.",
-	})
+	rt := options.rt
+	if options.withOtel {
+		rt = otelhttp.NewTransport(rt)
+	}
 
-	counter := promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: namespace,
-			Subsystem: subsystem,
-			Name:      "client_api_requests_total",
-			Help:      "A counter for requests from the client.",
-		},
-		[]string{"code", "method"},
-	)
+	return &transport{
+		rt:         rt,
+		clientName: clientName,
+	}
+}
 
-	histVec := promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: namespace,
-			Subsystem: subsystem,
-			Name:      "client_api_request_duration_seconds",
-			Help:      "A histogram of request latencies.",
-			Buckets:   prometheus.DefBuckets,
-		},
-		[]string{"method"},
-	)
+// RoundTrip implements the http.RoundTripper interface
+func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
+	labelURL := normalizeURL(*req.URL, maxURLSegments)
+	method := req.Method
 
-	promTransport := promhttp.InstrumentRoundTripperInFlight(inFlight,
-		promhttp.InstrumentRoundTripperCounter(counter,
-			promhttp.InstrumentRoundTripperDuration(histVec, http.DefaultTransport),
-		),
-	)
+	httpClientInFlight.WithLabelValues(t.clientName).Inc()
+	defer httpClientInFlight.WithLabelValues(t.clientName).Dec()
 
-	t := otelhttp.NewTransport(promTransport)
-	transports[key] = t
+	start := time.Now()
+	resp, err := t.rt.RoundTrip(req)
+	duration := time.Since(start).Seconds()
 
-	return t
+	httpClientRequestDuration.WithLabelValues(t.clientName, method, labelURL).Observe(duration)
+
+	if err != nil {
+		httpClientRequestErrors.WithLabelValues(t.clientName, method, labelURL).Inc()
+	} else if resp != nil {
+		httpClientRequestsTotal.WithLabelValues(t.clientName, method, strconv.Itoa(resp.StatusCode), labelURL).Inc()
+	}
+
+	return resp, err
+}
+
+func normalizeURL(u url.URL, maxSegments int) string {
+	parts := strings.Split(u.Path, "/")
+	var segments []string
+	for _, part := range parts {
+		if part != "" {
+			segments = append(segments, part)
+		}
+	}
+
+	if len(segments) > maxSegments {
+		segments = segments[:maxSegments]
+	}
+
+	u.Path = "/" + strings.Join(segments, "/")
+	u.RawQuery = ""
+
+	return u.String()
 }

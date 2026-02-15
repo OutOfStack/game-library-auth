@@ -2,12 +2,13 @@
 
 ## Introduction
 
-game-library-auth is an authentication service for the game-library web application. It is responsible for user authentication and authorization.
+`game-library-auth` is an authentication service for the `game-library` web application. It is responsible for user authentication and authorization.
 
-This service is part of a game-library web application:
+`game-library` consists of:
 - [game-library](https://github.com/OutOfStack/game-library) - main service for fetching, storing, and providing games data
 - current service handles authentication and authorization
-- [game-library-ui](https://github.com/OutOfStack/game-library-ui) - UI representation service
+- [game-library-ui](https://github.com/OutOfStack/game-library-ui) - UI service
+- [game-library-infra](https://github.com/OutOfStack/game-library-infra) - infrastructure and deployment configurations
 
 
 ## Table of Contents
@@ -73,9 +74,11 @@ Refer to the [List of Make Commands](#list-of-make-commands) for a complete list
 ## Tech Stack and Integrations
 
 - Data storage with PostgreSQL.
-- Tracing with Zipkin.
-- Log management with Graylog.
 - Transactional email delivery through Resend API.
+- gRPC for internal service-to-service communication.
+- Tracing with OTLP exporter (Jaeger).
+- Log management with Graylog.
+- Metrics collection with Prometheus.
 - Code analysis with golangci-lint.
 - CI/CD with GitHub Actions and deploy to Kubernetes (microk8s) cluster.
 
@@ -96,9 +99,9 @@ make generate
 
 The service exposes a gRPC endpoint for internal service-to-service communication.
 
-**Address:** `localhost:9001` (configurable via `APP_GRPC_ADDRESS` in `app.env`)
+**Endpoint:** `localhost:9001` (`APP_GRPC_ADDRESS` environment variable in [`app.example.env`](./app.example.env))
 
-**Protocol Buffer Schema:** [`api/proto/authapi/v1/authapi.proto`](./api/proto/authapi/v1/authapi.proto)
+**Protobuf Definition:** [`api/proto/authapi/v1/authapi.proto`](./api/proto/authapi/v1/authapi.proto)
 
 **Testing with grpcurl:**
 
@@ -106,10 +109,10 @@ The service exposes a gRPC endpoint for internal service-to-service communicatio
 # list services
 grpcurl -plaintext localhost:9001 list
 
-# Inspect service details
+# describe service
 grpcurl -plaintext localhost:9001 describe authapi.v1.AuthApiService
 
-# Call VerifyToken method
+# call VerifyToken method
 grpcurl -plaintext -d '{"token": "your-jwt-token-here"}' -emit-defaults localhost:9001 authapi.v1.AuthApiService/VerifyToken
 ```
 
