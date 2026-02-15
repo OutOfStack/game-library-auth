@@ -236,15 +236,13 @@ func run() error {
 			}
 		})
 
-		// stop tracer provider
-		wg.Go(func() {
-			logger.Info("stop tracer provider")
-			if shutdownErr := tracerProvider.Shutdown(bCtx); shutdownErr != nil {
-				logger.Error("tracer provider shutdown failed", zap.Error(shutdownErr))
-			}
-		})
-
 		wg.Wait()
+
+		// stop tracer provider after http and grpc servers in order to wait for all requests to finish
+		logger.Info("stop tracer provider")
+		if shutdownErr := tracerProvider.Shutdown(bCtx); shutdownErr != nil {
+			logger.Error("tracer provider shutdown failed", zap.Error(shutdownErr))
+		}
 	}
 
 	return nil

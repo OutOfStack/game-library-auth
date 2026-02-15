@@ -76,8 +76,6 @@ type transport struct {
 }
 
 // NewTransport creates a new instrumented http.RoundTripper.
-// It is safe to call multiple times with the same namespace/subsystem - subsequent
-// calls will return the same transport instance to avoid duplicate metric registration.
 func NewTransport(clientName string, opts ...TransportOption) http.RoundTripper {
 	options := &transportOptions{
 		rt: http.DefaultTransport,
