@@ -8,7 +8,7 @@ import (
 
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
@@ -23,12 +23,12 @@ import (
 // @Failure 		  400 {object} web.ErrResp
 // @Failure 		  401 {object} web.ErrResp
 // @Router 			  /oauth/google [post]
-func (a *API) GoogleOAuthHandler(c *fiber.Ctx) error {
-	ctx, span := tracer.Start(c.Context(), "googleOAuth")
+func (a *API) GoogleOAuthHandler(c fiber.Ctx) error {
+	ctx, span := tracer.Start(c.RequestCtx(), "googleOAuth")
 	defer span.End()
 
 	var req GoogleOAuthRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 			Error: "Cannot parse request",
@@ -95,7 +95,7 @@ func (a *API) verifyGoogleIDToken(ctx context.Context, token string) (*googleIDT
 	}
 
 	if claims.Sub == "" || claims.Email == "" {
-		return nil, errors.New("invalid token claims")
+		return nil, fmt.Errorf("invalid token claims")
 	}
 
 	return claims, nil

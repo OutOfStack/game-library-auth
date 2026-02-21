@@ -46,9 +46,9 @@ generate-mocks:
 	mockgen -source=pkg/database/tx.go -destination=pkg/database/mocks/tx.go -package=database_mocks
 	mockgen -source=internal/api/grpc/authapi/service.go -destination=internal/api/grpc/authapi/mocks/service.go -package=authapi_mocks
 
-BUF_VERSION := v1.61
-PROTOC_GEN_GO_VERSION := v1.36.10
-PROTOC_GEN_GO_GRPC_VERSION := v1.6.0
+BUF_VERSION := v1.65
+PROTOC_GEN_GO_VERSION := v1.36.11
+PROTOC_GEN_GO_GRPC_VERSION := v1.6.1
 PROTO_INFOAPI_VERSION := ref=bdd7544 # or tag=v1.0.0
 BUF_PKG := github.com/bufbuild/buf/cmd/buf@${BUF_VERSION}
 PROTOC_GEN_GO_PKG := google.golang.org/protobuf/cmd/protoc-gen-go@${PROTOC_GEN_GO_VERSION}
@@ -65,7 +65,7 @@ generate-proto:
 
 generate: generate-swag generate-mocks generate-proto
 
-LINT_VERSION := v2.9
+LINT_VERSION := v2.10
 LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(LINT_VERSION)
 lint:
 	@golangci-lint version >/dev/null 2>&1 || { echo "Installing golangci-lint..."; go install ${LINT_PKG}; }

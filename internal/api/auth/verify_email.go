@@ -6,7 +6,7 @@ import (
 
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
@@ -24,8 +24,8 @@ import (
 // @Failure      404 {object} web.ErrResp "Verification code is not found"
 // @Failure      500 {object} web.ErrResp "Internal server error"
 // @Router       /verify-email [post]
-func (a *API) VerifyEmailHandler(c *fiber.Ctx) error {
-	ctx, span := tracer.Start(c.Context(), "verifyEmail")
+func (a *API) VerifyEmailHandler(c fiber.Ctx) error {
+	ctx, span := tracer.Start(c.RequestCtx(), "verifyEmail")
 	defer span.End()
 
 	claims, err := a.getClaims(c)
@@ -37,7 +37,7 @@ func (a *API) VerifyEmailHandler(c *fiber.Ctx) error {
 	}
 
 	var req VerifyEmailReq
-	if err = c.BodyParser(&req); err != nil {
+	if err = c.Bind().Body(&req); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 			Error: "Cannot parse request",

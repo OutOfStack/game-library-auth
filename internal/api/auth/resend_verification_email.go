@@ -7,7 +7,7 @@ import (
 
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
@@ -23,8 +23,8 @@ import (
 // @Failure      429 {object} web.ErrResp "Too many resend requests"
 // @Failure      500 {object} web.ErrResp "Internal server error"
 // @Router       /resend-verification [post]
-func (a *API) ResendVerificationEmailHandler(c *fiber.Ctx) error {
-	ctx, span := tracer.Start(c.Context(), "resendVerificationEmail")
+func (a *API) ResendVerificationEmailHandler(c fiber.Ctx) error {
+	ctx, span := tracer.Start(c.RequestCtx(), "resendVerificationEmail")
 	defer span.End()
 
 	claims, err := a.getClaims(c)

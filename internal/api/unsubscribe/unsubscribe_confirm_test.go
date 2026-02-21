@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/database"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -30,9 +30,7 @@ func TestUnsubscribeConfirmHandler_Success(t *testing.T) {
 
 	mockFacade.EXPECT().UnsubscribeEmail(gomock.Any(), token).Return(email, nil)
 
-	app := fiber.New(fiber.Config{
-		Views: mockViews,
-	})
+	app := fiber.New(fiber.Config{Views: mockViews})
 	app.Post("/unsubscribe", api.UnsubscribeConfirmHandler)
 
 	form := url.Values{}

@@ -78,13 +78,17 @@ linters:
     govet:
       enable:
         - shadow
+    perfsprint:
+      errorf: false
   exclusions:
     generated: lax
     rules:
-      - path: (.+)\.go$
-        text: G108 # pprof exposure. closed with auth
-      - path: (.+)\.go$
-        text: G115  # integer overflow conversion warnings
+      - linters:
+          - gosec
+        text: "G108" # pprof exposure. closed with auth
+      - linters:
+          - gosec
+        text: "G117" # config struct fields named after secrets are not actual secrets
       - path: _test\.go
         linters:
           - gocyclo
@@ -97,9 +101,6 @@ linters:
       - linters:
         - revive # disable "should have a package comment"
         text: "package comment"
-      - linters:
-        - modernize
-        text: "interface\\{\\} can be replaced by any"
       - linters:
         - revive
         text: "var-naming: avoid meaningless package names"

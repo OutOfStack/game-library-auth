@@ -6,12 +6,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	mocks "github.com/OutOfStack/game-library-auth/internal/api/auth/mocks"
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,7 +31,7 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 		emailVerificationEnabled bool
 		setupMocks               func(*mocks.MockUserFacade)
 		expectedStatus           int
-		expectedResp             interface{}
+		expectedResp             any
 	}{
 		{
 			name:                     "successful resend",
@@ -125,7 +127,7 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/resend-verification", nil)
 			req.Header.Set("Authorization", tt.authHeader)
 
-			resp, err := app.Test(req, 5000)
+			resp, err := app.Test(req, fiber.TestConfig{Timeout: 5 * time.Second})
 			require.NoError(t, err)
 			defer resp.Body.Close()
 

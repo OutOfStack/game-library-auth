@@ -33,7 +33,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 		request        auth.UpdateProfileReq
 		setupMocks     func(*mocks.MockUserFacade)
 		expectedStatus int
-		expectedResp   interface{}
+		expectedResp   any
 	}{
 		{
 			name:       "successful update name",

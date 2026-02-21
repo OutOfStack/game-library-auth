@@ -10,16 +10,16 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/api/tools"
 	"github.com/OutOfStack/game-library-auth/internal/api/unsubscribe"
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
-	"github.com/ansrivas/fiberprometheus/v2"
-	"github.com/gofiber/adaptor/v2"
-	"github.com/gofiber/contrib/fiberzap"
-	"github.com/gofiber/contrib/otelfiber"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/pprof"
-	rec "github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/gofiber/template/html/v2"
-	swag "github.com/swaggo/http-swagger/v2"
+	fiberotel "github.com/gofiber/contrib/v3/otel"
+	"github.com/gofiber/contrib/v3/swaggo"
+	fiberzap "github.com/gofiber/contrib/v3/zap"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/adaptor"
+	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/pprof"
+	rec "github.com/gofiber/fiber/v3/middleware/recover"
+	"github.com/gofiber/template/html/v3"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -53,30 +53,26 @@ func Service(
 	})
 
 	// apply middleware
-	prometheus := fiberprometheus.NewWithDefaultRegistry(appconf.ServiceName)
-	app.Use(prometheus.Middleware)
 	app.Use(rec.New())
-	app.Use(otelfiber.Middleware(otelfiber.WithServerName(appconf.ServiceName)))
+	app.Use(fiberotel.Middleware())
 	app.Use(fiberzap.New(fiberzap.Config{
 		Logger: log,
 	}))
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.Web.AllowedCORSOrigin,
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
-		AllowMethods:     "GET,POST,DELETE,PATCH,OPTIONS",
+		AllowOrigins:     []string{cfg.Web.AllowedCORSOrigin},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowMethods:     []string{"GET", "POST", "DELETE", "PATCH", "OPTIONS"},
 		AllowCredentials: true,
 	}))
 
-	registerRoutes(app, authAPI, checkAPI, unsubscribeAPI, prometheus)
+	registerRoutes(app, authAPI, checkAPI, unsubscribeAPI)
 
 	return app, tp, nil
 }
 
 // DebugService creates and configures debug app
 func DebugService() *fiber.App {
-	app := fiber.New(fiber.Config{
-		AppName: "debug",
-	})
+	app := fiber.New(fiber.Config{AppName: "debug"})
 
 	// apply middleware
 	app.Use(pprof.New())
@@ -84,9 +80,9 @@ func DebugService() *fiber.App {
 	return app
 }
 
-func registerRoutes(app *fiber.App, authAPI *auth.API, checkAPI *tools.HealthCheckAPI, unsubscribeAPI *unsubscribe.API, prometheus *fiberprometheus.FiberPrometheus) {
+func registerRoutes(app *fiber.App, authAPI *auth.API, checkAPI *tools.HealthCheckAPI, unsubscribeAPI *unsubscribe.API) {
 	// metrics
-	prometheus.RegisterAt(app, "/metrics")
+	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
 
 	// health
 	app.Get("/readiness", checkAPI.Readiness)
@@ -112,7 +108,7 @@ func registerRoutes(app *fiber.App, authAPI *auth.API, checkAPI *tools.HealthChe
 	app.Post("/refresh", authAPI.RefreshTokenHandler)
 
 	// swagger
-	app.Get("/swagger/*", adaptor.HTTPHandler(swag.Handler()))
+	app.Get("/swagger/*", swaggo.HandlerDefault)
 }
 
 func initTracer(log *zap.Logger, otlpEndpoint string) (*trace.TracerProvider, error) {

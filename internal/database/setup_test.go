@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 
 	// run postgres docker container
 	pgContainer, err := postgres.Run(ctx,
-		"postgres:16-alpine",
+		"postgres:18-alpine",
 		postgres.WithDatabase("auth_test"),
 		postgres.WithUsername("test_user"),
 		postgres.WithPassword("test_password"),

@@ -6,7 +6,7 @@ import (
 
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
@@ -20,8 +20,8 @@ import (
 // @Failure 			401 {object} web.ErrResp "Unauthorized"
 // @Failure 			500 {object} web.ErrResp "Internal server error"
 // @Router 				/account [delete]
-func (a *API) DeleteAccountHandler(c *fiber.Ctx) error {
-	ctx, span := tracer.Start(c.Context(), "deleteAccount")
+func (a *API) DeleteAccountHandler(c fiber.Ctx) error {
+	ctx, span := tracer.Start(c.RequestCtx(), "deleteAccount")
 	defer span.End()
 
 	// get user ID from JWT

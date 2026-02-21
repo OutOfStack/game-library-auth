@@ -71,7 +71,7 @@ func TestEx_Exec(t *testing.T) {
 	mockDB := mocks.NewMockExecutor(ctrl)
 
 	query := "INSERT INTO users (name) VALUES (?)"
-	args := []interface{}{"test"}
+	args := []any{"test"}
 	expectedResult := mockResult{}
 
 	mockDB.EXPECT().ExecContext(ctx, query, args[0]).Return(expectedResult, nil)
@@ -90,7 +90,7 @@ func TestEx_Get(t *testing.T) {
 	mockDB := mocks.NewMockExecutor(ctrl)
 
 	query := "SELECT name FROM users WHERE id = ?"
-	args := []interface{}{1}
+	args := []any{1}
 	dest := &struct{ Name string }{}
 
 	mockDB.EXPECT().GetContext(ctx, dest, query, args[0]).Return(nil)

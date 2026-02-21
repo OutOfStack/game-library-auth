@@ -39,7 +39,7 @@ func init() {
 }
 
 // Validate shows validation errors for each invalid field
-func Validate(val interface{}) ([]FieldError, error) {
+func Validate(val any) ([]FieldError, error) {
 	err := validate.Struct(val)
 	if err == nil {
 		return nil, nil

@@ -7,7 +7,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
@@ -26,8 +26,8 @@ import (
 // @Failure 			404 {object} web.ErrResp "User not found"
 // @Failure 			500 {object} web.ErrResp "Internal server error"
 // @Router 				/account [patch]
-func (a *API) UpdateProfileHandler(c *fiber.Ctx) error {
-	ctx, span := tracer.Start(c.Context(), "updateProfile")
+func (a *API) UpdateProfileHandler(c fiber.Ctx) error {
+	ctx, span := tracer.Start(c.RequestCtx(), "updateProfile")
 	defer span.End()
 
 	// get user ID from JWT
@@ -40,7 +40,7 @@ func (a *API) UpdateProfileHandler(c *fiber.Ctx) error {
 	}
 
 	var params UpdateProfileReq
-	if err = c.BodyParser(&params); err != nil {
+	if err = c.Bind().Body(&params); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 			Error: "Error parsing data",

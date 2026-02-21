@@ -1,27 +1,26 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 )
 
 // getClaims extracts and validates JWT from Authorization header and returns the claims
-func (a *API) getClaims(c *fiber.Ctx) (auth.Claims, error) {
+func (a *API) getClaims(c fiber.Ctx) (auth.Claims, error) {
 	authHeader := c.Get("Authorization")
 	if authHeader == "" {
-		return auth.Claims{}, errors.New("authorization header required")
+		return auth.Claims{}, fmt.Errorf("authorization header required")
 	}
 
 	// Expected format: "Bearer <token>"
 	parts := strings.SplitN(authHeader, " ", 2)
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		return auth.Claims{}, errors.New("invalid authorization header format")
+		return auth.Claims{}, fmt.Errorf("invalid authorization header format")
 	}
 
 	tokenStr := parts[1]
@@ -31,14 +30,14 @@ func (a *API) getClaims(c *fiber.Ctx) (auth.Claims, error) {
 	}
 
 	if _, err = uuid.Parse(claims.UserID); err != nil {
-		return auth.Claims{}, errors.New("invalid user ID")
+		return auth.Claims{}, fmt.Errorf("invalid user ID")
 	}
 
 	return claims, nil
 }
 
 // getUserIDFromJWT extracts and validates JWT from Authorization header and returns the user ID
-func (a *API) getUserIDFromJWT(c *fiber.Ctx) (string, error) {
+func (a *API) getUserIDFromJWT(c fiber.Ctx) (string, error) {
 	claims, err := a.getClaims(c)
 	if err != nil {
 		return "", err
@@ -48,7 +47,7 @@ func (a *API) getUserIDFromJWT(c *fiber.Ctx) (string, error) {
 }
 
 // setRefreshTokenCookie sets the refresh token as an httpOnly cookie
-func (a *API) setRefreshTokenCookie(c *fiber.Ctx, refreshToken facade.RefreshToken) {
+func (a *API) setRefreshTokenCookie(c fiber.Ctx, refreshToken facade.RefreshToken) {
 	c.Cookie(&fiber.Cookie{
 		Name:     refreshTokenCookieName,
 		Value:    refreshToken.Token,
