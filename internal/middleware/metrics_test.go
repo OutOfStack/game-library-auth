@@ -4,7 +4,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/OutOfStack/game-library-auth/internal/middleware"
@@ -149,7 +148,7 @@ func TestMetrics_ExposedViaPrometheus(t *testing.T) {
 	require.NoError(t, err)
 
 	metricsOutput := string(body)
-	assert.True(t, strings.Contains(metricsOutput, "http_server_requests_total"))
-	assert.True(t, strings.Contains(metricsOutput, "http_server_request_duration_seconds"))
-	assert.True(t, strings.Contains(metricsOutput, "http_server_in_flight_requests"))
+	assert.Contains(t, metricsOutput, "http_server_requests_total")
+	assert.Contains(t, metricsOutput, "http_server_request_duration_seconds")
+	assert.Contains(t, metricsOutput, "http_server_in_flight_requests")
 }

@@ -33,10 +33,11 @@
 ## Build and Quality Checks
 - Run validation commands before completing work:
   - `make build` - compile the project
-  - `go test -v -race ./... | grep -E "(FAIL:|RUN.*failed|panic:|error:)"` - run all tests
+  - `go test -v -race ./... | grep -E "(FAIL:|RUN.*failed|panic:|error:)"` - run all tests, `go test -v ./...` if -race flags fails
   - `make lint` - check code quality; for gci and format errors use `goimports`
   - `make generate | grep -E "(error:|warning:|failed)"` - generate swagger files and mocks if there were updates in definitions
 - Fix any issues found by these commands
+- Do not finish task until build, test and lint commands ran successfully 
 
 ## Documentation
 - If there are significant updates regarding what written in `README.md`, add it there
