@@ -17,6 +17,7 @@ const (
 	ClientLabel = "client"
 	URLLabel    = "url"
 	MethodLabel = "method"
+	PathLabel   = "path"
 	CodeLabel   = "code"
 )
 

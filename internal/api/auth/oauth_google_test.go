@@ -14,7 +14,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
@@ -82,7 +82,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		// Mock Google token validation
 		mockPayload := &idtoken.Payload{
 			Subject: "google-sub-id",
-			Claims: map[string]interface{}{
+			Claims: map[string]any{
 				"email":          "test@example.com",
 				"name":           "Test User",
 				"email_verified": true,
@@ -135,7 +135,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		// Mock Google token validation
 		mockPayload := &idtoken.Payload{
 			Subject: "google-sub-id",
-			Claims: map[string]interface{}{
+			Claims: map[string]any{
 				"email":          "existing@example.com",
 				"name":           "Existing User",
 				"email_verified": true,
@@ -185,7 +185,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		// Mock Google token validation
 		mockPayload := &idtoken.Payload{
 			Subject: "new-google-sub-id",
-			Claims: map[string]interface{}{
+			Claims: map[string]any{
 				"email":          "conflict@example.com",
 				"name":           "Conflict User",
 				"email_verified": true,
@@ -251,7 +251,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		// Mock Google token validation with invalid email
 		mockPayload := &idtoken.Payload{
 			Subject: "google-sub-id",
-			Claims: map[string]interface{}{
+			Claims: map[string]any{
 				"email":          "invalid-email",
 				"name":           "Test User",
 				"email_verified": true,
@@ -296,7 +296,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		// Mock Google token validation
 		mockPayload := &idtoken.Payload{
 			Subject: "google-sub-id",
-			Claims: map[string]interface{}{
+			Claims: map[string]any{
 				"email":          "test@example.com",
 				"name":           "Test User",
 				"email_verified": true,
@@ -333,7 +333,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		// Mock Google token validation
 		mockPayload := &idtoken.Payload{
 			Subject: "google-sub-id",
-			Claims: map[string]interface{}{
+			Claims: map[string]any{
 				"email":          "existing@example.com",
 				"name":           "Existing User",
 				"email_verified": true,

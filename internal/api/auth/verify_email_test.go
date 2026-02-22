@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/api/auth"
 	mocks "github.com/OutOfStack/game-library-auth/internal/api/auth/mocks"
@@ -13,6 +14,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,11 +27,11 @@ func TestVerifyEmailHandler(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		request        interface{}
+		request        any
 		authHeader     string
 		setupMocks     func(*mocks.MockUserFacade)
 		expectedStatus int
-		expectedResp   interface{}
+		expectedResp   any
 	}{
 		{
 			name: "successful verification",
@@ -109,14 +111,14 @@ func TestVerifyEmailHandler(t *testing.T) {
 				req.Header.Set("Authorization", tt.authHeader)
 			}
 
-			resp, err := app.Test(req, 5000)
+			resp, err := app.Test(req, fiber.TestConfig{Timeout: 5 * time.Second})
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 
 			if tt.expectedResp != nil {
-				var actual interface{}
+				var actual any
 				if _, ok := tt.expectedResp.(web.ErrResp); ok {
 					actual = &web.ErrResp{}
 				} else {

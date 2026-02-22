@@ -6,7 +6,7 @@ import (
 
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
@@ -19,7 +19,7 @@ import (
 // @Failure      401 {object} web.ErrResp "Invalid or expired refresh token"
 // @Failure      500 {object} web.ErrResp
 // @Router       /refresh [post]
-func (a *API) RefreshTokenHandler(c *fiber.Ctx) error {
+func (a *API) RefreshTokenHandler(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "refreshToken")
 	defer span.End()
 

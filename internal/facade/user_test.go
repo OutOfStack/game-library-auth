@@ -102,9 +102,8 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 			Role:        model.UserRoleName,
 		}
 
-		newName := "New Name"
 		params := model.UpdateProfileParams{
-			Name: &newName,
+			Name: new("New Name"),
 		}
 
 		mockUserRepo.EXPECT().
@@ -141,10 +140,9 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 			Role:         model.UserRoleName,
 		}
 
-		newPassword := "newpass"
 		params := model.UpdateProfileParams{
 			Password:    &oldPassword,
-			NewPassword: &newPassword,
+			NewPassword: new("newpass"),
 		}
 
 		mockUserRepo.EXPECT().
@@ -201,11 +199,9 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 			Role:          model.UserRoleName,
 		}
 
-		oldPassword := "oldpass"
-		newPassword := "newpass"
 		params := model.UpdateProfileParams{
-			Password:    &oldPassword,
-			NewPassword: &newPassword,
+			Password:    new("oldpass"),
+			NewPassword: new("newpass"),
 		}
 
 		mockUserRepo.EXPECT().
@@ -227,7 +223,6 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
-		wrongPassword := "wrongpass"
 		correctPasswordHash, _ := bcrypt.GenerateFromPassword([]byte("correctpass"), bcrypt.DefaultCost)
 
 		existingUser := database.User{
@@ -237,10 +232,9 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 			Role:         model.UserRoleName,
 		}
 
-		newPassword := "newpass"
 		params := model.UpdateProfileParams{
-			Password:    &wrongPassword,
-			NewPassword: &newPassword,
+			Password:    new("wrongpass"),
+			NewPassword: new("newpass"),
 		}
 
 		mockUserRepo.EXPECT().

@@ -30,8 +30,7 @@ func NewTooManyRequestsError(retryAfter time.Duration) TooManyRequestsError {
 
 // AsTooManyRequestsError - returns *TooManyRequestsError if err is of type TooManyRequestsError
 func AsTooManyRequestsError(err error) *TooManyRequestsError {
-	var tooManyRequestsErr *TooManyRequestsError
-	if errors.As(err, &tooManyRequestsErr) {
+	if tooManyRequestsErr, ok := errors.AsType[*TooManyRequestsError](err); ok {
 		return tooManyRequestsErr
 	}
 	return nil

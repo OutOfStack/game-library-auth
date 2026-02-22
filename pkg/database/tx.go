@@ -24,8 +24,8 @@ func TxFromContext(ctx context.Context) (*sqlx.Tx, bool) {
 
 // Querier represents types that can execute SQL queries with context already embedded
 type Querier interface {
-	Exec(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	Get(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+	Exec(ctx context.Context, query string, args ...any) (sql.Result, error)
+	Get(ctx context.Context, dest any, query string, args ...any) error
 }
 
 // Ex wraps db/tx with context
@@ -42,12 +42,12 @@ func NewQuerier(db Executor) Querier {
 
 // Executor represents database/transaction interface
 type Executor interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	GetContext(ctx context.Context, dest any, query string, args ...any) error
 }
 
 // Exec executes a query with context
-func (e *Ex) Exec(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (e *Ex) Exec(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	if tx, ok := TxFromContext(ctx); ok {
 		return tx.ExecContext(ctx, query, args...)
 	}
@@ -55,7 +55,7 @@ func (e *Ex) Exec(ctx context.Context, query string, args ...interface{}) (sql.R
 }
 
 // Get retrieves a single row with context
-func (e *Ex) Get(ctx context.Context, dest interface{}, query string, args ...interface{}) error {
+func (e *Ex) Get(ctx context.Context, dest any, query string, args ...any) error {
 	if tx, ok := TxFromContext(ctx); ok {
 		return tx.GetContext(ctx, dest, query, args...)
 	}

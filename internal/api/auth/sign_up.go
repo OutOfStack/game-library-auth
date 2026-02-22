@@ -6,7 +6,7 @@ import (
 
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
@@ -22,12 +22,12 @@ import (
 // @Failure 	409 {object} web.ErrResp "Username or publisher name already exists"
 // @Failure 	500 {object} web.ErrResp "Internal server error"
 // @Router		/signup [post]
-func (a *API) SignUpHandler(c *fiber.Ctx) error {
+func (a *API) SignUpHandler(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "signUp")
 	defer span.End()
 
 	var signUp SignUpReq
-	if err := c.BodyParser(&signUp); err != nil {
+	if err := c.Bind().Body(&signUp); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 			Error: "Error parsing data",

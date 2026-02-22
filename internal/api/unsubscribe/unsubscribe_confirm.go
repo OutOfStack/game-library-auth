@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	"github.com/OutOfStack/game-library-auth/internal/database"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
 // UnsubscribeConfirmHandler handles POST /unsubscribe - processes the unsubscribe action
-func (a *API) UnsubscribeConfirmHandler(c *fiber.Ctx) error {
+func (a *API) UnsubscribeConfirmHandler(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "unsubscribeConfirmHandler")
 	defer span.End()
 

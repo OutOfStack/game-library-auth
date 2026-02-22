@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -34,7 +34,7 @@ func NewHealthCheckAPI(db *sqlx.DB) *HealthCheckAPI {
 }
 
 // Readiness determines whether service is ready
-func (a *HealthCheckAPI) Readiness(c *fiber.Ctx) error {
+func (a *HealthCheckAPI) Readiness(c fiber.Ctx) error {
 	var h health
 	host, err := os.Hostname()
 	if err != nil {
@@ -51,7 +51,7 @@ func (a *HealthCheckAPI) Readiness(c *fiber.Ctx) error {
 }
 
 // Liveness determines whether service is up
-func (a *HealthCheckAPI) Liveness(c *fiber.Ctx) error {
+func (a *HealthCheckAPI) Liveness(c fiber.Ctx) error {
 	host, err := os.Hostname()
 	if err != nil {
 		host = unavailable

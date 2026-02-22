@@ -6,7 +6,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/api/auth"
 	mocks "github.com/OutOfStack/game-library-auth/internal/api/auth/mocks"
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"

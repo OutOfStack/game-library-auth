@@ -6,7 +6,7 @@ import (
 
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
@@ -22,12 +22,12 @@ import (
 // @Failure      401 {object} web.ErrResp
 // @Failure      500 {object} web.ErrResp
 // @Router       /signin [post]
-func (a *API) SignInHandler(c *fiber.Ctx) error {
+func (a *API) SignInHandler(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "signIn")
 	defer span.End()
 
 	var signIn SignInReq
-	if err := c.BodyParser(&signIn); err != nil {
+	if err := c.Bind().Body(&signIn); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 			Error: "Error parsing data",

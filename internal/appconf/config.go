@@ -44,8 +44,7 @@ func readFile() (*Cfg, error) {
 
 	if err := viper.ReadInConfig(); err != nil {
 		// if file not found use env variables only
-		var configFileNotFoundError viper.ConfigFileNotFoundError
-		if !errors.As(err, &configFileNotFoundError) {
+		if _, ok := errors.AsType[viper.ConfigFileNotFoundError](err); !ok {
 			return nil, err
 		}
 	}

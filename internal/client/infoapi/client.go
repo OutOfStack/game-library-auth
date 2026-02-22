@@ -2,7 +2,6 @@ package infoapi
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -31,7 +30,7 @@ type Client struct {
 // NewClient dials the infoapi service and returns a ready client
 func NewClient(_ context.Context, cfg Config) (*Client, error) {
 	if cfg.Address == "" {
-		return nil, errors.New("infoapi address is required")
+		return nil, fmt.Errorf("infoapi address is required")
 	}
 	if cfg.Timeout <= 0 {
 		cfg.Timeout = defaultTimeout
@@ -65,7 +64,7 @@ func (c *Client) Close() error {
 // CompanyExists checks if company exists in upstream infoapi service
 func (c *Client) CompanyExists(ctx context.Context, companyName string) (bool, error) {
 	if companyName == "" {
-		return false, errors.New("company name is required")
+		return false, fmt.Errorf("company name is required")
 	}
 
 	ctx, cancel := ctxutil.CtxWithTimeout(ctx, c.cfg.Timeout)

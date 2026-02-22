@@ -3,12 +3,12 @@ package unsubscribe
 import (
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
 // UnsubscribeHandler handles GET /unsubscribe?token=xxx - shows confirmation page
-func (a *API) UnsubscribeHandler(c *fiber.Ctx) error {
+func (a *API) UnsubscribeHandler(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "unsubscribeHandler")
 	defer span.End()
 

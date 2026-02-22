@@ -11,6 +11,7 @@ import (
 
 	mocks "github.com/OutOfStack/game-library-auth/internal/api/auth/mocks"
 	"github.com/OutOfStack/game-library-auth/internal/web"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -22,7 +23,7 @@ func TestLogoutHandler(t *testing.T) {
 		cookieValue    string
 		setupMocks     func(*mocks.MockUserFacade)
 		expectedStatus int
-		expectedResp   interface{}
+		expectedResp   any
 	}{
 		{
 			name:        "successful logout with refresh token",
@@ -75,7 +76,7 @@ func TestLogoutHandler(t *testing.T) {
 				})
 			}
 
-			resp, err := app.Test(req, -1)
+			resp, err := app.Test(req, fiber.TestConfig{Timeout: 0, FailOnTimeout: false})
 			require.NoError(t, err)
 			defer resp.Body.Close()
 

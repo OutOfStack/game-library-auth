@@ -25,7 +25,7 @@ func TestSignInHandler(t *testing.T) {
 		request        auth.SignInReq
 		setupMocks     func(*mocks.MockUserFacade)
 		expectedStatus int
-		expectedResp   interface{}
+		expectedResp   any
 	}{
 		{
 			name: "successful sign in",

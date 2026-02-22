@@ -25,7 +25,7 @@ func TestDeleteAccountHandler(t *testing.T) {
 		authHeader     string
 		setupMocks     func(*mocks.MockUserFacade)
 		expectedStatus int
-		expectedResp   interface{}
+		expectedResp   any
 	}{
 		{
 			name:       "successful delete",

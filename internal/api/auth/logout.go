@@ -6,7 +6,7 @@ import (
 
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
@@ -17,7 +17,7 @@ import (
 // @Success      204 "Successfully logged out"
 // @Failure      500 {object} web.ErrResp
 // @Router       /logout [post]
-func (a *API) LogoutHandler(c *fiber.Ctx) error {
+func (a *API) LogoutHandler(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "logout")
 	defer span.End()
 

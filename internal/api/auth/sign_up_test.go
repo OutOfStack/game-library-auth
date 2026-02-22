@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/api/auth"
 	mocks "github.com/OutOfStack/game-library-auth/internal/api/auth/mocks"
@@ -15,6 +16,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -23,11 +25,11 @@ import (
 func TestSignUpHandler(t *testing.T) {
 	tests := []struct {
 		name                     string
-		request                  interface{}
+		request                  any
 		emailVerificationEnabled bool
 		setupMocks               func(*mocks.MockUserFacade)
 		expectedStatus           int
-		expectedResp             interface{}
+		expectedResp             any
 	}{
 		{
 			name: "successful user signup",
@@ -182,7 +184,7 @@ func TestSignUpHandler(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/signup", bytes.NewReader(reqBody))
 			req.Header.Set("Content-Type", "application/json")
 
-			resp, err := app.Test(req, 5000)
+			resp, err := app.Test(req, fiber.TestConfig{Timeout: 5 * time.Second})
 			require.NoError(t, err)
 			defer resp.Body.Close()
 

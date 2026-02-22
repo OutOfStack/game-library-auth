@@ -21,8 +21,7 @@ func (r *UserRepo) CreateUser(ctx context.Context, user User) error {
 
 	_, err := r.query().Exec(ctx, q, user.ID, user.Username, user.DisplayName, user.Email, user.EmailVerified, user.PasswordHash, user.Role, user.OAuthProvider, user.OAuthID)
 	if err != nil {
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == pgUniqueViolationCode {
+		if pqErr, ok := errors.AsType[*pq.Error](err); ok && pqErr.Code == pgUniqueViolationCode {
 			return ErrUserExists
 		}
 		return fmt.Errorf("insert user: %w", err)

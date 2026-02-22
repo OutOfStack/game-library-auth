@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -26,9 +26,7 @@ func TestUnsubscribeHandler_Success(t *testing.T) {
 
 	mockFacade.EXPECT().IsEmailUnsubscribed(gomock.Any(), email).Return(false, nil)
 
-	app := fiber.New(fiber.Config{
-		Views: mockViews,
-	})
+	app := fiber.New(fiber.Config{Views: mockViews})
 	app.Get("/unsubscribe", api.UnsubscribeHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/unsubscribe?token="+token, nil)
@@ -110,9 +108,7 @@ func TestUnsubscribeHandler_AlreadyUnsubscribed(t *testing.T) {
 
 	mockFacade.EXPECT().IsEmailUnsubscribed(gomock.Any(), email).Return(true, nil)
 
-	app := fiber.New(fiber.Config{
-		Views: mockViews,
-	})
+	app := fiber.New(fiber.Config{Views: mockViews})
 	app.Get("/unsubscribe", api.UnsubscribeHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/unsubscribe?token="+token, nil)

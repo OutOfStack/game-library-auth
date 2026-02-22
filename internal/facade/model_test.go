@@ -30,9 +30,7 @@ func TestTooManyRequestsError(t *testing.T) {
 func TestAsTooManyRequestsError(t *testing.T) {
 	t.Run("with TooManyRequestsError", func(t *testing.T) {
 		retryAfter := 5 * time.Minute
-		err := facade.NewTooManyRequestsError(retryAfter)
-
-		result := facade.AsTooManyRequestsError(&err)
+		result := facade.AsTooManyRequestsError(new(facade.NewTooManyRequestsError(retryAfter)))
 		require.NotNil(t, result)
 		assert.Equal(t, retryAfter, result.RetryAfter)
 	})
