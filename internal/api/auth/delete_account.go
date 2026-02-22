@@ -21,7 +21,7 @@ import (
 // @Failure 			500 {object} web.ErrResp "Internal server error"
 // @Router 				/account [delete]
 func (a *API) DeleteAccountHandler(c fiber.Ctx) error {
-	ctx, span := tracer.Start(c.RequestCtx(), "deleteAccount")
+	ctx, span := tracer.Start(c.Context(), "deleteAccount")
 	defer span.End()
 
 	// get user ID from JWT

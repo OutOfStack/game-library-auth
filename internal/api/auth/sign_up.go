@@ -23,7 +23,7 @@ import (
 // @Failure 	500 {object} web.ErrResp "Internal server error"
 // @Router		/signup [post]
 func (a *API) SignUpHandler(c fiber.Ctx) error {
-	ctx, span := tracer.Start(c.RequestCtx(), "signUp")
+	ctx, span := tracer.Start(c.Context(), "signUp")
 	defer span.End()
 
 	var signUp SignUpReq

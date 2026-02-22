@@ -27,7 +27,7 @@ import (
 // @Failure 			500 {object} web.ErrResp "Internal server error"
 // @Router 				/account [patch]
 func (a *API) UpdateProfileHandler(c fiber.Ctx) error {
-	ctx, span := tracer.Start(c.RequestCtx(), "updateProfile")
+	ctx, span := tracer.Start(c.Context(), "updateProfile")
 	defer span.End()
 
 	// get user ID from JWT

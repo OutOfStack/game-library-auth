@@ -20,7 +20,7 @@ import (
 // @Failure      500 {object} web.ErrResp
 // @Router       /refresh [post]
 func (a *API) RefreshTokenHandler(c fiber.Ctx) error {
-	ctx, span := tracer.Start(c.RequestCtx(), "refreshToken")
+	ctx, span := tracer.Start(c.Context(), "refreshToken")
 	defer span.End()
 
 	// read refresh token from cookie

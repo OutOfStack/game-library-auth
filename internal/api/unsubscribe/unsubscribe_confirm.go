@@ -11,7 +11,7 @@ import (
 
 // UnsubscribeConfirmHandler handles POST /unsubscribe - processes the unsubscribe action
 func (a *API) UnsubscribeConfirmHandler(c fiber.Ctx) error {
-	ctx, span := tracer.Start(c.RequestCtx(), "unsubscribeConfirmHandler")
+	ctx, span := tracer.Start(c.Context(), "unsubscribeConfirmHandler")
 	defer span.End()
 
 	token := c.FormValue("token")

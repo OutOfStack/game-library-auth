@@ -23,7 +23,7 @@ import (
 // @Failure      500 {object} web.ErrResp
 // @Router       /signin [post]
 func (a *API) SignInHandler(c fiber.Ctx) error {
-	ctx, span := tracer.Start(c.RequestCtx(), "signIn")
+	ctx, span := tracer.Start(c.Context(), "signIn")
 	defer span.End()
 
 	var signIn SignInReq

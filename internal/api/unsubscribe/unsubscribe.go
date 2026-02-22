@@ -9,7 +9,7 @@ import (
 
 // UnsubscribeHandler handles GET /unsubscribe?token=xxx - shows confirmation page
 func (a *API) UnsubscribeHandler(c fiber.Ctx) error {
-	ctx, span := tracer.Start(c.RequestCtx(), "unsubscribeHandler")
+	ctx, span := tracer.Start(c.Context(), "unsubscribeHandler")
 	defer span.End()
 
 	token := c.Query("token")

@@ -10,6 +10,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/api/tools"
 	"github.com/OutOfStack/game-library-auth/internal/api/unsubscribe"
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
+	"github.com/OutOfStack/game-library-auth/internal/middleware"
 	fiberotel "github.com/gofiber/contrib/v3/otel"
 	"github.com/gofiber/contrib/v3/swaggo"
 	fiberzap "github.com/gofiber/contrib/v3/zap"
@@ -53,6 +54,7 @@ func Service(
 	})
 
 	// apply middleware
+	app.Use(middleware.Metrics())
 	app.Use(rec.New())
 	app.Use(fiberotel.Middleware())
 	app.Use(fiberzap.New(fiberzap.Config{

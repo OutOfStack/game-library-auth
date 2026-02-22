@@ -24,7 +24,7 @@ import (
 // @Failure      500 {object} web.ErrResp "Internal server error"
 // @Router       /resend-verification [post]
 func (a *API) ResendVerificationEmailHandler(c fiber.Ctx) error {
-	ctx, span := tracer.Start(c.RequestCtx(), "resendVerificationEmail")
+	ctx, span := tracer.Start(c.Context(), "resendVerificationEmail")
 	defer span.End()
 
 	claims, err := a.getClaims(c)

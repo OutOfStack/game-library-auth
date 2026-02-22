@@ -24,7 +24,7 @@ import (
 // @Failure 		  401 {object} web.ErrResp
 // @Router 			  /oauth/google [post]
 func (a *API) GoogleOAuthHandler(c fiber.Ctx) error {
-	ctx, span := tracer.Start(c.RequestCtx(), "googleOAuth")
+	ctx, span := tracer.Start(c.Context(), "googleOAuth")
 	defer span.End()
 
 	var req GoogleOAuthRequest

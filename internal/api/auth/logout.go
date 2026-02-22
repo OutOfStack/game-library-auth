@@ -18,7 +18,7 @@ import (
 // @Failure      500 {object} web.ErrResp
 // @Router       /logout [post]
 func (a *API) LogoutHandler(c fiber.Ctx) error {
-	ctx, span := tracer.Start(c.RequestCtx(), "logout")
+	ctx, span := tracer.Start(c.Context(), "logout")
 	defer span.End()
 
 	// read refresh token from cookie
