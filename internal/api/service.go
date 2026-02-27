@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "github.com/OutOfStack/game-library-auth/docs" // swagger docs
@@ -61,7 +62,7 @@ func Service(
 		Logger: log,
 	}))
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{cfg.Web.AllowedCORSOrigin},
+		AllowOrigins:     strings.Split(cfg.Web.AllowedCORSOrigin, ","),
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		AllowMethods:     []string{"GET", "POST", "DELETE", "PATCH", "OPTIONS"},
 		AllowCredentials: true,
