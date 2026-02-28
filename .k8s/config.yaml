@@ -23,7 +23,7 @@ data:
     # tracing
     JAEGER_OTLP_ENDPOINT: "jaeger-service.game-library-infra.svc.cluster.local:4318"
     # graylog
-    GRAYLOG_ADDR: "graylog-service.game-library.svc.cluster.local.:12201"
+    GRAYLOG_ADDR: "graylog-service.game-library-infra.svc.cluster.local:12201"
     # email notifications
     EMAIL_SENDER_API_TIMEOUT: "5s"
     EMAIL_SENDER_EMAIL_FROM: "info@_UI_URL_"
@@ -31,5 +31,5 @@ data:
     EMAIL_SENDER_BASE_URL: "_UI_URL_"
     EMAIL_SENDER_UNSUBSCRIBE_URL: "https://_K8S_URL_/_auth/unsubscribe"
     # info api
-    INFOAPI_ADDRESS: "game-library-service.game-library.svc.cluster.local.:9000"
+    INFOAPI_ADDRESS: "game-library-service:9000"
     INFOAPI_TIMEOUT: "5s"
