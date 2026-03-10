@@ -20,6 +20,8 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/api/unsubscribe"
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	authsvc "github.com/OutOfStack/game-library-auth/internal/auth"
+	"github.com/OutOfStack/game-library-auth/internal/client/githubapi"
+	"github.com/OutOfStack/game-library-auth/internal/client/googleapi"
 	"github.com/OutOfStack/game-library-auth/internal/client/infoapi"
 	"github.com/OutOfStack/game-library-auth/internal/client/resendapi"
 	store "github.com/OutOfStack/game-library-auth/internal/database"
@@ -32,7 +34,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
-	"google.golang.org/api/idtoken"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -83,9 +84,9 @@ func run() error {
 	userRepo := store.NewUserRepo(db, logger)
 
 	// create google token validator
-	googleTokenValidator, err := idtoken.NewValidator(ctx)
+	googleIDTokenClient, err := googleapi.NewClient(ctx, cfg.OAuth.GoogleClientID, cfg.OAuth.Timeout)
 	if err != nil {
-		return fmt.Errorf("create google token validator: %w", err)
+		return fmt.Errorf("create google id token client: %w", err)
 	}
 
 	// create email sender
@@ -137,14 +138,20 @@ func run() error {
 		}
 	}()
 
+	// create github oauth client
+	githubOAuthClient := githubapi.NewClient(githubapi.Config{
+		ClientID:     cfg.OAuth.GitHubClientID,
+		ClientSecret: cfg.OAuth.GitHubClientSecret,
+		Timeout:      cfg.OAuth.Timeout,
+	})
+
 	// create user facade
 	userFacade := facade.New(logger, userRepo, emailSender, authService, unsubscribeTokenGenerator, infoAPIClient)
 
 	// auth api
-	authAPI, err := auth.NewAPI(logger, googleTokenValidator, userFacade, auth.APICfg{
+	authAPI, err := auth.NewAPI(logger, googleIDTokenClient, githubOAuthClient, userFacade, auth.APICfg{
 		RefreshTokenCookieSameSite: cfg.Web.RefreshCookieSameSite,
 		RefreshTokenCookieSecure:   cfg.Web.RefreshCookieSecure,
-		GoogleOAuthClientID:        cfg.Auth.GoogleClientID,
 		ContactEmail:               cfg.EmailSender.ContactEmail,
 	})
 	if err != nil {

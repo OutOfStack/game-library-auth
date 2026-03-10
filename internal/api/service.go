@@ -97,6 +97,7 @@ func registerRoutes(app *fiber.App, authAPI *auth.API, checkAPI *tools.HealthChe
 	app.Patch("/account", authAPI.UpdateProfileHandler)
 	app.Delete("/account", authAPI.DeleteAccountHandler)
 	app.Post("/oauth/google", authAPI.GoogleOAuthHandler)
+	app.Post("/oauth/github", authAPI.GitHubOAuthHandler)
 	app.Post("/logout", authAPI.LogoutHandler)
 
 	// email verification

@@ -14,49 +14,89 @@ import (
 	reflect "reflect"
 
 	auth "github.com/OutOfStack/game-library-auth/internal/auth"
+	githubapi "github.com/OutOfStack/game-library-auth/internal/client/githubapi"
 	facade "github.com/OutOfStack/game-library-auth/internal/facade"
 	model "github.com/OutOfStack/game-library-auth/internal/model"
 	gomock "go.uber.org/mock/gomock"
 	idtoken "google.golang.org/api/idtoken"
 )
 
-// MockGoogleTokenValidator is a mock of GoogleTokenValidator interface.
-type MockGoogleTokenValidator struct {
+// MockGoogleIDTokenClient is a mock of GoogleIDTokenClient interface.
+type MockGoogleIDTokenClient struct {
 	ctrl     *gomock.Controller
-	recorder *MockGoogleTokenValidatorMockRecorder
+	recorder *MockGoogleIDTokenClientMockRecorder
 	isgomock struct{}
 }
 
-// MockGoogleTokenValidatorMockRecorder is the mock recorder for MockGoogleTokenValidator.
-type MockGoogleTokenValidatorMockRecorder struct {
-	mock *MockGoogleTokenValidator
+// MockGoogleIDTokenClientMockRecorder is the mock recorder for MockGoogleIDTokenClient.
+type MockGoogleIDTokenClientMockRecorder struct {
+	mock *MockGoogleIDTokenClient
 }
 
-// NewMockGoogleTokenValidator creates a new mock instance.
-func NewMockGoogleTokenValidator(ctrl *gomock.Controller) *MockGoogleTokenValidator {
-	mock := &MockGoogleTokenValidator{ctrl: ctrl}
-	mock.recorder = &MockGoogleTokenValidatorMockRecorder{mock}
+// NewMockGoogleIDTokenClient creates a new mock instance.
+func NewMockGoogleIDTokenClient(ctrl *gomock.Controller) *MockGoogleIDTokenClient {
+	mock := &MockGoogleIDTokenClient{ctrl: ctrl}
+	mock.recorder = &MockGoogleIDTokenClientMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockGoogleTokenValidator) EXPECT() *MockGoogleTokenValidatorMockRecorder {
+func (m *MockGoogleIDTokenClient) EXPECT() *MockGoogleIDTokenClientMockRecorder {
 	return m.recorder
 }
 
-// Validate mocks base method.
-func (m *MockGoogleTokenValidator) Validate(ctx context.Context, idToken, audience string) (*idtoken.Payload, error) {
+// ValidateIDToken mocks base method.
+func (m *MockGoogleIDTokenClient) ValidateIDToken(ctx context.Context, idToken string) (*idtoken.Payload, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Validate", ctx, idToken, audience)
+	ret := m.ctrl.Call(m, "ValidateIDToken", ctx, idToken)
 	ret0, _ := ret[0].(*idtoken.Payload)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Validate indicates an expected call of Validate.
-func (mr *MockGoogleTokenValidatorMockRecorder) Validate(ctx, idToken, audience any) *gomock.Call {
+// ValidateIDToken indicates an expected call of ValidateIDToken.
+func (mr *MockGoogleIDTokenClientMockRecorder) ValidateIDToken(ctx, idToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockGoogleTokenValidator)(nil).Validate), ctx, idToken, audience)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateIDToken", reflect.TypeOf((*MockGoogleIDTokenClient)(nil).ValidateIDToken), ctx, idToken)
+}
+
+// MockGitHubOAuthClient is a mock of GitHubOAuthClient interface.
+type MockGitHubOAuthClient struct {
+	ctrl     *gomock.Controller
+	recorder *MockGitHubOAuthClientMockRecorder
+	isgomock struct{}
+}
+
+// MockGitHubOAuthClientMockRecorder is the mock recorder for MockGitHubOAuthClient.
+type MockGitHubOAuthClientMockRecorder struct {
+	mock *MockGitHubOAuthClient
+}
+
+// NewMockGitHubOAuthClient creates a new mock instance.
+func NewMockGitHubOAuthClient(ctrl *gomock.Controller) *MockGitHubOAuthClient {
+	mock := &MockGitHubOAuthClient{ctrl: ctrl}
+	mock.recorder = &MockGitHubOAuthClientMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockGitHubOAuthClient) EXPECT() *MockGitHubOAuthClientMockRecorder {
+	return m.recorder
+}
+
+// ExchangeCodeForUser mocks base method.
+func (m *MockGitHubOAuthClient) ExchangeCodeForUser(ctx context.Context, code string) (githubapi.UserInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExchangeCodeForUser", ctx, code)
+	ret0, _ := ret[0].(githubapi.UserInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ExchangeCodeForUser indicates an expected call of ExchangeCodeForUser.
+func (mr *MockGitHubOAuthClientMockRecorder) ExchangeCodeForUser(ctx, code any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExchangeCodeForUser", reflect.TypeOf((*MockGitHubOAuthClient)(nil).ExchangeCodeForUser), ctx, code)
 }
 
 // MockUserFacade is a mock of UserFacade interface.
@@ -125,6 +165,21 @@ func (m *MockUserFacade) GetClaimsFromAccessToken(tokenStr string) (auth.Claims,
 func (mr *MockUserFacadeMockRecorder) GetClaimsFromAccessToken(tokenStr any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClaimsFromAccessToken", reflect.TypeOf((*MockUserFacade)(nil).GetClaimsFromAccessToken), tokenStr)
+}
+
+// GitHubOAuth mocks base method.
+func (m *MockUserFacade) GitHubOAuth(ctx context.Context, oauthID, email, username string) (model.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GitHubOAuth", ctx, oauthID, email, username)
+	ret0, _ := ret[0].(model.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GitHubOAuth indicates an expected call of GitHubOAuth.
+func (mr *MockUserFacadeMockRecorder) GitHubOAuth(ctx, oauthID, email, username any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GitHubOAuth", reflect.TypeOf((*MockUserFacade)(nil).GitHubOAuth), ctx, oauthID, email, username)
 }
 
 // GoogleOAuth mocks base method.

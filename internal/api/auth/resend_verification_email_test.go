@@ -104,11 +104,12 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &appconf.Cfg{
 				EmailSender: appconf.EmailSender{},
-				Auth: appconf.Auth{
+				OAuth: appconf.OAuth{
 					GoogleClientID: "test-client-id",
+					GitHubClientID: "test-github-client-id",
 				},
 			}
-			_, authAPI, mockUserFacade, app, ctrl := setupTest(t, cfg)
+			_, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, cfg)
 			defer ctrl.Finish()
 
 			if tt.authHeader == "Bearer valid-token" {

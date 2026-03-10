@@ -2,10 +2,10 @@ package auth
 
 import (
 	"context"
-	"errors"
 	"strings"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
+	"github.com/OutOfStack/game-library-auth/internal/client/githubapi"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/gofiber/fiber/v3"
@@ -16,14 +16,20 @@ import (
 
 var tracer = otel.Tracer("authapi")
 
-// GoogleTokenValidator provides methods for validating Google ID tokens
-type GoogleTokenValidator interface {
-	Validate(ctx context.Context, idToken string, audience string) (*idtoken.Payload, error)
+// GoogleIDTokenClient provides methods for validating Google ID tokens
+type GoogleIDTokenClient interface {
+	ValidateIDToken(ctx context.Context, idToken string) (*idtoken.Payload, error)
+}
+
+// GitHubOAuthClient provides methods for GitHub OAuth authentication
+type GitHubOAuthClient interface {
+	ExchangeCodeForUser(ctx context.Context, code string) (githubapi.UserInfo, error)
 }
 
 // UserFacade provides methods for working with user facade
 type UserFacade interface {
 	GoogleOAuth(ctx context.Context, oauthID, email string) (model.User, error)
+	GitHubOAuth(ctx context.Context, oauthID, email, username string) (model.User, error)
 	DeleteUser(ctx context.Context, userID string) error
 	UpdateUserProfile(ctx context.Context, userID string, params model.UpdateProfileParams) (model.User, error)
 	VerifyEmail(ctx context.Context, userID string, code string) (model.User, error)
@@ -41,24 +47,20 @@ type UserFacade interface {
 type APICfg struct {
 	RefreshTokenCookieSameSite string
 	RefreshTokenCookieSecure   bool
-	GoogleOAuthClientID        string
 	ContactEmail               string
 }
 
 // API describes dependencies for auth endpoints
 type API struct {
-	log                  *zap.Logger
-	googleTokenValidator GoogleTokenValidator
-	userFacade           UserFacade
-	cfg                  APICfg
+	log                 *zap.Logger
+	googleIDTokenClient GoogleIDTokenClient
+	githubOAuthClient   GitHubOAuthClient
+	userFacade          UserFacade
+	cfg                 APICfg
 }
 
 // NewAPI return new instance of auth api
-func NewAPI(log *zap.Logger, googleTokenValidator GoogleTokenValidator, userFacade UserFacade, cfg APICfg) (*API, error) {
-	if cfg.GoogleOAuthClientID == "" {
-		return nil, errors.New("google client id is empty")
-	}
-
+func NewAPI(log *zap.Logger, googleIDTokenClient GoogleIDTokenClient, githubOAuthClient GitHubOAuthClient, userFacade UserFacade, cfg APICfg) (*API, error) {
 	switch strings.ToLower(cfg.RefreshTokenCookieSameSite) {
 	case "lax":
 		cfg.RefreshTokenCookieSameSite = fiber.CookieSameSiteLaxMode
@@ -70,9 +72,10 @@ func NewAPI(log *zap.Logger, googleTokenValidator GoogleTokenValidator, userFaca
 	}
 
 	return &API{
-		log:                  log,
-		googleTokenValidator: googleTokenValidator,
-		userFacade:           userFacade,
-		cfg:                  cfg,
+		log:                 log,
+		googleIDTokenClient: googleIDTokenClient,
+		githubOAuthClient:   githubOAuthClient,
+		userFacade:          userFacade,
+		cfg:                 cfg,
 	}, nil
 }

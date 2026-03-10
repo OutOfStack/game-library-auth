@@ -58,6 +58,11 @@ func (u *User) SetEmail(email string, verified bool) {
 	u.EmailVerified = u.Email.Valid && verified
 }
 
+// IsEmpty returns whether User has ID
+func (u *User) IsEmpty() bool {
+	return u.ID == ""
+}
+
 // EmailVerification represents an email verification record
 type EmailVerification struct {
 	ID               string         `db:"id"`

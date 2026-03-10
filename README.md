@@ -50,10 +50,13 @@ To set up the service, follow these steps:
 5. Get Google API Client ID for Google OAuth and set it in `app.env`:
    https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid
 
-6. Get Resend API key and set it along with the sender details in `app.env`:
+6. Get GitHub OAuth App Client ID and Secret for GitHub OAuth and set them in `app.env`:
+   https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app
+
+7. Get Resend API key and set it along with the sender details in `app.env`:
     https://resend.com/api-keys
 
-7. Build and run the service:
+8. Build and run the service:
    ```bash
    make build
    make run

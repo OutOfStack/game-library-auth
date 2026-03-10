@@ -117,11 +117,32 @@ func TestCfgValidate_ErrorCases(t *testing.T) {
 			wantErr: "AUTH_ISSUER is required",
 		},
 		{
-			name: "missing auth google client id",
+			name: "missing oauth google client id",
 			mutate: func(cfg *appconf.Cfg) {
-				cfg.Auth.GoogleClientID = ""
+				cfg.OAuth.GoogleClientID = ""
 			},
-			wantErr: "AUTH_GOOGLECLIENTID is required",
+			wantErr: "OAUTH_GOOGLECLIENTID is required",
+		},
+		{
+			name: "missing oauth github client id",
+			mutate: func(cfg *appconf.Cfg) {
+				cfg.OAuth.GitHubClientID = ""
+			},
+			wantErr: "OAUTH_GITHUBCLIENTID is required",
+		},
+		{
+			name: "missing oauth github client secret",
+			mutate: func(cfg *appconf.Cfg) {
+				cfg.OAuth.GitHubClientSecret = ""
+			},
+			wantErr: "OAUTH_GITHUBCLIENTSECRET is required",
+		},
+		{
+			name: "invalid oauth github api timeout",
+			mutate: func(cfg *appconf.Cfg) {
+				cfg.OAuth.Timeout = 0
+			},
+			wantErr: "OAUTH_TIMEOUT must be greater than 0",
 		},
 		{
 			name: "invalid auth access token ttl",
@@ -269,9 +290,14 @@ func validCfg() *appconf.Cfg {
 			PrivateKeyFile:   "private.pem",
 			SigningAlgorithm: "RS256",
 			Issuer:           "game-library-auth",
-			GoogleClientID:   "google-client-id",
 			AccessTokenTTL:   15 * time.Minute,
 			RefreshTokenTTL:  24 * time.Hour,
+		},
+		OAuth: appconf.OAuth{
+			GoogleClientID:     "google-client-id",
+			GitHubClientID:     "github-client-id",
+			GitHubClientSecret: "github-client-secret",
+			Timeout:            5 * time.Second,
 		},
 		Jaeger: appconf.Jaeger{
 			OTLPEndpoint: []string{"localhost:4318", "[::1]:4318"}[rand.Intn(2)],

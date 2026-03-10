@@ -1,9 +1,7 @@
 package auth
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/OutOfStack/game-library-auth/internal/facade"
@@ -12,23 +10,23 @@ import (
 	"go.uber.org/zap"
 )
 
-// GoogleOAuthHandler godoc
-// @Summary 		  Google OAuth sign in handler
-// @Description 	  Handles Google OAuth 2.0 authentication
+// GitHubOAuthHandler godoc
+// @Summary 		  GitHub OAuth sign in handler
+// @Description 	  Handles GitHub OAuth 2.0 authentication using authorization code
 // @Tags 			  auth
 // @Accept 			  json
 // @Produce 		  json
-// @Param 			  token body GoogleOAuthRequest true "Google OAuth token"
+// @Param 			  code body GitHubOAuthRequest true "GitHub OAuth authorization code"
 // @Success 		  200 {object} TokenResp "User credentials"
 // @Failure 		  400 {object} web.ErrResp
 // @Failure 		  401 {object} web.ErrResp
 // @Failure 		  409 {object} web.ErrResp
-// @Router 			  /oauth/google [post]
-func (a *API) GoogleOAuthHandler(c fiber.Ctx) error {
-	ctx, span := tracer.Start(c.Context(), "googleOAuth")
+// @Router 			  /oauth/github [post]
+func (a *API) GitHubOAuthHandler(c fiber.Ctx) error {
+	ctx, span := tracer.Start(c.Context(), "gitHubOAuth")
 	defer span.End()
 
-	var req GoogleOAuthRequest
+	var req GitHubOAuthRequest
 	if err := c.Bind().Body(&req); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
@@ -36,17 +34,17 @@ func (a *API) GoogleOAuthHandler(c fiber.Ctx) error {
 		})
 	}
 
-	// verify google token
-	googleClaims, err := a.verifyGoogleIDToken(ctx, req.IDToken)
+	// exchange code for user info
+	githubUser, err := a.githubOAuthClient.ExchangeCodeForUser(ctx, req.Code)
 	if err != nil {
-		a.log.Error("google token verify failed", zap.Error(err))
+		a.log.Error("github code exchange failed", zap.Error(err))
 		return c.Status(http.StatusUnauthorized).JSON(web.ErrResp{
-			Error: "Invalid token",
+			Error: "Invalid authorization code",
 		})
 	}
 
 	// sign in or sign up
-	user, err := a.userFacade.GoogleOAuth(ctx, googleClaims.Sub, googleClaims.Email)
+	user, err := a.userFacade.GitHubOAuth(ctx, githubUser.ID, githubUser.Email, githubUser.Login)
 	if err != nil {
 		switch {
 		case errors.Is(err, facade.ErrInvalidEmail):
@@ -83,25 +81,4 @@ func (a *API) GoogleOAuthHandler(c fiber.Ctx) error {
 	return c.JSON(TokenResp{
 		AccessToken: tokens.AccessToken,
 	})
-}
-
-// verifyGoogleIDToken verifies Google ID token and returns claims
-func (a *API) verifyGoogleIDToken(ctx context.Context, token string) (*googleIDTokenClaims, error) {
-	payload, err := a.googleIDTokenClient.ValidateIDToken(ctx, token)
-	if err != nil {
-		return nil, fmt.Errorf("validate google id token: %w", err)
-	}
-
-	email, _ := payload.Claims["email"].(string)
-
-	claims := &googleIDTokenClaims{
-		Sub:   payload.Subject,
-		Email: email,
-	}
-
-	if claims.Sub == "" || claims.Email == "" {
-		return nil, fmt.Errorf("invalid token claims")
-	}
-
-	return claims, nil
 }

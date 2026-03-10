@@ -18,18 +18,21 @@ const (
 )
 
 func setupTest(t *testing.T, cfg *appconf.Cfg) (
-	*mocks.MockGoogleTokenValidator, *auth.API, *mocks.MockUserFacade, *fiber.App, *gomock.Controller) {
+	*mocks.MockGoogleIDTokenClient, *mocks.MockGitHubOAuthClient, *auth.API, *mocks.MockUserFacade, *fiber.App, *gomock.Controller) {
 	t.Helper()
 
 	ctrl := gomock.NewController(t)
-	mockGoogleTokenValidator := mocks.NewMockGoogleTokenValidator(ctrl)
+	mockGoogleTokenValidator := mocks.NewMockGoogleIDTokenClient(ctrl)
+	mockGitHubOAuthClient := mocks.NewMockGitHubOAuthClient(ctrl)
 	mockUserFacade := mocks.NewMockUserFacade(ctrl)
 
 	logger := zap.NewNop()
 	if cfg == nil {
 		cfg = &appconf.Cfg{
-			Auth: appconf.Auth{
-				GoogleClientID: "test-client-id",
+			OAuth: appconf.OAuth{
+				GoogleClientID:     "test-client-id",
+				GitHubClientID:     "test-github-client-id",
+				GitHubClientSecret: "test-github-client-secret",
 			},
 			EmailSender: appconf.EmailSender{
 				ContactEmail: "contact@example.com",
@@ -41,13 +44,12 @@ func setupTest(t *testing.T, cfg *appconf.Cfg) (
 		}
 	}
 	authAPICfg := auth.APICfg{
-		GoogleOAuthClientID:        cfg.Auth.GoogleClientID,
 		ContactEmail:               cfg.EmailSender.ContactEmail,
 		RefreshTokenCookieSameSite: cfg.Web.RefreshCookieSameSite,
 		RefreshTokenCookieSecure:   cfg.Web.RefreshCookieSecure,
 	}
-	authAPI, err := auth.NewAPI(logger, mockGoogleTokenValidator, mockUserFacade, authAPICfg)
+	authAPI, err := auth.NewAPI(logger, mockGoogleTokenValidator, mockGitHubOAuthClient, mockUserFacade, authAPICfg)
 	require.NoError(t, err)
 
-	return mockGoogleTokenValidator, authAPI, mockUserFacade, fiber.New(), ctrl
+	return mockGoogleTokenValidator, mockGitHubOAuthClient, authAPI, mockUserFacade, fiber.New(), ctrl
 }

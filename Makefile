@@ -41,7 +41,7 @@ generate-mocks:
 	@echo "Found mockgen, generating mocks..."
 	mockgen -source=internal/api/auth/api.go -destination=internal/api/auth/mocks/api.go -package=auth_mocks
 	mockgen -source=internal/api/unsubscribe/api.go -destination=internal/api/unsubscribe/mocks/api.go -package=unsubscribe_mocks
-	mockgen -destination=internal/api/unsubscribe/mocks/views.go -package=unsubscribe_mocks github.com/gofiber/fiber/v2 Views
+	mockgen -destination=internal/api/unsubscribe/mocks/views.go -package=unsubscribe_mocks github.com/gofiber/fiber/v3 Views
 	mockgen -source=internal/facade/provider.go -destination=internal/facade/mocks/provider.go -package=facade_mocks
 	mockgen -source=pkg/database/tx.go -destination=pkg/database/mocks/tx.go -package=database_mocks
 	mockgen -source=internal/api/grpc/authapi/service.go -destination=internal/api/grpc/authapi/mocks/service.go -package=authapi_mocks
