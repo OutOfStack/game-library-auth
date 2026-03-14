@@ -32,7 +32,7 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 			GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, "oauth-123").
 			Return(expectedUser, nil)
 
-		result, err := provider.GoogleOAuth(ctx, "oauth-123", "test@example.com")
+		result, err := provider.GoogleOAuth(ctx, "oauth-123", "test@example.com", true)
 
 		require.NoError(t, err)
 		assert.Equal(t, expectedUser.ID, result.ID)
@@ -64,7 +64,7 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 			CreateUserOAuthLink(ctx, gomock.Any()).
 			Return(nil)
 
-		result, err := provider.GoogleOAuth(ctx, "oauth-123", "newuser@example.com")
+		result, err := provider.GoogleOAuth(ctx, "oauth-123", "newuser@example.com", true)
 
 		require.NoError(t, err)
 		assert.Equal(t, "newuser", result.Username)
@@ -78,7 +78,7 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 			GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, "oauth-123").
 			Return(database.User{}, database.ErrNotFound)
 
-		_, err := provider.GoogleOAuth(ctx, "oauth-123", "invalid-email")
+		_, err := provider.GoogleOAuth(ctx, "oauth-123", "invalid-email", true)
 
 		assert.ErrorIs(t, err, facade.ErrInvalidEmail)
 	})
@@ -106,7 +106,7 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 			CreateUserOAuthLink(ctx, gomock.Any()).
 			Return(nil)
 
-		result, err := provider.GoogleOAuth(ctx, "oauth-123", "existing@example.com")
+		result, err := provider.GoogleOAuth(ctx, "oauth-123", "existing@example.com", true)
 
 		require.NoError(t, err)
 		assert.Equal(t, "user-existing", result.ID)
@@ -132,7 +132,7 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 			GetUserByEmail(ctx, "publisher@example.com").
 			Return(existingUser, nil)
 
-		_, err := provider.GoogleOAuth(ctx, "oauth-123", "publisher@example.com")
+		_, err := provider.GoogleOAuth(ctx, "oauth-123", "publisher@example.com", true)
 
 		assert.ErrorIs(t, err, facade.ErrOAuthPublisherConflict)
 	})
@@ -159,9 +159,35 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 			CreateUser(ctx, gomock.Any()).
 			Return(database.ErrUserExists)
 
-		_, err := provider.GoogleOAuth(ctx, "oauth-123", "existing@example.com")
+		_, err := provider.GoogleOAuth(ctx, "oauth-123", "existing@example.com", true)
 
 		assert.ErrorIs(t, err, facade.ErrOAuthSignInConflict)
+	})
+
+	t.Run("unverified email rejected", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, "oauth-123").
+			Return(database.User{}, database.ErrNotFound)
+
+		_, err := provider.GoogleOAuth(ctx, "oauth-123", "unverified@example.com", false)
+
+		assert.ErrorIs(t, err, facade.ErrOAuthEmailUnverified)
+	})
+
+	t.Run("no email rejected", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, "oauth-456").
+			Return(database.User{}, database.ErrNotFound)
+
+		_, err := provider.GoogleOAuth(ctx, "oauth-456", "", true)
+
+		assert.ErrorIs(t, err, facade.ErrInvalidEmail)
 	})
 }
 
@@ -231,7 +257,7 @@ func TestProvider_GitHubOAuth(t *testing.T) {
 
 		_, err := provider.GitHubOAuth(ctx, "gh-oauth-456", "", "noemailuser", false)
 
-		assert.ErrorIs(t, err, facade.ErrOAuthEmailUnverified)
+		assert.ErrorIs(t, err, facade.ErrInvalidEmail)
 	})
 
 	t.Run("username truncated to max length", func(t *testing.T) {
@@ -371,7 +397,7 @@ func TestProvider_GitHubOAuth(t *testing.T) {
 
 		_, err := provider.GitHubOAuth(ctx, "gh-oauth-456", "", "ghuser", false)
 
-		assert.ErrorIs(t, err, facade.ErrOAuthEmailUnverified)
+		assert.ErrorIs(t, err, facade.ErrInvalidEmail)
 	})
 }
 

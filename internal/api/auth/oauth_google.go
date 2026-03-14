@@ -22,6 +22,7 @@ import (
 // @Success 		  200 {object} TokenResp "User credentials"
 // @Failure 		  400 {object} web.ErrResp
 // @Failure 		  401 {object} web.ErrResp
+// @Failure 		  403 {object} web.ErrResp
 // @Failure 		  409 {object} web.ErrResp
 // @Router 			  /oauth/google [post]
 func (a *API) GoogleOAuthHandler(c fiber.Ctx) error {
@@ -46,9 +47,13 @@ func (a *API) GoogleOAuthHandler(c fiber.Ctx) error {
 	}
 
 	// sign in or sign up
-	user, err := a.userFacade.GoogleOAuth(ctx, googleClaims.Sub, googleClaims.Email)
+	user, err := a.userFacade.GoogleOAuth(ctx, googleClaims.Sub, googleClaims.Email, googleClaims.EmailVerified)
 	if err != nil {
 		switch {
+		case errors.Is(err, facade.ErrOAuthEmailUnverified):
+			return c.Status(http.StatusForbidden).JSON(web.ErrResp{
+				Error: "Google email is not verified. Please verify your email and try again.",
+			})
 		case errors.Is(err, facade.ErrInvalidEmail):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 				Error: "Invalid email",
@@ -93,10 +98,12 @@ func (a *API) verifyGoogleIDToken(ctx context.Context, token string) (*googleIDT
 	}
 
 	email, _ := payload.Claims["email"].(string)
+	emailVerified, _ := payload.Claims["email_verified"].(bool)
 
 	claims := &googleIDTokenClaims{
-		Sub:   payload.Subject,
-		Email: email,
+		Sub:           payload.Subject,
+		Email:         email,
+		EmailVerified: emailVerified,
 	}
 
 	if claims.Sub == "" || claims.Email == "" {

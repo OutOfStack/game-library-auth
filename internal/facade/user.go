@@ -155,7 +155,7 @@ func (p *Provider) SignIn(ctx context.Context, username, password string) (model
 }
 
 // GoogleOAuth handles Google OAuth sign in
-func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string) (model.User, error) {
+func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string, emailVerified bool) (model.User, error) {
 	// check if google oauth user exists
 	user, err := p.userRepo.GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, oauthID)
 	if err != nil && !errors.Is(err, database.ErrNotFound) {
@@ -165,10 +165,16 @@ func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string) (mode
 		return mapDBUserToUser(user), nil
 	}
 
+	// validate email and extract username
 	username, err := extractUsernameFromEmail(email)
 	if err != nil {
 		p.log.Error("extract username from email", zap.String("email", email), zap.Error(err))
-		return model.User{}, ErrInvalidEmail
+		return model.User{}, err
+	}
+
+	// require a verified email
+	if !emailVerified {
+		return model.User{}, ErrOAuthEmailUnverified
 	}
 
 	// check if user with same email already exists
@@ -224,13 +230,15 @@ func (p *Provider) GitHubOAuth(ctx context.Context, oauthID, email, username str
 		return mapDBUserToUser(user), nil
 	}
 
-	// require a verified email
-	if email == "" || !emailVerified {
-		return model.User{}, ErrOAuthEmailUnverified
+	// validate email address
+	_, err = extractUsernameFromEmail(email)
+	if err != nil {
+		return model.User{}, err
 	}
-	if _, err = mail.ParseAddress(email); err != nil {
-		p.log.Error("invalid github email", zap.String("email", email), zap.Error(err))
-		return model.User{}, ErrInvalidEmail
+
+	// require a verified email
+	if !emailVerified {
+		return model.User{}, ErrOAuthEmailUnverified
 	}
 
 	// check if user with same email already exists

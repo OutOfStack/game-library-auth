@@ -28,7 +28,7 @@ type GitHubOAuthClient interface {
 
 // UserFacade provides methods for working with user facade
 type UserFacade interface {
-	GoogleOAuth(ctx context.Context, oauthID, email string) (model.User, error)
+	GoogleOAuth(ctx context.Context, oauthID, email string, emailVerified bool) (model.User, error)
 	GitHubOAuth(ctx context.Context, oauthID, email, username string, emailVerified bool) (model.User, error)
 	DeleteUser(ctx context.Context, userID string) error
 	UpdateUserProfile(ctx context.Context, userID string, params model.UpdateProfileParams) (model.User, error)

@@ -183,18 +183,18 @@ func (mr *MockUserFacadeMockRecorder) GitHubOAuth(ctx, oauthID, email, username,
 }
 
 // GoogleOAuth mocks base method.
-func (m *MockUserFacade) GoogleOAuth(ctx context.Context, oauthID, email string) (model.User, error) {
+func (m *MockUserFacade) GoogleOAuth(ctx context.Context, oauthID, email string, emailVerified bool) (model.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GoogleOAuth", ctx, oauthID, email)
+	ret := m.ctrl.Call(m, "GoogleOAuth", ctx, oauthID, email, emailVerified)
 	ret0, _ := ret[0].(model.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GoogleOAuth indicates an expected call of GoogleOAuth.
-func (mr *MockUserFacadeMockRecorder) GoogleOAuth(ctx, oauthID, email any) *gomock.Call {
+func (mr *MockUserFacadeMockRecorder) GoogleOAuth(ctx, oauthID, email, emailVerified any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GoogleOAuth", reflect.TypeOf((*MockUserFacade)(nil).GoogleOAuth), ctx, oauthID, email)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GoogleOAuth", reflect.TypeOf((*MockUserFacade)(nil).GoogleOAuth), ctx, oauthID, email, emailVerified)
 }
 
 // RefreshTokens mocks base method.

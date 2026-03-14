@@ -243,6 +243,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/web.ErrResp"
                         }
                     },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
                     "409": {
                         "description": "Conflict",
                         "schema": {
