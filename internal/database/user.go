@@ -16,10 +16,10 @@ func (r *UserRepo) CreateUser(ctx context.Context, user User) error {
 	defer span.End()
 
 	const q = `INSERT INTO users
-        (id, username, name, email, email_verified, password_hash, role, oauth_provider, oauth_id, date_created)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`
+        (id, username, name, email, email_verified, password_hash, role, date_created)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`
 
-	_, err := r.query().Exec(ctx, q, user.ID, user.Username, user.DisplayName, user.Email, user.EmailVerified, user.PasswordHash, user.Role, user.OAuthProvider, user.OAuthID)
+	_, err := r.query().Exec(ctx, q, user.ID, user.Username, user.DisplayName, user.Email, user.EmailVerified, user.PasswordHash, user.Role)
 	if err != nil {
 		if pqErr, ok := errors.AsType[*pq.Error](err); ok && pqErr.Code == pgUniqueViolationCode {
 			return ErrUserExists
@@ -54,7 +54,7 @@ func (r *UserRepo) GetUserByID(ctx context.Context, userID string) (user User, e
 	ctx, span := tracer.Start(ctx, "getUserByID")
 	defer span.End()
 
-	const q = `SELECT id, username, name, email, email_verified, password_hash, role, oauth_provider, oauth_id, date_created, date_updated
+	const q = `SELECT id, username, name, email, email_verified, password_hash, role, date_created, date_updated
 		FROM users
 		WHERE id = $1
 		FOR NO KEY UPDATE`
@@ -74,7 +74,7 @@ func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (user
 	ctx, span := tracer.Start(ctx, "getUserByUsername")
 	defer span.End()
 
-	const q = `SELECT id, username, name, email, email_verified, password_hash, role, oauth_provider, oauth_id, date_created, date_updated
+	const q = `SELECT id, username, name, email, email_verified, password_hash, role, date_created, date_updated
 		FROM users
 		WHERE username = $1
 		FOR NO KEY UPDATE`
@@ -107,23 +107,55 @@ func (r *UserRepo) CheckUserExists(ctx context.Context, name string, role model.
 	return exists, nil
 }
 
-// GetUserByOAuth returns a user by oauth provider and oauth_id
-func (r *UserRepo) GetUserByOAuth(ctx context.Context, provider string, oauthID string) (User, error) {
-	ctx, span := tracer.Start(ctx, "getUserByOAuth")
+// GetUserByOAuthLink returns a user by oauth provider and oauth_id via user_oauth_links table
+func (r *UserRepo) GetUserByOAuthLink(ctx context.Context, provider string, oauthID string) (User, error) {
+	ctx, span := tracer.Start(ctx, "getUserByOAuthLink")
 	defer span.End()
 
-	const q = `SELECT id, username, name, email, email_verified, role, oauth_provider, oauth_id, date_created, date_updated
-        FROM users
-        WHERE oauth_provider = $1 AND oauth_id = $2`
+	const q = `SELECT u.id, u.username, u.name, u.email, u.email_verified, u.role, u.date_created, u.date_updated
+		FROM users u 
+		JOIN user_oauth_links uol ON u.id = uol.user_id
+		WHERE uol.oauth_provider = $1 AND uol.oauth_id = $2`
 
 	var user User
 	if err := r.query().Get(ctx, &user, q, provider, oauthID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return User{}, ErrNotFound
 		}
-		return User{}, fmt.Errorf("select user (oauth): %w", err)
+		return User{}, fmt.Errorf("select user (oauth link): %w", err)
 	}
 	return user, nil
+}
+
+// CreateUserOAuthLink inserts a new user OAuth link, ignoring duplicates
+func (r *UserRepo) CreateUserOAuthLink(ctx context.Context, link UserOAuthLink) error {
+	ctx, span := tracer.Start(ctx, "createUserOAuthLink")
+	defer span.End()
+
+	const q = `INSERT INTO user_oauth_links (user_id, oauth_provider, oauth_id)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (oauth_provider, oauth_id) DO NOTHING`
+
+	_, err := r.query().Exec(ctx, q, link.UserID, link.OAuthProvider, link.OAuthID)
+	if err != nil {
+		return fmt.Errorf("insert user oauth link: %w", err)
+	}
+	return nil
+}
+
+// HasOAuthLink checks if a user has any OAuth link
+func (r *UserRepo) HasOAuthLink(ctx context.Context, userID string) (bool, error) {
+	ctx, span := tracer.Start(ctx, "hasOAuthLink")
+	defer span.End()
+
+	const q = `SELECT EXISTS(
+		SELECT 1 FROM user_oauth_links WHERE user_id = $1)`
+
+	var exists bool
+	if err := r.query().Get(ctx, &exists, q, userID); err != nil {
+		return false, fmt.Errorf("check oauth link exists: %w", err)
+	}
+	return exists, nil
 }
 
 // DeleteUser deletes a user by user id
@@ -146,7 +178,7 @@ func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (User, erro
 	ctx, span := tracer.Start(ctx, "getUserByEmail")
 	defer span.End()
 
-	const q = `SELECT id, username, name, email, email_verified, password_hash, role, oauth_provider, oauth_id, date_created, date_updated
+	const q = `SELECT id, username, name, email, email_verified, password_hash, role, date_created, date_updated
 		FROM users
 		WHERE email = $1`
 

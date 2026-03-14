@@ -184,6 +184,18 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/web.ErrResp"
                         }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
                     }
                 }
             }
@@ -227,6 +239,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/web.ErrResp"
                         }

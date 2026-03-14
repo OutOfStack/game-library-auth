@@ -20,6 +20,7 @@ import (
 // @Success 		  200 {object} TokenResp "User credentials"
 // @Failure 		  400 {object} web.ErrResp
 // @Failure 		  401 {object} web.ErrResp
+// @Failure 		  403 {object} web.ErrResp
 // @Failure 		  409 {object} web.ErrResp
 // @Router 			  /oauth/github [post]
 func (a *API) GitHubOAuthHandler(c fiber.Ctx) error {
@@ -44,9 +45,13 @@ func (a *API) GitHubOAuthHandler(c fiber.Ctx) error {
 	}
 
 	// sign in or sign up
-	user, err := a.userFacade.GitHubOAuth(ctx, githubUser.ID, githubUser.Email, githubUser.Login)
+	user, err := a.userFacade.GitHubOAuth(ctx, githubUser.ID, githubUser.Email, githubUser.Login, githubUser.EmailVerified)
 	if err != nil {
 		switch {
+		case errors.Is(err, facade.ErrOAuthEmailUnverified):
+			return c.Status(http.StatusForbidden).JSON(web.ErrResp{
+				Error: "GitHub email is not verified. Please verify your email on GitHub and try again.",
+			})
 		case errors.Is(err, facade.ErrInvalidEmail):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
 				Error: "Invalid email",

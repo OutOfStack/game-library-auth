@@ -79,7 +79,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			Return(mockPayload, nil)
 
 		// Mock facade Google OAuth
-		u := model.User{ID: "uid-1", Username: "test", Email: "test@example.com", OAuthProvider: "google", OAuthID: "google-sub-id"}
+		u := model.User{ID: "uid-1", Username: "test", Email: "test@example.com"}
 		mockUserFacade.EXPECT().
 			GoogleOAuth(gomock.Any(), "google-sub-id", "test@example.com").
 			Return(u, nil)
@@ -115,7 +115,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 	})
 
 	t.Run("successful existing user login", func(t *testing.T) {
-		u := model.User{ID: "uid-2", Username: "existing", OAuthProvider: "google", OAuthID: "google-sub-id"}
+		u := model.User{ID: "uid-2", Username: "existing"}
 
 		// Mock Google token validation
 		mockPayload := &idtoken.Payload{
@@ -356,7 +356,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 	})
 
 	t.Run("JWT generation failure", func(t *testing.T) {
-		u2 := model.User{ID: "uid-3", Username: "existing", OAuthProvider: "google", OAuthID: "google-sub-id"}
+		u2 := model.User{ID: "uid-3", Username: "existing"}
 
 		// Mock Google token validation
 		mockPayload := &idtoken.Payload{

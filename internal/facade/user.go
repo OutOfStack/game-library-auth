@@ -25,6 +25,7 @@ var (
 	ErrSignUpEmailRequired          = errors.New("sign up: email is required")
 	ErrSignUpPublisherNameExists    = errors.New("sign up: publisher name already exists")
 	ErrOAuthPublisherConflict       = errors.New("oauth sign in: publisher must use password")
+	ErrOAuthEmailUnverified         = errors.New("oauth sign in: email not verified by provider")
 )
 
 // SignUp creates a new user with provided params and sends verification email if applicable
@@ -156,7 +157,7 @@ func (p *Provider) SignIn(ctx context.Context, username, password string) (model
 // GoogleOAuth handles Google OAuth sign in
 func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string) (model.User, error) {
 	// check if google oauth user exists
-	user, err := p.userRepo.GetUserByOAuth(ctx, model.GoogleAuthTokenProvider, oauthID)
+	user, err := p.userRepo.GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, oauthID)
 	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return model.User{}, err
 	}
@@ -174,30 +175,48 @@ func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string) (mode
 	if user, err = p.findExistingUserByEmail(ctx, email); err != nil {
 		return model.User{}, err
 	} else if !user.IsEmpty() {
+		// store the OAuth link for the existing user
+		link := database.NewUserOAuthLink(user.ID, model.GoogleAuthTokenProvider, oauthID)
+		if lErr := p.userRepo.CreateUserOAuthLink(ctx, link); lErr != nil {
+			p.log.Error("create oauth link (google, existing user)", zap.String("userID", user.ID), zap.Error(lErr))
+			return model.User{}, lErr
+		}
 		return mapDBUserToUser(user), nil
 	}
 
-	// create user
+	// create user and oauth link in a transaction
 	newUser := database.NewUser(username, username, nil, model.UserRoleName)
-	newUser.SetOAuthID(model.GoogleAuthTokenProvider, oauthID)
 	newUser.SetEmail(email, true)
 
-	if err = p.userRepo.CreateUser(ctx, newUser); err != nil {
-		if errors.Is(err, database.ErrUserExists) {
-			p.log.Warn("user already exists during oauth", zap.String("username", newUser.Username), zap.String("email", newUser.Email.String))
-			return model.User{}, ErrOAuthSignInConflict
+	txErr := p.userRepo.RunWithTx(ctx, func(ctx context.Context) error {
+		if err = p.userRepo.CreateUser(ctx, newUser); err != nil {
+			if errors.Is(err, database.ErrUserExists) {
+				p.log.Warn("user already exists during oauth", zap.String("username", newUser.Username), zap.String("email", newUser.Email.String))
+				return ErrOAuthSignInConflict
+			}
+			p.log.Error("create user (google oauth)", zap.String("username", newUser.Username), zap.String("email", newUser.Email.String), zap.Error(err))
+			return err
 		}
-		p.log.Error("create user (google oauth)", zap.String("username", newUser.Username), zap.String("email", newUser.Email.String), zap.Error(err))
-		return model.User{}, err
+
+		link := database.NewUserOAuthLink(newUser.ID, model.GoogleAuthTokenProvider, oauthID)
+		if err = p.userRepo.CreateUserOAuthLink(ctx, link); err != nil {
+			p.log.Error("create oauth link (google, new user)", zap.String("userID", newUser.ID), zap.Error(err))
+			return err
+		}
+
+		return nil
+	})
+	if txErr != nil {
+		return model.User{}, txErr
 	}
 
 	return mapDBUserToUser(newUser), nil
 }
 
 // GitHubOAuth handles GitHub OAuth sign in
-func (p *Provider) GitHubOAuth(ctx context.Context, oauthID, email, username string) (model.User, error) {
+func (p *Provider) GitHubOAuth(ctx context.Context, oauthID, email, username string, emailVerified bool) (model.User, error) {
 	// check if github oauth user exists
-	user, err := p.userRepo.GetUserByOAuth(ctx, model.GitHubAuthTokenProvider, oauthID)
+	user, err := p.userRepo.GetUserByOAuthLink(ctx, model.GitHubAuthTokenProvider, oauthID)
 	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return model.User{}, err
 	}
@@ -205,13 +224,26 @@ func (p *Provider) GitHubOAuth(ctx context.Context, oauthID, email, username str
 		return mapDBUserToUser(user), nil
 	}
 
+	// require a verified email
+	if email == "" || !emailVerified {
+		return model.User{}, ErrOAuthEmailUnverified
+	}
+	if _, err = mail.ParseAddress(email); err != nil {
+		p.log.Error("invalid github email", zap.String("email", email), zap.Error(err))
+		return model.User{}, ErrInvalidEmail
+	}
+
 	// check if user with same email already exists
-	if email != "" {
-		if user, err = p.findExistingUserByEmail(ctx, email); err != nil {
-			return model.User{}, err
-		} else if !user.IsEmpty() {
-			return mapDBUserToUser(user), nil
+	if user, err = p.findExistingUserByEmail(ctx, email); err != nil {
+		return model.User{}, err
+	} else if !user.IsEmpty() {
+		// store the OAuth link for the existing user
+		link := database.NewUserOAuthLink(user.ID, model.GitHubAuthTokenProvider, oauthID)
+		if lErr := p.userRepo.CreateUserOAuthLink(ctx, link); lErr != nil {
+			p.log.Error("create oauth link (github, existing user)", zap.String("userID", user.ID), zap.Error(lErr))
+			return model.User{}, lErr
 		}
+		return mapDBUserToUser(user), nil
 	}
 
 	// truncate username to max length
@@ -220,24 +252,30 @@ func (p *Provider) GitHubOAuth(ctx context.Context, oauthID, email, username str
 	}
 	username = strings.ToLower(username)
 
-	// create user
+	// create user and oauth link in a transaction
 	newUser := database.NewUser(username, username, nil, model.UserRoleName)
-	newUser.SetOAuthID(model.GitHubAuthTokenProvider, oauthID)
-	if email != "" {
-		if _, err = mail.ParseAddress(email); err != nil {
-			p.log.Error("invalid github email", zap.String("email", email), zap.Error(err))
-			return model.User{}, ErrInvalidEmail
-		}
-		newUser.SetEmail(email, true)
-	}
+	newUser.SetEmail(email, true)
 
-	if err = p.userRepo.CreateUser(ctx, newUser); err != nil {
-		if errors.Is(err, database.ErrUserExists) {
-			p.log.Warn("user already exists during oauth", zap.String("username", newUser.Username), zap.String("email", newUser.Email.String))
-			return model.User{}, ErrOAuthSignInConflict
+	txErr := p.userRepo.RunWithTx(ctx, func(ctx context.Context) error {
+		if err = p.userRepo.CreateUser(ctx, newUser); err != nil {
+			if errors.Is(err, database.ErrUserExists) {
+				p.log.Warn("user already exists during oauth", zap.String("username", newUser.Username), zap.String("email", newUser.Email.String))
+				return ErrOAuthSignInConflict
+			}
+			p.log.Error("create user (github oauth)", zap.String("username", newUser.Username), zap.String("email", newUser.Email.String), zap.Error(err))
+			return err
 		}
-		p.log.Error("create user (github oauth)", zap.String("username", newUser.Username), zap.String("email", newUser.Email.String), zap.Error(err))
-		return model.User{}, err
+
+		link := database.NewUserOAuthLink(newUser.ID, model.GitHubAuthTokenProvider, oauthID)
+		if err = p.userRepo.CreateUserOAuthLink(ctx, link); err != nil {
+			p.log.Error("create oauth link (github, new user)", zap.String("userID", newUser.ID), zap.Error(err))
+			return err
+		}
+
+		return nil
+	})
+	if txErr != nil {
+		return model.User{}, txErr
 	}
 
 	return mapDBUserToUser(newUser), nil
@@ -262,7 +300,12 @@ func (p *Provider) UpdateUserProfile(ctx context.Context, userID string, params 
 
 		// update password if provided
 		if params.Password != nil {
-			if user.OAuthProvider.Valid {
+			hasOAuth, oErr := p.userRepo.HasOAuthLink(ctx, userID)
+			if oErr != nil {
+				p.log.Error("check oauth link", zap.String("userID", userID), zap.Error(oErr))
+				return oErr
+			}
+			if hasOAuth {
 				return ErrUpdateProfileNotAllowed
 			}
 			if err = bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(*params.Password)); err != nil {

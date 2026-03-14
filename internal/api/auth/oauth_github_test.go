@@ -70,11 +70,11 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 	t.Run("successful new user creation", func(t *testing.T) {
 		mockGitHubOAuthClient.EXPECT().
 			ExchangeCodeForUser(gomock.Any(), "mock-github-code").
-			Return(githubapi.UserInfo{ID: "12345", Login: "ghuser", Email: "ghuser@example.com"}, nil)
+			Return(githubapi.UserInfo{ID: "12345", Login: "ghuser", Email: "ghuser@example.com", EmailVerified: true}, nil)
 
-		u := model.User{ID: "uid-1", Username: "ghuser", Email: "ghuser@example.com", OAuthProvider: "github", OAuthID: "12345"}
+		u := model.User{ID: "uid-1", Username: "ghuser", Email: "ghuser@example.com"}
 		mockUserFacade.EXPECT().
-			GitHubOAuth(gomock.Any(), "12345", "ghuser@example.com", "ghuser").
+			GitHubOAuth(gomock.Any(), "12345", "ghuser@example.com", "ghuser", true).
 			Return(u, nil)
 
 		mockUserFacade.EXPECT().
@@ -108,11 +108,11 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 	t.Run("successful existing user login", func(t *testing.T) {
 		mockGitHubOAuthClient.EXPECT().
 			ExchangeCodeForUser(gomock.Any(), "mock-github-code").
-			Return(githubapi.UserInfo{ID: "12345", Login: "ghuser", Email: "ghuser@example.com"}, nil)
+			Return(githubapi.UserInfo{ID: "12345", Login: "ghuser", Email: "ghuser@example.com", EmailVerified: true}, nil)
 
-		u := model.User{ID: "uid-2", Username: "ghuser", OAuthProvider: "github", OAuthID: "12345"}
+		u := model.User{ID: "uid-2", Username: "ghuser"}
 		mockUserFacade.EXPECT().
-			GitHubOAuth(gomock.Any(), "12345", "ghuser@example.com", "ghuser").
+			GitHubOAuth(gomock.Any(), "12345", "ghuser@example.com", "ghuser", true).
 			Return(u, nil)
 
 		mockUserFacade.EXPECT().
@@ -146,10 +146,10 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 	t.Run("username conflict", func(t *testing.T) {
 		mockGitHubOAuthClient.EXPECT().
 			ExchangeCodeForUser(gomock.Any(), "mock-github-code").
-			Return(githubapi.UserInfo{ID: "99999", Login: "conflictuser", Email: "conflict@example.com"}, nil)
+			Return(githubapi.UserInfo{ID: "99999", Login: "conflictuser", Email: "conflict@example.com", EmailVerified: true}, nil)
 
 		mockUserFacade.EXPECT().
-			GitHubOAuth(gomock.Any(), "99999", "conflict@example.com", "conflictuser").
+			GitHubOAuth(gomock.Any(), "99999", "conflict@example.com", "conflictuser", true).
 			Return(model.User{}, facade.ErrOAuthSignInConflict)
 
 		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
@@ -168,10 +168,10 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 	t.Run("publisher email conflict", func(t *testing.T) {
 		mockGitHubOAuthClient.EXPECT().
 			ExchangeCodeForUser(gomock.Any(), "mock-github-code").
-			Return(githubapi.UserInfo{ID: "12345", Login: "ghuser", Email: "publisher@example.com"}, nil)
+			Return(githubapi.UserInfo{ID: "12345", Login: "ghuser", Email: "publisher@example.com", EmailVerified: true}, nil)
 
 		mockUserFacade.EXPECT().
-			GitHubOAuth(gomock.Any(), "12345", "publisher@example.com", "ghuser").
+			GitHubOAuth(gomock.Any(), "12345", "publisher@example.com", "ghuser", true).
 			Return(model.User{}, facade.ErrOAuthPublisherConflict)
 
 		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
@@ -218,10 +218,10 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 	t.Run("database error", func(t *testing.T) {
 		mockGitHubOAuthClient.EXPECT().
 			ExchangeCodeForUser(gomock.Any(), "mock-github-code").
-			Return(githubapi.UserInfo{ID: "12345", Login: "ghuser", Email: "ghuser@example.com"}, nil)
+			Return(githubapi.UserInfo{ID: "12345", Login: "ghuser", Email: "ghuser@example.com", EmailVerified: true}, nil)
 
 		mockUserFacade.EXPECT().
-			GitHubOAuth(gomock.Any(), "12345", "ghuser@example.com", "ghuser").
+			GitHubOAuth(gomock.Any(), "12345", "ghuser@example.com", "ghuser", true).
 			Return(model.User{}, errors.New("database connection failed"))
 
 		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
@@ -237,14 +237,46 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 		require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	})
 
+	t.Run("unverified email", func(t *testing.T) {
+		mockGitHubOAuthClient.EXPECT().
+			ExchangeCodeForUser(gomock.Any(), "mock-github-code").
+			Return(githubapi.UserInfo{ID: "12345", Login: "ghuser", Email: "unverified@example.com", EmailVerified: false}, nil)
+
+		mockUserFacade.EXPECT().
+			GitHubOAuth(gomock.Any(), "12345", "unverified@example.com", "ghuser", false).
+			Return(model.User{}, facade.ErrOAuthEmailUnverified)
+
+		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
+		body, _ := json.Marshal(reqBody)
+
+		req := httptest.NewRequest(http.MethodPost, "/oauth/github", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := app.Test(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		require.Equal(t, http.StatusForbidden, resp.StatusCode)
+
+		var response struct {
+			Error string `json:"error"`
+		}
+		responseBody, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+
+		err = json.Unmarshal(responseBody, &response)
+		require.NoError(t, err)
+		require.Equal(t, "GitHub email is not verified. Please verify your email on GitHub and try again.", response.Error)
+	})
+
 	t.Run("token generation failure", func(t *testing.T) {
 		mockGitHubOAuthClient.EXPECT().
 			ExchangeCodeForUser(gomock.Any(), "mock-github-code").
-			Return(githubapi.UserInfo{ID: "12345", Login: "ghuser", Email: "ghuser@example.com"}, nil)
+			Return(githubapi.UserInfo{ID: "12345", Login: "ghuser", Email: "ghuser@example.com", EmailVerified: true}, nil)
 
-		u := model.User{ID: "uid-3", Username: "ghuser", OAuthProvider: "github", OAuthID: "12345"}
+		u := model.User{ID: "uid-3", Username: "ghuser"}
 		mockUserFacade.EXPECT().
-			GitHubOAuth(gomock.Any(), "12345", "ghuser@example.com", "ghuser").
+			GitHubOAuth(gomock.Any(), "12345", "ghuser@example.com", "ghuser", true).
 			Return(u, nil)
 
 		mockUserFacade.EXPECT().

@@ -168,18 +168,18 @@ func (mr *MockUserFacadeMockRecorder) GetClaimsFromAccessToken(tokenStr any) *go
 }
 
 // GitHubOAuth mocks base method.
-func (m *MockUserFacade) GitHubOAuth(ctx context.Context, oauthID, email, username string) (model.User, error) {
+func (m *MockUserFacade) GitHubOAuth(ctx context.Context, oauthID, email, username string, emailVerified bool) (model.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GitHubOAuth", ctx, oauthID, email, username)
+	ret := m.ctrl.Call(m, "GitHubOAuth", ctx, oauthID, email, username, emailVerified)
 	ret0, _ := ret[0].(model.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GitHubOAuth indicates an expected call of GitHubOAuth.
-func (mr *MockUserFacadeMockRecorder) GitHubOAuth(ctx, oauthID, email, username any) *gomock.Call {
+func (mr *MockUserFacadeMockRecorder) GitHubOAuth(ctx, oauthID, email, username, emailVerified any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GitHubOAuth", reflect.TypeOf((*MockUserFacade)(nil).GitHubOAuth), ctx, oauthID, email, username)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GitHubOAuth", reflect.TypeOf((*MockUserFacade)(nil).GitHubOAuth), ctx, oauthID, email, username, emailVerified)
 }
 
 // GoogleOAuth mocks base method.

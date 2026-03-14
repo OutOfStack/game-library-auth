@@ -212,6 +212,14 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/web.ErrResp'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/web.ErrResp'
       summary: GitHub OAuth sign in handler
       tags:
       - auth
@@ -240,6 +248,10 @@ paths:
             $ref: '#/definitions/web.ErrResp'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "409":
+          description: Conflict
           schema:
             $ref: '#/definitions/web.ErrResp'
       summary: Google OAuth sign in handler

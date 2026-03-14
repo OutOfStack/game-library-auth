@@ -133,34 +133,108 @@ func TestCheckUserExists_False(t *testing.T) {
 	require.False(t, exists)
 }
 
-func TestGetUserByOAuth_Ok(t *testing.T) {
+func TestGetUserByOAuthLink_Ok(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
 	ctx := t.Context()
 
 	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
-	user.SetOAuthID("google", "google123456")
 	err := s.CreateUser(ctx, user)
 	require.NoError(t, err)
 
-	foundUser, err := s.GetUserByOAuth(ctx, "google", "google123456")
+	link := database.NewUserOAuthLink(user.ID, "google", "google123456")
+	err = s.CreateUserOAuthLink(ctx, link)
+	require.NoError(t, err)
+
+	foundUser, err := s.GetUserByOAuthLink(ctx, "google", "google123456")
 	require.NoError(t, err)
 	require.Equal(t, user.ID, foundUser.ID)
 	require.Equal(t, user.Username, foundUser.Username)
-	require.Equal(t, user.OAuthProvider, foundUser.OAuthProvider)
-	require.Equal(t, user.OAuthID, foundUser.OAuthID)
 }
 
-func TestGetUserByOAuth_NotFound(t *testing.T) {
+func TestGetUserByOAuthLink_NotFound(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
 	ctx := t.Context()
 
-	_, err := s.GetUserByOAuth(ctx, "google", "nonexistent")
+	_, err := s.GetUserByOAuthLink(ctx, "google", "nonexistent")
 	require.Error(t, err)
 	require.Equal(t, database.ErrNotFound, err)
+}
+
+func TestCreateUserOAuthLink_Ok(t *testing.T) {
+	s := setup(t)
+	defer teardown(t)
+
+	ctx := t.Context()
+
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
+	err := s.CreateUser(ctx, user)
+	require.NoError(t, err)
+
+	link := database.NewUserOAuthLink(user.ID, "github", "gh123")
+	err = s.CreateUserOAuthLink(ctx, link)
+	require.NoError(t, err)
+
+	foundUser, err := s.GetUserByOAuthLink(ctx, "github", "gh123")
+	require.NoError(t, err)
+	require.Equal(t, user.ID, foundUser.ID)
+}
+
+func TestCreateUserOAuthLink_Duplicate(t *testing.T) {
+	s := setup(t)
+	defer teardown(t)
+
+	ctx := t.Context()
+
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
+	err := s.CreateUser(ctx, user)
+	require.NoError(t, err)
+
+	link := database.NewUserOAuthLink(user.ID, "google", "google123")
+	err = s.CreateUserOAuthLink(ctx, link)
+	require.NoError(t, err)
+
+	// duplicate should be ignored (idempotent)
+	link2 := database.NewUserOAuthLink(user.ID, "google", "google123")
+	err = s.CreateUserOAuthLink(ctx, link2)
+	require.NoError(t, err)
+}
+
+func TestHasOAuthLink_True(t *testing.T) {
+	s := setup(t)
+	defer teardown(t)
+
+	ctx := t.Context()
+
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
+	err := s.CreateUser(ctx, user)
+	require.NoError(t, err)
+
+	link := database.NewUserOAuthLink(user.ID, "google", "google123")
+	err = s.CreateUserOAuthLink(ctx, link)
+	require.NoError(t, err)
+
+	has, err := s.HasOAuthLink(ctx, user.ID)
+	require.NoError(t, err)
+	require.True(t, has)
+}
+
+func TestHasOAuthLink_False(t *testing.T) {
+	s := setup(t)
+	defer teardown(t)
+
+	ctx := t.Context()
+
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
+	err := s.CreateUser(ctx, user)
+	require.NoError(t, err)
+
+	has, err := s.HasOAuthLink(ctx, user.ID)
+	require.NoError(t, err)
+	require.False(t, has)
 }
 
 func TestUpdateUser_Ok(t *testing.T) {

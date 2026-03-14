@@ -2,9 +2,10 @@ package githubapi
 
 // UserInfo represents GitHub user information
 type UserInfo struct {
-	ID    string
-	Login string
-	Email string
+	ID            string
+	Login         string
+	Email         string
+	EmailVerified bool
 }
 
 // accessTokenResponse represents GitHub access token response
@@ -21,4 +22,11 @@ type githubUser struct {
 	ID    int64  `json:"id"`
 	Login string `json:"login"`
 	Email string `json:"email"`
+}
+
+// githubEmail represents a GitHub user email from /user/emails API
+type githubEmail struct {
+	Email    string `json:"email"`
+	Primary  bool   `json:"primary"`
+	Verified bool   `json:"verified"`
 }

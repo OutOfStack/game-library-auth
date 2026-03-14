@@ -52,7 +52,9 @@ type UserRepo interface {
 	GetUserByID(ctx context.Context, userID string) (database.User, error)
 	GetUserByUsername(ctx context.Context, username string) (database.User, error)
 	GetUserByEmail(ctx context.Context, email string) (database.User, error)
-	GetUserByOAuth(ctx context.Context, provider string, oauthID string) (database.User, error)
+	GetUserByOAuthLink(ctx context.Context, provider string, oauthID string) (database.User, error)
+	CreateUserOAuthLink(ctx context.Context, link database.UserOAuthLink) error
+	HasOAuthLink(ctx context.Context, userID string) (bool, error)
 	CheckUserExists(ctx context.Context, name string, role model.Role) (bool, error)
 	SetUserEmailVerified(ctx context.Context, userID string) error
 
