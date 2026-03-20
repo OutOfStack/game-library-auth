@@ -13,7 +13,5 @@ func mapDBUserToUser(user database.User) model.User {
 		Email:         user.Email.String,
 		EmailVerified: user.EmailVerified,
 		Role:          string(user.Role),
-		OAuthProvider: user.OAuthProvider.String,
-		OAuthID:       user.OAuthID.String,
 	}
 }

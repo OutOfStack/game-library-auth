@@ -60,6 +60,12 @@ type GoogleOAuthRequest struct {
 }
 
 type googleIDTokenClaims struct {
-	Sub   string `json:"sub"`
-	Email string `json:"email"`
+	Sub           string `json:"sub"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+}
+
+// GitHubOAuthRequest represents GitHub OAuth request
+type GitHubOAuthRequest struct {
+	Code string `json:"code" validate:"required"`
 }

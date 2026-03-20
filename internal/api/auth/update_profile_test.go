@@ -191,7 +191,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
+			_, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, nil)
 			defer ctrl.Finish()
 
 			if tt.setupMocks != nil {

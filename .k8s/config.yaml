@@ -20,6 +20,8 @@ data:
     AUTH_ISSUER: "https://_UI_URL_"
     AUTH_ACCESSTOKENTTL: "15m"
     AUTH_REFRESHTOKENTTL: "360h"
+    # oauth
+    OAUTH_TIMEOUT: "5s"
     # tracing
     JAEGER_OTLP_ENDPOINT: "jaeger-service.game-library-infra.svc.cluster.local:4318"
     # graylog

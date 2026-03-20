@@ -2,11 +2,10 @@ package auth
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 
-	"github.com/OutOfStack/game-library-auth/internal/facade"
+	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
@@ -22,6 +21,8 @@ import (
 // @Success 		  200 {object} TokenResp "User credentials"
 // @Failure 		  400 {object} web.ErrResp
 // @Failure 		  401 {object} web.ErrResp
+// @Failure 		  403 {object} web.ErrResp
+// @Failure 		  409 {object} web.ErrResp
 // @Router 			  /oauth/google [post]
 func (a *API) GoogleOAuthHandler(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "googleOAuth")
@@ -45,22 +46,9 @@ func (a *API) GoogleOAuthHandler(c fiber.Ctx) error {
 	}
 
 	// sign in or sign up
-	user, err := a.userFacade.GoogleOAuth(ctx, googleClaims.Sub, googleClaims.Email)
+	user, err := a.userFacade.GoogleOAuth(ctx, googleClaims.Sub, googleClaims.Email, googleClaims.EmailVerified)
 	if err != nil {
-		switch {
-		case errors.Is(err, facade.ErrInvalidEmail):
-			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
-				Error: "Invalid email",
-			})
-		case errors.Is(err, facade.ErrOAuthSignInConflict):
-			return c.Status(http.StatusConflict).JSON(web.ErrResp{
-				Error: "Account setup incomplete. Please complete registration manually.",
-			})
-		default:
-			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
-				Error: internalErrorMsg,
-			})
-		}
+		return handleOauthErrors(c, err, model.GoogleAuthTokenProvider)
 	}
 
 	// create tokens
@@ -82,16 +70,18 @@ func (a *API) GoogleOAuthHandler(c fiber.Ctx) error {
 
 // verifyGoogleIDToken verifies Google ID token and returns claims
 func (a *API) verifyGoogleIDToken(ctx context.Context, token string) (*googleIDTokenClaims, error) {
-	payload, err := a.googleTokenValidator.Validate(ctx, token, a.cfg.GoogleOAuthClientID)
+	payload, err := a.googleIDTokenClient.ValidateIDToken(ctx, token)
 	if err != nil {
-		return nil, fmt.Errorf("validate google token: %w", err)
+		return nil, fmt.Errorf("validate google id token: %w", err)
 	}
 
 	email, _ := payload.Claims["email"].(string)
+	emailVerified, _ := payload.Claims["email_verified"].(bool)
 
 	claims := &googleIDTokenClaims{
-		Sub:   payload.Subject,
-		Email: email,
+		Sub:           payload.Subject,
+		Email:         email,
+		EmailVerified: emailVerified,
 	}
 
 	if claims.Sub == "" || claims.Email == "" {

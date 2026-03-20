@@ -18,6 +18,8 @@ var (
 	ErrNotFound = errors.New("not found")
 	// ErrUserExists is used when username/email already exists
 	ErrUserExists = errors.New("user already exists")
+	// ErrOAuthLinkExists is used when a user already has an OAuth link for the same provider
+	ErrOAuthLinkExists = errors.New("oauth link already exists for this provider")
 )
 
 // User represents a user
@@ -29,8 +31,6 @@ type User struct {
 	EmailVerified bool           `db:"email_verified"`
 	PasswordHash  []byte         `db:"password_hash"`
 	Role          model.Role     `db:"role"`
-	OAuthProvider sql.NullString `db:"oauth_provider"`
-	OAuthID       sql.NullString `db:"oauth_id"`
 	DateCreated   time.Time      `db:"date_created"`
 	DateUpdated   sql.NullTime   `db:"date_updated"`
 }
@@ -46,16 +46,31 @@ func NewUser(username, name string, passwordHash []byte, role model.Role) User {
 	}
 }
 
-// SetOAuthID sets oauth provider and oauth id
-func (u *User) SetOAuthID(provider string, oauthID string) {
-	u.OAuthProvider = sql.NullString{String: provider, Valid: true}
-	u.OAuthID = sql.NullString{String: oauthID, Valid: true}
-}
-
 // SetEmail sets user email and verification status
 func (u *User) SetEmail(email string, verified bool) {
 	u.Email = sql.NullString{String: email, Valid: email != ""}
 	u.EmailVerified = u.Email.Valid && verified
+}
+
+// IsEmpty returns whether User has ID
+func (u *User) IsEmpty() bool {
+	return u.ID == ""
+}
+
+// UserOAuthLink represents a link between a user and an OAuth provider
+type UserOAuthLink struct {
+	UserID        string `db:"user_id"`
+	OAuthProvider string `db:"oauth_provider"`
+	OAuthID       string `db:"oauth_id"`
+}
+
+// NewUserOAuthLink creates a new user OAuth link
+func NewUserOAuthLink(userID, provider, oauthID string) UserOAuthLink {
+	return UserOAuthLink{
+		UserID:        userID,
+		OAuthProvider: provider,
+		OAuthID:       oauthID,
+	}
 }
 
 // EmailVerification represents an email verification record

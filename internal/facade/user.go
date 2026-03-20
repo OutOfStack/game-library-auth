@@ -24,6 +24,8 @@ var (
 	ErrSignUpEmailExists            = errors.New("sign up: email already exists")
 	ErrSignUpEmailRequired          = errors.New("sign up: email is required")
 	ErrSignUpPublisherNameExists    = errors.New("sign up: publisher name already exists")
+	ErrOAuthPublisherConflict       = errors.New("oauth sign in: publisher must use password")
+	ErrOAuthEmailUnverified         = errors.New("oauth sign in: email not verified by provider")
 )
 
 // SignUp creates a new user with provided params and sends verification email if applicable
@@ -153,9 +155,9 @@ func (p *Provider) SignIn(ctx context.Context, username, password string) (model
 }
 
 // GoogleOAuth handles Google OAuth sign in
-func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string) (model.User, error) {
-	// check if user exists
-	user, err := p.userRepo.GetUserByOAuth(ctx, model.GoogleAuthTokenProvider, oauthID)
+func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string, emailVerified bool) (model.User, error) {
+	// check if google oauth user exists
+	user, err := p.userRepo.GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, oauthID)
 	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return model.User{}, err
 	}
@@ -163,27 +165,134 @@ func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string) (mode
 		return mapDBUserToUser(user), nil
 	}
 
+	// validate email and extract username
 	username, err := extractUsernameFromEmail(email)
 	if err != nil {
 		p.log.Error("extract username from email", zap.String("email", email), zap.Error(err))
-		return model.User{}, ErrInvalidEmail
-	}
-
-	// create user
-	user = database.NewUser(username, username, nil, model.UserRoleName)
-	user.SetOAuthID(model.GoogleAuthTokenProvider, oauthID)
-	user.SetEmail(email, true)
-
-	if err = p.userRepo.CreateUser(ctx, user); err != nil {
-		if errors.Is(err, database.ErrUserExists) {
-			p.log.Warn("user already exists during oauth", zap.String("username", user.Username), zap.String("email", user.Email.String))
-			return model.User{}, ErrOAuthSignInConflict
-		}
-		p.log.Error("create user (google oauth)", zap.String("username", user.Username), zap.String("email", user.Email.String), zap.Error(err))
 		return model.User{}, err
 	}
 
-	return mapDBUserToUser(user), nil
+	// require a verified email
+	if !emailVerified {
+		return model.User{}, ErrOAuthEmailUnverified
+	}
+
+	// check if user with same email already exists
+	if user, err = p.findExistingUserByEmail(ctx, email); err != nil {
+		return model.User{}, err
+	} else if !user.IsEmpty() {
+		// store the OAuth link for the existing user
+		link := database.NewUserOAuthLink(user.ID, model.GoogleAuthTokenProvider, oauthID)
+		if lErr := p.userRepo.CreateUserOAuthLink(ctx, link); lErr != nil {
+			if errors.Is(lErr, database.ErrOAuthLinkExists) {
+				return model.User{}, ErrOAuthSignInConflict
+			}
+			p.log.Error("create oauth link (google, existing user)", zap.String("userID", user.ID), zap.Error(lErr))
+			return model.User{}, lErr
+		}
+		return mapDBUserToUser(user), nil
+	}
+
+	// create user and oauth link in a transaction
+	newUser := database.NewUser(username, username, nil, model.UserRoleName)
+	newUser.SetEmail(email, true)
+
+	txErr := p.userRepo.RunWithTx(ctx, func(ctx context.Context) error {
+		if err = p.userRepo.CreateUser(ctx, newUser); err != nil {
+			if errors.Is(err, database.ErrUserExists) {
+				p.log.Warn("user already exists during oauth", zap.String("username", newUser.Username), zap.String("email", newUser.Email.String))
+				return ErrOAuthSignInConflict
+			}
+			p.log.Error("create user (google oauth)", zap.String("username", newUser.Username), zap.String("email", newUser.Email.String), zap.Error(err))
+			return err
+		}
+
+		link := database.NewUserOAuthLink(newUser.ID, model.GoogleAuthTokenProvider, oauthID)
+		if err = p.userRepo.CreateUserOAuthLink(ctx, link); err != nil {
+			p.log.Error("create oauth link (google, new user)", zap.String("userID", newUser.ID), zap.Error(err))
+			return err
+		}
+
+		return nil
+	})
+	if txErr != nil {
+		return model.User{}, txErr
+	}
+
+	return mapDBUserToUser(newUser), nil
+}
+
+// GitHubOAuth handles GitHub OAuth sign in
+func (p *Provider) GitHubOAuth(ctx context.Context, oauthID, email, username string, emailVerified bool) (model.User, error) {
+	// check if github oauth user exists
+	user, err := p.userRepo.GetUserByOAuthLink(ctx, model.GitHubAuthTokenProvider, oauthID)
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
+		return model.User{}, err
+	}
+	if err == nil {
+		return mapDBUserToUser(user), nil
+	}
+
+	// validate email address
+	_, err = extractUsernameFromEmail(email)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	// require a verified email
+	if !emailVerified {
+		return model.User{}, ErrOAuthEmailUnverified
+	}
+
+	// check if user with same email already exists
+	if user, err = p.findExistingUserByEmail(ctx, email); err != nil {
+		return model.User{}, err
+	} else if !user.IsEmpty() {
+		// store the OAuth link for the existing user
+		link := database.NewUserOAuthLink(user.ID, model.GitHubAuthTokenProvider, oauthID)
+		if lErr := p.userRepo.CreateUserOAuthLink(ctx, link); lErr != nil {
+			if errors.Is(lErr, database.ErrOAuthLinkExists) {
+				return model.User{}, ErrOAuthSignInConflict
+			}
+			p.log.Error("create oauth link (github, existing user)", zap.String("userID", user.ID), zap.Error(lErr))
+			return model.User{}, lErr
+		}
+		return mapDBUserToUser(user), nil
+	}
+
+	// truncate username to max length
+	if len(username) > maxUsernameLen {
+		username = username[:maxUsernameLen]
+	}
+	username = strings.ToLower(username)
+
+	// create user and oauth link in a transaction
+	newUser := database.NewUser(username, username, nil, model.UserRoleName)
+	newUser.SetEmail(email, true)
+
+	txErr := p.userRepo.RunWithTx(ctx, func(ctx context.Context) error {
+		if err = p.userRepo.CreateUser(ctx, newUser); err != nil {
+			if errors.Is(err, database.ErrUserExists) {
+				p.log.Warn("user already exists during oauth", zap.String("username", newUser.Username), zap.String("email", newUser.Email.String))
+				return ErrOAuthSignInConflict
+			}
+			p.log.Error("create user (github oauth)", zap.String("username", newUser.Username), zap.String("email", newUser.Email.String), zap.Error(err))
+			return err
+		}
+
+		link := database.NewUserOAuthLink(newUser.ID, model.GitHubAuthTokenProvider, oauthID)
+		if err = p.userRepo.CreateUserOAuthLink(ctx, link); err != nil {
+			p.log.Error("create oauth link (github, new user)", zap.String("userID", newUser.ID), zap.Error(err))
+			return err
+		}
+
+		return nil
+	})
+	if txErr != nil {
+		return model.User{}, txErr
+	}
+
+	return mapDBUserToUser(newUser), nil
 }
 
 // UpdateUserProfile updates user profile
@@ -205,7 +314,12 @@ func (p *Provider) UpdateUserProfile(ctx context.Context, userID string, params 
 
 		// update password if provided
 		if params.Password != nil {
-			if user.OAuthProvider.Valid {
+			hasOAuth, oErr := p.userRepo.HasOAuthLink(ctx, userID)
+			if oErr != nil {
+				p.log.Error("check oauth link", zap.String("userID", userID), zap.Error(oErr))
+				return oErr
+			}
+			if hasOAuth {
 				return ErrUpdateProfileNotAllowed
 			}
 			if err = bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(*params.Password)); err != nil {
@@ -249,6 +363,22 @@ func (p *Provider) UpdateUserProfile(ctx context.Context, userID string, params 
 // DeleteUser deletes user by id
 func (p *Provider) DeleteUser(ctx context.Context, userID string) error {
 	return p.userRepo.DeleteUser(ctx, userID)
+}
+
+// checks if a user with the given email already exists and returns them if they are a regular user
+func (p *Provider) findExistingUserByEmail(ctx context.Context, email string) (database.User, error) {
+	user, err := p.userRepo.GetUserByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			return database.User{}, nil
+		}
+		p.log.Error("get user by email (oauth)", zap.String("email", email), zap.Error(err))
+		return database.User{}, err
+	}
+	if user.Role == model.PublisherRoleName {
+		return database.User{}, ErrOAuthPublisherConflict
+	}
+	return user, nil
 }
 
 // extracts and sanitizes username from email for OAuth users

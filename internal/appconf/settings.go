@@ -15,6 +15,7 @@ type Cfg struct {
 	DB          DB          `mapstructure:",squash"`
 	Web         Web         `mapstructure:",squash"`
 	Auth        Auth        `mapstructure:",squash"`
+	OAuth       OAuth       `mapstructure:",squash"`
 	Jaeger      Jaeger      `mapstructure:",squash"`
 	Graylog     Graylog     `mapstructure:",squash"`
 	Log         Log         `mapstructure:",squash"`
@@ -44,9 +45,16 @@ type Auth struct {
 	PrivateKeyFile   string        `mapstructure:"AUTH_PRIVATEKEYFILE"`
 	SigningAlgorithm string        `mapstructure:"AUTH_SIGNINGALG"`
 	Issuer           string        `mapstructure:"AUTH_ISSUER"`
-	GoogleClientID   string        `mapstructure:"AUTH_GOOGLECLIENTID"`
 	AccessTokenTTL   time.Duration `mapstructure:"AUTH_ACCESSTOKENTTL"`
 	RefreshTokenTTL  time.Duration `mapstructure:"AUTH_REFRESHTOKENTTL"`
+}
+
+// OAuth represents settings related to OAuth providers
+type OAuth struct {
+	Timeout            time.Duration `mapstructure:"OAUTH_TIMEOUT"`
+	GoogleClientID     string        `mapstructure:"OAUTH_GOOGLECLIENTID"`
+	GitHubClientID     string        `mapstructure:"OAUTH_GITHUBCLIENTID"`
+	GitHubClientSecret string        `mapstructure:"OAUTH_GITHUBCLIENTSECRET"`
 }
 
 // Jaeger represents settings for Jaeger OTLP trace export
@@ -128,14 +136,25 @@ func (cfg *Cfg) Validate() error {
 	if cfg.Auth.Issuer == "" {
 		return errors.New("AUTH_ISSUER is required")
 	}
-	if cfg.Auth.GoogleClientID == "" {
-		return errors.New("AUTH_GOOGLECLIENTID is required")
-	}
 	if cfg.Auth.AccessTokenTTL <= 0 {
 		return errors.New("AUTH_ACCESSTOKENTTL must be greater than 0")
 	}
 	if cfg.Auth.RefreshTokenTTL <= 0 {
 		return errors.New("AUTH_REFRESHTOKENTTL must be greater than 0")
+	}
+
+	// OAuth validation
+	if cfg.OAuth.GoogleClientID == "" {
+		return errors.New("OAUTH_GOOGLECLIENTID is required")
+	}
+	if cfg.OAuth.GitHubClientID == "" {
+		return errors.New("OAUTH_GITHUBCLIENTID is required")
+	}
+	if cfg.OAuth.GitHubClientSecret == "" {
+		return errors.New("OAUTH_GITHUBCLIENTSECRET is required")
+	}
+	if cfg.OAuth.Timeout <= 0 {
+		return errors.New("OAUTH_TIMEOUT must be greater than 0")
 	}
 
 	// Jaeger validation

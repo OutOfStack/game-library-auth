@@ -201,6 +201,20 @@ func (mr *MockUserRepoMockRecorder) CreateUser(ctx, user any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockUserRepo)(nil).CreateUser), ctx, user)
 }
 
+// CreateUserOAuthLink mocks base method.
+func (m *MockUserRepo) CreateUserOAuthLink(ctx context.Context, link database.UserOAuthLink) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateUserOAuthLink", ctx, link)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateUserOAuthLink indicates an expected call of CreateUserOAuthLink.
+func (mr *MockUserRepoMockRecorder) CreateUserOAuthLink(ctx, link any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUserOAuthLink", reflect.TypeOf((*MockUserRepo)(nil).CreateUserOAuthLink), ctx, link)
+}
+
 // DeleteRefreshToken mocks base method.
 func (m *MockUserRepo) DeleteRefreshToken(ctx context.Context, token string) error {
 	m.ctrl.T.Helper()
@@ -303,19 +317,19 @@ func (mr *MockUserRepoMockRecorder) GetUserByID(ctx, userID any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByID", reflect.TypeOf((*MockUserRepo)(nil).GetUserByID), ctx, userID)
 }
 
-// GetUserByOAuth mocks base method.
-func (m *MockUserRepo) GetUserByOAuth(ctx context.Context, provider, oauthID string) (database.User, error) {
+// GetUserByOAuthLink mocks base method.
+func (m *MockUserRepo) GetUserByOAuthLink(ctx context.Context, provider, oauthID string) (database.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserByOAuth", ctx, provider, oauthID)
+	ret := m.ctrl.Call(m, "GetUserByOAuthLink", ctx, provider, oauthID)
 	ret0, _ := ret[0].(database.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetUserByOAuth indicates an expected call of GetUserByOAuth.
-func (mr *MockUserRepoMockRecorder) GetUserByOAuth(ctx, provider, oauthID any) *gomock.Call {
+// GetUserByOAuthLink indicates an expected call of GetUserByOAuthLink.
+func (mr *MockUserRepoMockRecorder) GetUserByOAuthLink(ctx, provider, oauthID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByOAuth", reflect.TypeOf((*MockUserRepo)(nil).GetUserByOAuth), ctx, provider, oauthID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByOAuthLink", reflect.TypeOf((*MockUserRepo)(nil).GetUserByOAuthLink), ctx, provider, oauthID)
 }
 
 // GetUserByUsername mocks base method.
@@ -331,6 +345,21 @@ func (m *MockUserRepo) GetUserByUsername(ctx context.Context, username string) (
 func (mr *MockUserRepoMockRecorder) GetUserByUsername(ctx, username any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByUsername", reflect.TypeOf((*MockUserRepo)(nil).GetUserByUsername), ctx, username)
+}
+
+// HasOAuthLink mocks base method.
+func (m *MockUserRepo) HasOAuthLink(ctx context.Context, userID string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasOAuthLink", ctx, userID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HasOAuthLink indicates an expected call of HasOAuthLink.
+func (mr *MockUserRepoMockRecorder) HasOAuthLink(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasOAuthLink", reflect.TypeOf((*MockUserRepo)(nil).HasOAuthLink), ctx, userID)
 }
 
 // IsEmailUnsubscribed mocks base method.

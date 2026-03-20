@@ -1,5 +1,12 @@
 basePath: /
 definitions:
+  auth.GitHubOAuthRequest:
+    properties:
+      code:
+        type: string
+    required:
+    - code
+    type: object
   auth.GoogleOAuthRequest:
     properties:
       idToken:
@@ -178,6 +185,44 @@ paths:
       summary: Logout user
       tags:
       - auth
+  /oauth/github:
+    post:
+      consumes:
+      - application/json
+      description: Handles GitHub OAuth 2.0 authentication using authorization code
+      parameters:
+      - description: GitHub OAuth authorization code
+        in: body
+        name: code
+        required: true
+        schema:
+          $ref: '#/definitions/auth.GitHubOAuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User credentials
+          schema:
+            $ref: '#/definitions/auth.TokenResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+      summary: GitHub OAuth sign in handler
+      tags:
+      - auth
   /oauth/google:
     post:
       consumes:
@@ -203,6 +248,14 @@ paths:
             $ref: '#/definitions/web.ErrResp'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/web.ErrResp'
+        "409":
+          description: Conflict
           schema:
             $ref: '#/definitions/web.ErrResp'
       summary: Google OAuth sign in handler

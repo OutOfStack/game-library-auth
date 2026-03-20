@@ -27,10 +27,10 @@ func TestGoogleOAuthHandler_InvalidRequest(t *testing.T) {
 	t.Run("invalid request body", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		mockGoogleTokenValidator := mocks.NewMockGoogleTokenValidator(ctrl)
+		mockGoogleTokenValidator := mocks.NewMockGoogleIDTokenClient(ctrl)
+		mockGitHubOAuthClient := mocks.NewMockGitHubOAuthClient(ctrl)
 		mockUserFacade := mocks.NewMockUserFacade(ctrl)
-		authAPI, err := auth.NewAPI(logger, mockGoogleTokenValidator, mockUserFacade, auth.APICfg{
-			GoogleOAuthClientID:        "test-client-id",
+		authAPI, err := auth.NewAPI(logger, mockGoogleTokenValidator, mockGitHubOAuthClient, mockUserFacade, auth.APICfg{
 			ContactEmail:               "contact@example.com",
 			RefreshTokenCookieSameSite: "strict",
 			RefreshTokenCookieSecure:   true,
@@ -47,33 +47,18 @@ func TestGoogleOAuthHandler_InvalidRequest(t *testing.T) {
 		defer resp.Body.Close()
 		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
-
-	t.Run("missing google client id", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		mockGoogleTokenValidator := mocks.NewMockGoogleTokenValidator(ctrl)
-		mockUserFacade := mocks.NewMockUserFacade(ctrl)
-		_, err := auth.NewAPI(logger, mockGoogleTokenValidator, mockUserFacade, auth.APICfg{
-			GoogleOAuthClientID:        "",
-			ContactEmail:               "contact@example.com",
-			RefreshTokenCookieSameSite: "strict",
-			RefreshTokenCookieSecure:   true,
-		})
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "google client id is empty")
-	})
 }
 
 func TestGoogleOAuthHandler_Success(t *testing.T) {
 	cfg := &appconf.Cfg{
-		Auth:        appconf.Auth{GoogleClientID: "test-client-id"},
+		OAuth:       appconf.OAuth{GoogleClientID: "test-client-id", GitHubClientID: "test-github-client-id"},
 		EmailSender: appconf.EmailSender{ContactEmail: "contact@example.com"},
 		Web: appconf.Web{
 			RefreshCookieSameSite: "strict",
 			RefreshCookieSecure:   true,
 		},
 	}
-	mockGoogleTokenValidator, authAPI, mockUserFacade, app, ctrl := setupTest(t, cfg)
+	mockGoogleTokenValidator, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, cfg)
 	defer ctrl.Finish()
 
 	app.Post("/oauth/google", authAPI.GoogleOAuthHandler)
@@ -90,13 +75,13 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		}
 
 		mockGoogleTokenValidator.EXPECT().
-			Validate(gomock.Any(), "mock-google-id-token", "test-client-id").
+			ValidateIDToken(gomock.Any(), "mock-google-id-token").
 			Return(mockPayload, nil)
 
 		// Mock facade Google OAuth
-		u := model.User{ID: "uid-1", Username: "test", Email: "test@example.com", OAuthProvider: "google", OAuthID: "google-sub-id"}
+		u := model.User{ID: "uid-1", Username: "test", Email: "test@example.com"}
 		mockUserFacade.EXPECT().
-			GoogleOAuth(gomock.Any(), "google-sub-id", "test@example.com").
+			GoogleOAuth(gomock.Any(), "google-sub-id", "test@example.com", true).
 			Return(u, nil)
 
 		mockUserFacade.EXPECT().
@@ -130,7 +115,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 	})
 
 	t.Run("successful existing user login", func(t *testing.T) {
-		u := model.User{ID: "uid-2", Username: "existing", OAuthProvider: "google", OAuthID: "google-sub-id"}
+		u := model.User{ID: "uid-2", Username: "existing"}
 
 		// Mock Google token validation
 		mockPayload := &idtoken.Payload{
@@ -143,12 +128,12 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		}
 
 		mockGoogleTokenValidator.EXPECT().
-			Validate(gomock.Any(), "mock-google-id-token", "test-client-id").
+			ValidateIDToken(gomock.Any(), "mock-google-id-token").
 			Return(mockPayload, nil)
 
 		// Mock facade - user found
 		mockUserFacade.EXPECT().
-			GoogleOAuth(gomock.Any(), "google-sub-id", "existing@example.com").
+			GoogleOAuth(gomock.Any(), "google-sub-id", "existing@example.com", true).
 			Return(u, nil)
 
 		mockUserFacade.EXPECT().
@@ -193,12 +178,12 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		}
 
 		mockGoogleTokenValidator.EXPECT().
-			Validate(gomock.Any(), "mock-google-id-token", "test-client-id").
+			ValidateIDToken(gomock.Any(), "mock-google-id-token").
 			Return(mockPayload, nil)
 
 		// Facade returns name conflict
 		mockUserFacade.EXPECT().
-			GoogleOAuth(gomock.Any(), "new-google-sub-id", "conflict@example.com").
+			GoogleOAuth(gomock.Any(), "new-google-sub-id", "conflict@example.com", true).
 			Return(model.User{}, facade.ErrOAuthSignInConflict)
 
 		reqBody := auth.GoogleOAuthRequest{
@@ -226,10 +211,53 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		require.Equal(t, "Account setup incomplete. Please complete registration manually.", response.Error)
 	})
 
+	t.Run("publisher email conflict", func(t *testing.T) {
+		mockPayload := &idtoken.Payload{
+			Subject: "google-sub-id",
+			Claims: map[string]any{
+				"email":          "publisher@example.com",
+				"name":           "Publisher User",
+				"email_verified": true,
+			},
+		}
+
+		mockGoogleTokenValidator.EXPECT().
+			ValidateIDToken(gomock.Any(), "mock-google-id-token").
+			Return(mockPayload, nil)
+
+		mockUserFacade.EXPECT().
+			GoogleOAuth(gomock.Any(), "google-sub-id", "publisher@example.com", true).
+			Return(model.User{}, facade.ErrOAuthPublisherConflict)
+
+		reqBody := auth.GoogleOAuthRequest{
+			IDToken: "mock-google-id-token",
+		}
+		body, _ := json.Marshal(reqBody)
+
+		req := httptest.NewRequest(http.MethodPost, "/oauth/google", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := app.Test(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		require.Equal(t, http.StatusConflict, resp.StatusCode)
+
+		var response struct {
+			Error string `json:"error"`
+		}
+		responseBody, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+
+		err = json.Unmarshal(responseBody, &response)
+		require.NoError(t, err)
+		require.Equal(t, "Publisher account found. Please sign in with your username and password.", response.Error)
+	})
+
 	t.Run("invalid google token", func(t *testing.T) {
 		// Mock Google token validation failure
 		mockGoogleTokenValidator.EXPECT().
-			Validate(gomock.Any(), "invalid-token", "test-client-id").
+			ValidateIDToken(gomock.Any(), "invalid-token").
 			Return(nil, errors.New("invalid token"))
 
 		reqBody := auth.GoogleOAuthRequest{
@@ -259,12 +287,12 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		}
 
 		mockGoogleTokenValidator.EXPECT().
-			Validate(gomock.Any(), "mock-google-id-token", "test-client-id").
+			ValidateIDToken(gomock.Any(), "mock-google-id-token").
 			Return(mockPayload, nil)
 
 		// Mock facade returns invalid email error
 		mockUserFacade.EXPECT().
-			GoogleOAuth(gomock.Any(), "google-sub-id", "invalid-email").
+			GoogleOAuth(gomock.Any(), "google-sub-id", "invalid-email", true).
 			Return(model.User{}, facade.ErrInvalidEmail)
 
 		reqBody := auth.GoogleOAuthRequest{
@@ -304,12 +332,12 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		}
 
 		mockGoogleTokenValidator.EXPECT().
-			Validate(gomock.Any(), "mock-google-id-token", "test-client-id").
+			ValidateIDToken(gomock.Any(), "mock-google-id-token").
 			Return(mockPayload, nil)
 
 		// Mock facade error
 		mockUserFacade.EXPECT().
-			GoogleOAuth(gomock.Any(), "google-sub-id", "test@example.com").
+			GoogleOAuth(gomock.Any(), "google-sub-id", "test@example.com", true).
 			Return(model.User{}, errors.New("database connection failed"))
 
 		reqBody := auth.GoogleOAuthRequest{
@@ -328,7 +356,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 	})
 
 	t.Run("JWT generation failure", func(t *testing.T) {
-		u2 := model.User{ID: "uid-3", Username: "existing", OAuthProvider: "google", OAuthID: "google-sub-id"}
+		u2 := model.User{ID: "uid-3", Username: "existing"}
 
 		// Mock Google token validation
 		mockPayload := &idtoken.Payload{
@@ -341,11 +369,11 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 		}
 
 		mockGoogleTokenValidator.EXPECT().
-			Validate(gomock.Any(), "mock-google-id-token", "test-client-id").
+			ValidateIDToken(gomock.Any(), "mock-google-id-token").
 			Return(mockPayload, nil)
 
 		mockUserFacade.EXPECT().
-			GoogleOAuth(gomock.Any(), "google-sub-id", "existing@example.com").
+			GoogleOAuth(gomock.Any(), "google-sub-id", "existing@example.com", true).
 			Return(u2, nil)
 
 		// Mock token generation failure

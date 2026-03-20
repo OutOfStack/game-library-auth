@@ -29,10 +29,10 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 		}
 
 		mockUserRepo.EXPECT().
-			GetUserByOAuth(ctx, model.GoogleAuthTokenProvider, "oauth-123").
+			GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, "oauth-123").
 			Return(expectedUser, nil)
 
-		result, err := provider.GoogleOAuth(ctx, "oauth-123", "test@example.com")
+		result, err := provider.GoogleOAuth(ctx, "oauth-123", "test@example.com", true)
 
 		require.NoError(t, err)
 		assert.Equal(t, expectedUser.ID, result.ID)
@@ -43,14 +43,28 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
-			GetUserByOAuth(ctx, model.GoogleAuthTokenProvider, "oauth-123").
+			GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, "oauth-123").
 			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			GetUserByEmail(ctx, "newuser@example.com").
+			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
 
 		mockUserRepo.EXPECT().
 			CreateUser(ctx, gomock.Any()).
 			Return(nil)
 
-		result, err := provider.GoogleOAuth(ctx, "oauth-123", "newuser@example.com")
+		mockUserRepo.EXPECT().
+			CreateUserOAuthLink(ctx, gomock.Any()).
+			Return(nil)
+
+		result, err := provider.GoogleOAuth(ctx, "oauth-123", "newuser@example.com", true)
 
 		require.NoError(t, err)
 		assert.Equal(t, "newuser", result.Username)
@@ -61,12 +75,66 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
-			GetUserByOAuth(ctx, model.GoogleAuthTokenProvider, "oauth-123").
+			GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, "oauth-123").
 			Return(database.User{}, database.ErrNotFound)
 
-		_, err := provider.GoogleOAuth(ctx, "oauth-123", "invalid-email")
+		_, err := provider.GoogleOAuth(ctx, "oauth-123", "invalid-email", true)
 
 		assert.ErrorIs(t, err, facade.ErrInvalidEmail)
+	})
+
+	t.Run("existing regular user with same email", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		existingUser := database.User{
+			ID:       "user-existing",
+			Username: "existinguser",
+			Email:    sql.NullString{String: "existing@example.com", Valid: true},
+			Role:     model.UserRoleName,
+		}
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, "oauth-123").
+			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			GetUserByEmail(ctx, "existing@example.com").
+			Return(existingUser, nil)
+
+		mockUserRepo.EXPECT().
+			CreateUserOAuthLink(ctx, gomock.Any()).
+			Return(nil)
+
+		result, err := provider.GoogleOAuth(ctx, "oauth-123", "existing@example.com", true)
+
+		require.NoError(t, err)
+		assert.Equal(t, "user-existing", result.ID)
+		assert.Equal(t, "existinguser", result.Username)
+	})
+
+	t.Run("existing publisher with same email", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		existingUser := database.User{
+			ID:       "pub-existing",
+			Username: "publisher",
+			Email:    sql.NullString{String: "publisher@example.com", Valid: true},
+			Role:     model.PublisherRoleName,
+		}
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, "oauth-123").
+			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			GetUserByEmail(ctx, "publisher@example.com").
+			Return(existingUser, nil)
+
+		_, err := provider.GoogleOAuth(ctx, "oauth-123", "publisher@example.com", true)
+
+		assert.ErrorIs(t, err, facade.ErrOAuthPublisherConflict)
 	})
 
 	t.Run("username conflict on creation", func(t *testing.T) {
@@ -74,16 +142,262 @@ func TestProvider_GoogleOAuth(t *testing.T) {
 		defer ctrl.Finish()
 
 		mockUserRepo.EXPECT().
-			GetUserByOAuth(ctx, model.GoogleAuthTokenProvider, "oauth-123").
+			GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, "oauth-123").
 			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			GetUserByEmail(ctx, "existing@example.com").
+			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
 
 		mockUserRepo.EXPECT().
 			CreateUser(ctx, gomock.Any()).
 			Return(database.ErrUserExists)
 
-		_, err := provider.GoogleOAuth(ctx, "oauth-123", "existing@example.com")
+		_, err := provider.GoogleOAuth(ctx, "oauth-123", "existing@example.com", true)
 
 		assert.ErrorIs(t, err, facade.ErrOAuthSignInConflict)
+	})
+
+	t.Run("unverified email rejected", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, "oauth-123").
+			Return(database.User{}, database.ErrNotFound)
+
+		_, err := provider.GoogleOAuth(ctx, "oauth-123", "unverified@example.com", false)
+
+		assert.ErrorIs(t, err, facade.ErrOAuthEmailUnverified)
+	})
+
+	t.Run("no email rejected", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GoogleAuthTokenProvider, "oauth-456").
+			Return(database.User{}, database.ErrNotFound)
+
+		_, err := provider.GoogleOAuth(ctx, "oauth-456", "", true)
+
+		assert.ErrorIs(t, err, facade.ErrInvalidEmail)
+	})
+}
+
+func TestProvider_GitHubOAuth(t *testing.T) {
+	ctx := t.Context()
+
+	t.Run("existing user with oauth", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		expectedUser := database.User{
+			ID:       "user-123",
+			Username: "ghuser",
+			Email:    sql.NullString{String: "ghuser@example.com", Valid: true},
+			Role:     model.UserRoleName,
+		}
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GitHubAuthTokenProvider, "gh-oauth-123").
+			Return(expectedUser, nil)
+
+		result, err := provider.GitHubOAuth(ctx, "gh-oauth-123", "ghuser@example.com", "ghuser", true)
+
+		require.NoError(t, err)
+		assert.Equal(t, expectedUser.ID, result.ID)
+	})
+
+	t.Run("new user creation", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GitHubAuthTokenProvider, "gh-oauth-123").
+			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			GetUserByEmail(ctx, "newuser@example.com").
+			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+
+		mockUserRepo.EXPECT().
+			CreateUser(ctx, gomock.Any()).
+			Return(nil)
+
+		mockUserRepo.EXPECT().
+			CreateUserOAuthLink(ctx, gomock.Any()).
+			Return(nil)
+
+		result, err := provider.GitHubOAuth(ctx, "gh-oauth-123", "newuser@example.com", "newghuser", true)
+
+		require.NoError(t, err)
+		assert.Equal(t, "newghuser", result.Username)
+	})
+
+	t.Run("new user creation without email rejected", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GitHubAuthTokenProvider, "gh-oauth-456").
+			Return(database.User{}, database.ErrNotFound)
+
+		_, err := provider.GitHubOAuth(ctx, "gh-oauth-456", "", "noemailuser", false)
+
+		assert.ErrorIs(t, err, facade.ErrInvalidEmail)
+	})
+
+	t.Run("username truncated to max length", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GitHubAuthTokenProvider, "gh-oauth-789").
+			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			GetUserByEmail(ctx, "long@example.com").
+			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+
+		mockUserRepo.EXPECT().
+			CreateUser(ctx, gomock.Any()).
+			Return(nil)
+
+		mockUserRepo.EXPECT().
+			CreateUserOAuthLink(ctx, gomock.Any()).
+			Return(nil)
+
+		longUsername := "this-is-a-very-long-github-username-that-exceeds-limit"
+		result, err := provider.GitHubOAuth(ctx, "gh-oauth-789", "long@example.com", longUsername, true)
+
+		require.NoError(t, err)
+		assert.LessOrEqual(t, len(result.Username), 32)
+	})
+
+	t.Run("existing regular user with same email", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		existingUser := database.User{
+			ID:       "user-existing",
+			Username: "existinguser",
+			Email:    sql.NullString{String: "existing@example.com", Valid: true},
+			Role:     model.UserRoleName,
+		}
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GitHubAuthTokenProvider, "gh-oauth-123").
+			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			GetUserByEmail(ctx, "existing@example.com").
+			Return(existingUser, nil)
+
+		mockUserRepo.EXPECT().
+			CreateUserOAuthLink(ctx, gomock.Any()).
+			Return(nil)
+
+		result, err := provider.GitHubOAuth(ctx, "gh-oauth-123", "existing@example.com", "ghuser", true)
+
+		require.NoError(t, err)
+		assert.Equal(t, "user-existing", result.ID)
+		assert.Equal(t, "existinguser", result.Username)
+	})
+
+	t.Run("existing publisher with same email", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		existingUser := database.User{
+			ID:       "pub-existing",
+			Username: "publisher",
+			Email:    sql.NullString{String: "publisher@example.com", Valid: true},
+			Role:     model.PublisherRoleName,
+		}
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GitHubAuthTokenProvider, "gh-oauth-123").
+			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			GetUserByEmail(ctx, "publisher@example.com").
+			Return(existingUser, nil)
+
+		_, err := provider.GitHubOAuth(ctx, "gh-oauth-123", "publisher@example.com", "ghuser", true)
+
+		assert.ErrorIs(t, err, facade.ErrOAuthPublisherConflict)
+	})
+
+	t.Run("username conflict on creation", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GitHubAuthTokenProvider, "gh-oauth-123").
+			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			GetUserByEmail(ctx, "existing@example.com").
+			Return(database.User{}, database.ErrNotFound)
+
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+
+		mockUserRepo.EXPECT().
+			CreateUser(ctx, gomock.Any()).
+			Return(database.ErrUserExists)
+
+		_, err := provider.GitHubOAuth(ctx, "gh-oauth-123", "existing@example.com", "existinguser", true)
+
+		assert.ErrorIs(t, err, facade.ErrOAuthSignInConflict)
+	})
+
+	t.Run("unverified email rejected", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GitHubAuthTokenProvider, "gh-oauth-123").
+			Return(database.User{}, database.ErrNotFound)
+
+		_, err := provider.GitHubOAuth(ctx, "gh-oauth-123", "unverified@example.com", "ghuser", false)
+
+		assert.ErrorIs(t, err, facade.ErrOAuthEmailUnverified)
+	})
+
+	t.Run("no email rejected", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		mockUserRepo.EXPECT().
+			GetUserByOAuthLink(ctx, model.GitHubAuthTokenProvider, "gh-oauth-456").
+			Return(database.User{}, database.ErrNotFound)
+
+		_, err := provider.GitHubOAuth(ctx, "gh-oauth-456", "", "ghuser", false)
+
+		assert.ErrorIs(t, err, facade.ErrInvalidEmail)
 	})
 }
 
@@ -156,6 +470,10 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 			Return(existingUser, nil)
 
 		mockUserRepo.EXPECT().
+			HasOAuthLink(ctx, "user-123").
+			Return(false, nil)
+
+		mockUserRepo.EXPECT().
 			DeleteRefreshTokensByUserID(ctx, "user-123").
 			Return(nil)
 
@@ -193,10 +511,9 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 		defer ctrl.Finish()
 
 		existingUser := database.User{
-			ID:            "user-123",
-			Username:      "testuser",
-			OAuthProvider: sql.NullString{String: "google", Valid: true},
-			Role:          model.UserRoleName,
+			ID:       "user-123",
+			Username: "testuser",
+			Role:     model.UserRoleName,
 		}
 
 		params := model.UpdateProfileParams{
@@ -213,6 +530,10 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
 			Return(existingUser, nil)
+
+		mockUserRepo.EXPECT().
+			HasOAuthLink(ctx, "user-123").
+			Return(true, nil)
 
 		_, err := provider.UpdateUserProfile(ctx, "user-123", params)
 
@@ -246,6 +567,10 @@ func TestProvider_UpdateUserProfile(t *testing.T) {
 		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
 			Return(existingUser, nil)
+
+		mockUserRepo.EXPECT().
+			HasOAuthLink(ctx, "user-123").
+			Return(false, nil)
 
 		_, err := provider.UpdateUserProfile(ctx, "user-123", params)
 

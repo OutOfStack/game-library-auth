@@ -17,8 +17,6 @@ type User struct {
 	Email         string
 	EmailVerified bool
 	Role          string
-	OAuthProvider string
-	OAuthID       string
 }
 
 // IsPublisher checks if user is a publisher

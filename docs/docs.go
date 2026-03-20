@@ -142,6 +142,64 @@ const docTemplate = `{
                 }
             }
         },
+        "/oauth/github": {
+            "post": {
+                "description": "Handles GitHub OAuth 2.0 authentication using authorization code",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "GitHub OAuth sign in handler",
+                "parameters": [
+                    {
+                        "description": "GitHub OAuth authorization code",
+                        "name": "code",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.GitHubOAuthRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User credentials",
+                        "schema": {
+                            "$ref": "#/definitions/auth.TokenResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    }
+                }
+            }
+        },
         "/oauth/google": {
             "post": {
                 "description": "Handles Google OAuth 2.0 authentication",
@@ -181,6 +239,18 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/web.ErrResp"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/web.ErrResp"
                         }
@@ -435,6 +505,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "auth.GitHubOAuthRequest": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                }
+            }
+        },
         "auth.GoogleOAuthRequest": {
             "type": "object",
             "required": [
