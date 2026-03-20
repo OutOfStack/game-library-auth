@@ -4,13 +4,14 @@ CREATE TABLE user_oauth_links (
     user_id         UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     oauth_provider  VARCHAR(32)  NOT NULL,
     oauth_id        VARCHAR(128) NOT NULL,
+    date_created    TIMESTAMPTZ  NOT NULL    DEFAULT NOW(),
     
     PRIMARY KEY(id),
     UNIQUE(oauth_provider, oauth_id)
 );
 
-INSERT INTO user_oauth_links (id, user_id, oauth_provider, oauth_id)
-    SELECT gen_random_uuid(), id, oauth_provider, oauth_id
+INSERT INTO user_oauth_links (user_id, oauth_provider, oauth_id)
+    SELECT id, oauth_provider, oauth_id
     FROM users
     WHERE oauth_provider IS NOT NULL AND oauth_id IS NOT NULL;
 
@@ -27,7 +28,7 @@ ALTER TABLE users
 UPDATE users 
 SET oauth_provider = uol.oauth_provider, 
     oauth_id = uol.oauth_id
-FROM user_oauth_links uol 
+FROM user_oauth_links uol
 WHERE users.id = uol.user_id;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_oauth_provider_oauth_id ON users(oauth_provider, oauth_id);
