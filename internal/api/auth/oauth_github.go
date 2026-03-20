@@ -1,10 +1,9 @@
 package auth
 
 import (
-	"errors"
 	"net/http"
 
-	"github.com/OutOfStack/game-library-auth/internal/facade"
+	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
@@ -47,28 +46,7 @@ func (a *API) GitHubOAuthHandler(c fiber.Ctx) error {
 	// sign in or sign up
 	user, err := a.userFacade.GitHubOAuth(ctx, githubUser.ID, githubUser.Email, githubUser.Login, githubUser.EmailVerified)
 	if err != nil {
-		switch {
-		case errors.Is(err, facade.ErrOAuthEmailUnverified):
-			return c.Status(http.StatusForbidden).JSON(web.ErrResp{
-				Error: "GitHub email is not verified. Please verify your email on GitHub and try again.",
-			})
-		case errors.Is(err, facade.ErrInvalidEmail):
-			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
-				Error: "Invalid email",
-			})
-		case errors.Is(err, facade.ErrOAuthPublisherConflict):
-			return c.Status(http.StatusConflict).JSON(web.ErrResp{
-				Error: "Publisher account found. Please sign in with your username and password.",
-			})
-		case errors.Is(err, facade.ErrOAuthSignInConflict):
-			return c.Status(http.StatusConflict).JSON(web.ErrResp{
-				Error: "Account setup incomplete. Please complete registration manually.",
-			})
-		default:
-			return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
-				Error: internalErrorMsg,
-			})
-		}
+		return handleOauthErrors(c, err, model.GitHubAuthTokenProvider)
 	}
 
 	// create tokens

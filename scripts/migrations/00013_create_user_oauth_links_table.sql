@@ -7,7 +7,8 @@ CREATE TABLE user_oauth_links (
     date_created    TIMESTAMPTZ  NOT NULL    DEFAULT NOW(),
     
     PRIMARY KEY(id),
-    UNIQUE(oauth_provider, oauth_id)
+    UNIQUE(oauth_provider, oauth_id),
+    UNIQUE(user_id, oauth_provider)
 );
 
 INSERT INTO user_oauth_links (user_id, oauth_provider, oauth_id)

@@ -18,6 +18,8 @@ var (
 	ErrNotFound = errors.New("not found")
 	// ErrUserExists is used when username/email already exists
 	ErrUserExists = errors.New("user already exists")
+	// ErrOAuthLinkExists is used when a user already has an OAuth link for the same provider
+	ErrOAuthLinkExists = errors.New("oauth link already exists for this provider")
 )
 
 // User represents a user

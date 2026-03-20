@@ -1,14 +1,23 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
+	"github.com/OutOfStack/game-library-auth/internal/model"
+	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 )
+
+var oauthProviderNames = map[string]string{
+	model.GoogleAuthTokenProvider: "Google",
+	model.GitHubAuthTokenProvider: "GitHub",
+}
 
 // getClaims extracts and validates JWT from Authorization header and returns the claims
 func (a *API) getClaims(c fiber.Ctx) (auth.Claims, error) {
@@ -57,4 +66,32 @@ func (a *API) setRefreshTokenCookie(c fiber.Ctx, refreshToken facade.RefreshToke
 		SameSite: a.cfg.RefreshTokenCookieSameSite,
 		Expires:  refreshToken.ExpiresAt,
 	})
+}
+
+func handleOauthErrors(c fiber.Ctx, err error, oauthProvider string) error {
+	switch {
+	case errors.Is(err, facade.ErrOAuthEmailUnverified):
+		if provider, ok := oauthProviderNames[oauthProvider]; ok {
+			oauthProvider = provider
+		}
+		return c.Status(http.StatusForbidden).JSON(web.ErrResp{
+			Error: fmt.Sprintf("%s email is not verified. Please verify your email on %s and try again.", oauthProvider, oauthProvider),
+		})
+	case errors.Is(err, facade.ErrInvalidEmail):
+		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
+			Error: "Invalid email",
+		})
+	case errors.Is(err, facade.ErrOAuthPublisherConflict):
+		return c.Status(http.StatusConflict).JSON(web.ErrResp{
+			Error: "Publisher account found. Please sign in with your username and password.",
+		})
+	case errors.Is(err, facade.ErrOAuthSignInConflict):
+		return c.Status(http.StatusConflict).JSON(web.ErrResp{
+			Error: "Account setup incomplete. Please complete registration manually.",
+		})
+	default:
+		return c.Status(http.StatusInternalServerError).JSON(web.ErrResp{
+			Error: internalErrorMsg,
+		})
+	}
 }

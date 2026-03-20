@@ -184,6 +184,9 @@ func (p *Provider) GoogleOAuth(ctx context.Context, oauthID, email string, email
 		// store the OAuth link for the existing user
 		link := database.NewUserOAuthLink(user.ID, model.GoogleAuthTokenProvider, oauthID)
 		if lErr := p.userRepo.CreateUserOAuthLink(ctx, link); lErr != nil {
+			if errors.Is(lErr, database.ErrOAuthLinkExists) {
+				return model.User{}, ErrOAuthSignInConflict
+			}
 			p.log.Error("create oauth link (google, existing user)", zap.String("userID", user.ID), zap.Error(lErr))
 			return model.User{}, lErr
 		}
@@ -248,6 +251,9 @@ func (p *Provider) GitHubOAuth(ctx context.Context, oauthID, email, username str
 		// store the OAuth link for the existing user
 		link := database.NewUserOAuthLink(user.ID, model.GitHubAuthTokenProvider, oauthID)
 		if lErr := p.userRepo.CreateUserOAuthLink(ctx, link); lErr != nil {
+			if errors.Is(lErr, database.ErrOAuthLinkExists) {
+				return model.User{}, ErrOAuthSignInConflict
+			}
 			p.log.Error("create oauth link (github, existing user)", zap.String("userID", user.ID), zap.Error(lErr))
 			return model.User{}, lErr
 		}
