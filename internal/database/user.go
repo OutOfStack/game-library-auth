@@ -128,7 +128,7 @@ func (r *UserRepo) GetUserByOAuthLink(ctx context.Context, provider string, oaut
 }
 
 // CreateUserOAuthLink inserts a new user OAuth link, ignoring duplicates for the same provider+oauth_id pair.
-// Returns ErrOAuthLinkExists if the user already has a link for the given provider with a different oauth_id
+// Returns ErrOAuthLinkExists if the user already has a link for the given provider
 func (r *UserRepo) CreateUserOAuthLink(ctx context.Context, link UserOAuthLink) error {
 	ctx, span := tracer.Start(ctx, "createUserOAuthLink")
 	defer span.End()
