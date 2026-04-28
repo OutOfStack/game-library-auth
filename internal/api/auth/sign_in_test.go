@@ -136,7 +136,7 @@ func TestSignInHandler(t *testing.T) {
 			app.Post("/signin", authAPI.SignInHandler)
 
 			reqBody, _ := json.Marshal(tt.request)
-			req := httptest.NewRequest(http.MethodPost, "/signin", bytes.NewReader(reqBody))
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/signin", bytes.NewReader(reqBody))
 			req.Header.Set("Content-Type", "application/json")
 
 			resp, err := app.Test(req)

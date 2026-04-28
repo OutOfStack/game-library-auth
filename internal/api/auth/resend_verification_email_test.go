@@ -125,7 +125,7 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 
 			app.Post("/resend-verification", authAPI.ResendVerificationEmailHandler)
 
-			req := httptest.NewRequest(http.MethodPost, "/resend-verification", nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/resend-verification", nil)
 			req.Header.Set("Authorization", tt.authHeader)
 
 			resp, err := app.Test(req, fiber.TestConfig{Timeout: 5 * time.Second})

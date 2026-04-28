@@ -39,7 +39,7 @@ func TestGitHubOAuthHandler_InvalidRequest(t *testing.T) {
 		app := fiber.New()
 		app.Post("/oauth/github", authAPI.GitHubOAuthHandler)
 
-		req := httptest.NewRequest(http.MethodPost, "/oauth/github", bytes.NewReader([]byte("invalid json")))
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader([]byte("invalid json")))
 		req.Header.Set("Content-Type", "application/json")
 
 		resp, err := app.Test(req)
@@ -87,7 +87,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
 		body, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest(http.MethodPost, "/oauth/github", bytes.NewReader(body))
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 
 		resp, err := app.Test(req)
@@ -125,7 +125,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
 		body, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest(http.MethodPost, "/oauth/github", bytes.NewReader(body))
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 
 		resp, err := app.Test(req)
@@ -155,7 +155,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
 		body, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest(http.MethodPost, "/oauth/github", bytes.NewReader(body))
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 
 		resp, err := app.Test(req)
@@ -177,7 +177,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
 		body, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest(http.MethodPost, "/oauth/github", bytes.NewReader(body))
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 
 		resp, err := app.Test(req)
@@ -205,7 +205,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 		reqBody := auth.GitHubOAuthRequest{Code: "invalid-code"}
 		body, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest(http.MethodPost, "/oauth/github", bytes.NewReader(body))
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 
 		resp, err := app.Test(req)
@@ -227,7 +227,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
 		body, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest(http.MethodPost, "/oauth/github", bytes.NewReader(body))
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 
 		resp, err := app.Test(req)
@@ -249,7 +249,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
 		body, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest(http.MethodPost, "/oauth/github", bytes.NewReader(body))
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 
 		resp, err := app.Test(req)
@@ -286,7 +286,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
 		body, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest(http.MethodPost, "/oauth/github", bytes.NewReader(body))
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 
 		resp, err := app.Test(req)

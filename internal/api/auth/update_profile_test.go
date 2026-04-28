@@ -201,7 +201,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 			app.Post("/update_profile", authAPI.UpdateProfileHandler)
 
 			reqBody, _ := json.Marshal(tt.request)
-			req := httptest.NewRequest(http.MethodPost, "/update_profile", bytes.NewReader(reqBody))
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/update_profile", bytes.NewReader(reqBody))
 			req.Header.Set("Content-Type", "application/json")
 			if tt.authHeader != "" {
 				req.Header.Set("Authorization", tt.authHeader)

@@ -100,7 +100,7 @@ func TestDeleteAccountHandler(t *testing.T) {
 
 			app.Post("/delete_account", authAPI.DeleteAccountHandler)
 
-			req := httptest.NewRequest(http.MethodPost, "/delete_account", nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/delete_account", nil)
 			if tt.authHeader != "" {
 				req.Header.Set("Authorization", tt.authHeader)
 			}

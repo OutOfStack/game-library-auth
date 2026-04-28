@@ -68,7 +68,7 @@ func TestLogoutHandler(t *testing.T) {
 
 			app.Post("/logout", authAPI.LogoutHandler)
 
-			req := httptest.NewRequest(http.MethodPost, "/logout", nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/logout", nil)
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{
 					Name:  "refresh_token",

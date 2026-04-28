@@ -34,7 +34,7 @@ func TestMetrics_RecordsStatusCode(t *testing.T) {
 				return c.SendStatus(tt.statusCode)
 			})
 
-			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/test", nil)
 			resp, err := app.Test(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
@@ -51,7 +51,7 @@ func TestMetrics_DefaultStatusCode(t *testing.T) {
 		return c.SendString("ok")
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/default", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/default", nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -78,7 +78,7 @@ func TestMetrics_DifferentMethods(t *testing.T) {
 				return c.SendStatus(http.StatusOK)
 			})
 
-			req := httptest.NewRequest(tt.method, "/resource", nil)
+			req := httptest.NewRequestWithContext(t.Context(), tt.method, "/resource", nil)
 			resp, err := app.Test(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
@@ -93,7 +93,7 @@ func TestMetrics_SkipsMetricsEndpoint(t *testing.T) {
 	app.Use(middleware.Metrics())
 	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
 
-	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/metrics", nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -112,7 +112,7 @@ func TestMetrics_ResponseBodyWritten(t *testing.T) {
 		return c.Status(http.StatusCreated).SendString("created")
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/body", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/body", nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -133,13 +133,13 @@ func TestMetrics_ExposedViaPrometheus(t *testing.T) {
 	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
 
 	// make a request to generate metrics
-	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/ping", nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	resp.Body.Close()
 
 	// scrape metrics
-	req = httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	req = httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/metrics", nil)
 	resp, err = app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()

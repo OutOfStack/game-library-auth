@@ -101,7 +101,7 @@ func (c *Client) exchangeCode(ctx context.Context, code string) (string, error) 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := c.httpClient.Do(req) //nolint:gosec // URL is a hardcoded constant
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("send request: %w", err)
 	}
@@ -141,7 +141,7 @@ func (c *Client) fetchUser(ctx context.Context, accessToken string) (UserInfo, e
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := c.httpClient.Do(req) //nolint:gosec // URL is a hardcoded constant
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return UserInfo{}, fmt.Errorf("send request: %w", err)
 	}
@@ -176,7 +176,7 @@ func (c *Client) fetchUserEmails(ctx context.Context, accessToken string) ([]git
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := c.httpClient.Do(req) //nolint:gosec // URL is a hardcoded constant
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("send request: %w", err)
 	}

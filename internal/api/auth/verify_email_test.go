@@ -105,7 +105,7 @@ func TestVerifyEmailHandler(t *testing.T) {
 			app.Post("/verify-email", authAPI.VerifyEmailHandler)
 
 			reqBody, _ := json.Marshal(tt.request)
-			req := httptest.NewRequest(http.MethodPost, "/verify-email", bytes.NewReader(reqBody))
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/verify-email", bytes.NewReader(reqBody))
 			req.Header.Set("Content-Type", "application/json")
 			if tt.authHeader != "" {
 				req.Header.Set("Authorization", tt.authHeader)

@@ -181,7 +181,7 @@ func TestSignUpHandler(t *testing.T) {
 			app.Post("/signup", authAPI.SignUpHandler)
 
 			reqBody, _ := json.Marshal(tt.request)
-			req := httptest.NewRequest(http.MethodPost, "/signup", bytes.NewReader(reqBody))
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/signup", bytes.NewReader(reqBody))
 			req.Header.Set("Content-Type", "application/json")
 
 			resp, err := app.Test(req, fiber.TestConfig{Timeout: 5 * time.Second})
