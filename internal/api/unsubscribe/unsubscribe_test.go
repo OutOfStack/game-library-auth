@@ -29,7 +29,7 @@ func TestUnsubscribeHandler_Success(t *testing.T) {
 	app := fiber.New(fiber.Config{Views: mockViews})
 	app.Get("/unsubscribe", api.UnsubscribeHandler)
 
-	req := httptest.NewRequest(http.MethodGet, "/unsubscribe?token="+token, nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/unsubscribe?token="+token, nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -44,7 +44,7 @@ func TestUnsubscribeHandler_MissingToken(t *testing.T) {
 	app := fiber.New()
 	app.Get("/unsubscribe", api.UnsubscribeHandler)
 
-	req := httptest.NewRequest(http.MethodGet, "/unsubscribe", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/unsubscribe", nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -62,7 +62,7 @@ func TestUnsubscribeHandler_InvalidToken(t *testing.T) {
 	app := fiber.New()
 	app.Get("/unsubscribe", api.UnsubscribeHandler)
 
-	req := httptest.NewRequest(http.MethodGet, "/unsubscribe?token=invalid-token", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/unsubscribe?token=invalid-token", nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -84,7 +84,7 @@ func TestUnsubscribeHandler_ExpiredToken(t *testing.T) {
 	expiresAt := time.Now().Add(-1 * time.Hour)
 	token := tokenGen.GenerateToken(email, expiresAt)
 
-	req := httptest.NewRequest(http.MethodGet, "/unsubscribe?token="+token, nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/unsubscribe?token="+token, nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -111,7 +111,7 @@ func TestUnsubscribeHandler_AlreadyUnsubscribed(t *testing.T) {
 	app := fiber.New(fiber.Config{Views: mockViews})
 	app.Get("/unsubscribe", api.UnsubscribeHandler)
 
-	req := httptest.NewRequest(http.MethodGet, "/unsubscribe?token="+token, nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/unsubscribe?token="+token, nil)
 	resp, err := app.Test(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()

@@ -36,7 +36,7 @@ func TestUnsubscribeConfirmHandler_Success(t *testing.T) {
 	form := url.Values{}
 	form.Add("token", token)
 
-	req := httptest.NewRequest(http.MethodPost, "/unsubscribe", strings.NewReader(form.Encode()))
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/unsubscribe", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := app.Test(req)
@@ -53,7 +53,7 @@ func TestUnsubscribeConfirmHandler_MissingToken(t *testing.T) {
 	app := fiber.New()
 	app.Post("/unsubscribe", api.UnsubscribeConfirmHandler)
 
-	req := httptest.NewRequest(http.MethodPost, "/unsubscribe", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/unsubscribe", nil)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := app.Test(req)
@@ -82,7 +82,7 @@ func TestUnsubscribeConfirmHandler_NotFound(t *testing.T) {
 	form := url.Values{}
 	form.Add("token", token)
 
-	req := httptest.NewRequest(http.MethodPost, "/unsubscribe", strings.NewReader(form.Encode()))
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/unsubscribe", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := app.Test(req)
@@ -111,7 +111,7 @@ func TestUnsubscribeConfirmHandler_DatabaseError(t *testing.T) {
 	form := url.Values{}
 	form.Add("token", token)
 
-	req := httptest.NewRequest(http.MethodPost, "/unsubscribe", strings.NewReader(form.Encode()))
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/unsubscribe", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := app.Test(req)

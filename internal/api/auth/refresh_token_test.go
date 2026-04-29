@@ -102,7 +102,7 @@ func TestRefreshTokenHandler(t *testing.T) {
 
 			app.Post("/refresh", authAPI.RefreshTokenHandler)
 
-			req := httptest.NewRequest(http.MethodPost, "/refresh", nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/refresh", nil)
 			if tt.cookieValue != "" {
 				req.AddCookie(&http.Cookie{
 					Name:  "refresh_token",
