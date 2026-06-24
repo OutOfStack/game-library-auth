@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/OutOfStack/game-library-auth/internal/version"
 	"github.com/gofiber/fiber/v3"
 	"github.com/jmoiron/sqlx"
 )
@@ -13,6 +14,7 @@ const (
 )
 
 type health struct {
+	version.Info
 	Status    string `json:"status,omitempty"`
 	Host      string `json:"host,omitempty"`
 	Pod       string `json:"pod,omitempty"`
@@ -35,14 +37,8 @@ func NewHealthCheckAPI(db *sqlx.DB) *HealthCheckAPI {
 
 // Readiness determines whether service is ready
 func (a *HealthCheckAPI) Readiness(c fiber.Ctx) error {
-	var h health
-	host, err := os.Hostname()
-	if err != nil {
-		host = unavailable
-	}
-	h.Host = host
-	err = a.db.PingContext(c.Context())
-	if err != nil {
+	h := newHealth()
+	if err := a.db.PingContext(c.Context()); err != nil {
 		h.Status = "database not ready"
 		return c.Status(http.StatusInternalServerError).JSON(h)
 	}
@@ -52,18 +48,24 @@ func (a *HealthCheckAPI) Readiness(c fiber.Ctx) error {
 
 // Liveness determines whether service is up
 func (a *HealthCheckAPI) Liveness(c fiber.Ctx) error {
+	h := newHealth()
+	h.Status = "OK"
+	h.Pod = os.Getenv("KUBERNETES_PODNAME")
+	h.PodIP = os.Getenv("KUBERNETES_PODIP")
+	h.Node = os.Getenv("KUBERNETES_NODENAME")
+	h.Namespace = os.Getenv("KUBERNETES_NAMESPACE")
+
+	return c.JSON(h)
+}
+
+func newHealth() health {
 	host, err := os.Hostname()
 	if err != nil {
 		host = unavailable
 	}
-	h := health{
-		Host:      host,
-		Status:    "OK",
-		Pod:       os.Getenv("KUBERNETES_PODNAME"),
-		PodIP:     os.Getenv("KUBERNETES_PODIP"),
-		Node:      os.Getenv("KUBERNETES_NODENAME"),
-		Namespace: os.Getenv("KUBERNETES_NAMESPACE"),
-	}
 
-	return c.JSON(h)
+	return health{
+		Info: version.Get(),
+		Host: host,
+	}
 }
