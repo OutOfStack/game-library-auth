@@ -1,5 +1,8 @@
 # game-library-auth
 
+[![Build](https://img.shields.io/github/actions/workflow/status/OutOfStack/game-library-auth/main.yml?branch=main&label=build)](https://github.com/OutOfStack/game-library-auth/actions/workflows/main.yml)
+[![codecov](https://codecov.io/gh/OutOfStack/game-library-auth/graph/badge.svg?token=NRIKDH6OFR)](https://codecov.io/gh/OutOfStack/game-library-auth)
+
 ## Introduction
 
 `game-library-auth` is an authentication service for the `game-library` web application. It is responsible for user authentication and authorization.
@@ -19,6 +22,7 @@
 - [Tech Stack](#tech-stack)
 - [Configuration](#configuration)
 - [Documentation](#documentation)
+- [Contributing](#contributing)
 - [List of Make Commands](#list-of-make-commands)
 - [License](#license)
 
@@ -118,6 +122,10 @@ grpcurl -plaintext localhost:9001 describe authapi.v1.AuthApiService
 # call VerifyToken method
 grpcurl -plaintext -d '{"token": "your-jwt-token-here"}' -emit-defaults localhost:9001 authapi.v1.AuthApiService/VerifyToken
 ```
+
+## Contributing
+
+Commit message and release rules are documented in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## List of Make Commands
 
