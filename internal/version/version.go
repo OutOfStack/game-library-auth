@@ -68,6 +68,10 @@ func resolve(version, commit string, readBuildInfo func() (*debug.BuildInfo, boo
 		info.Version = devVersion
 	}
 
+	if info.Modified == "true" && info.Version != devVersion {
+		info.Version += "+dirty"
+	}
+
 	return info
 }
 

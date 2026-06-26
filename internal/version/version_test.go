@@ -69,6 +69,41 @@ func TestResolveFallsBackToModuleVersion(t *testing.T) {
 	assert.Equal(t, "go1.26.2", info.GoVersion)
 }
 
+func TestResolveAppendsDirtySuffixToReleaseVersion(t *testing.T) {
+	info := version.Resolve("v1.2.3", "abc123", stubBuildInfo(&debug.BuildInfo{
+		Settings: []debug.BuildSetting{
+			{Key: "vcs.modified", Value: "true"},
+		},
+	}, true))
+
+	assert.Equal(t, "v1.2.3+dirty", info.Version)
+	assert.Equal(t, "true", info.Modified)
+}
+
+func TestResolveAppendsDirtySuffixToCommitVersion(t *testing.T) {
+	info := version.Resolve("dev", "", stubBuildInfo(&debug.BuildInfo{
+		Settings: []debug.BuildSetting{
+			{Key: "vcs.revision", Value: "def456"},
+			{Key: "vcs.modified", Value: "true"},
+		},
+	}, true))
+
+	assert.Equal(t, "def456+dirty", info.Version)
+	assert.Equal(t, "def456", info.Commit)
+	assert.Equal(t, "true", info.Modified)
+}
+
+func TestResolveDoesNotAppendDirtySuffixToDevVersion(t *testing.T) {
+	info := version.Resolve("dev", "", stubBuildInfo(&debug.BuildInfo{
+		Settings: []debug.BuildSetting{
+			{Key: "vcs.modified", Value: "true"},
+		},
+	}, true))
+
+	assert.Equal(t, "dev", info.Version)
+	assert.Equal(t, "true", info.Modified)
+}
+
 func stubBuildInfo(bi *debug.BuildInfo, ok bool) func() (*debug.BuildInfo, bool) {
 	return func() (*debug.BuildInfo, bool) {
 		return bi, ok
