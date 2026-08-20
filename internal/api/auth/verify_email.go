@@ -40,7 +40,7 @@ func (a *API) VerifyEmailHandler(c fiber.Ctx) error {
 	if err = c.Bind().Body(&req); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
-			Error: "Cannot parse request",
+			Error: invalidRequestMsg,
 		})
 	}
 
@@ -62,7 +62,7 @@ func (a *API) VerifyEmailHandler(c fiber.Ctx) error {
 			})
 		case errors.Is(err, facade.ErrVerifyEmailAlreadyVerified):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
-				Error: "Email is already verified",
+				Error: emailAlreadyVerifiedMsg,
 			})
 		case errors.Is(err, facade.ErrVerifyEmailInvalidOrExpired):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{

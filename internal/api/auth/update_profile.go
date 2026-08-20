@@ -43,7 +43,7 @@ func (a *API) UpdateProfileHandler(c fiber.Ctx) error {
 	if err = c.Bind().Body(&params); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
-			Error: "Error parsing data",
+			Error: parsingDataErrorMsg,
 		})
 	}
 

@@ -1,5 +1,5 @@
 # build
-FROM golang:1.26-alpine3.23 AS builder
+FROM golang:1.27-alpine3.24 AS builder
 
 WORKDIR /tmp/game-library-auth
 
@@ -19,7 +19,7 @@ RUN go build \
     -o ./out/game-library-auth cmd/game-library-auth/main.go
 
 # run
-FROM alpine:3.23
+FROM alpine:3.24
 
 WORKDIR /app
 

@@ -7,6 +7,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	emailTemplateKey        = "Email"
+	contactEmailTemplateKey = "ContactEmail"
+)
+
 // UnsubscribeHandler handles GET /unsubscribe?token=xxx - shows confirmation page
 func (a *API) UnsubscribeHandler(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "unsubscribeHandler")
@@ -34,15 +39,15 @@ func (a *API) UnsubscribeHandler(c fiber.Ctx) error {
 	if isUnsubscribed {
 		// render already unsubscribed page
 		return c.Render("unsubscribe_already", fiber.Map{
-			"Email":        email,
-			"ContactEmail": a.contactEmail,
+			emailTemplateKey:        email,
+			contactEmailTemplateKey: a.contactEmail,
 		})
 	}
 
 	// render confirmation page
 	return c.Render("unsubscribe", fiber.Map{
-		"Email":        email,
-		"Token":        token,
-		"ContactEmail": a.contactEmail,
+		emailTemplateKey:        email,
+		contactEmailTemplateKey: a.contactEmail,
+		"Token":                 token,
 	})
 }
