@@ -9,12 +9,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
     - name: Set up Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.26'
+        go-version: '1.27'
         cache: true
 
     - name: Verify dependencies
@@ -26,7 +26,7 @@ jobs:
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v9
       with:
-        version: v2.11
+        version: v2.13.1
 
     - name: Run tests
       run: go test -race -vet=off ./...
@@ -38,7 +38,7 @@ jobs:
       run: go tool cover -func=coverage.out
       
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v7
       with:
         files: ./coverage.out
         fail_ci_if_error: false
@@ -53,14 +53,14 @@ jobs:
       version: ${{ steps.release_output.outputs.version }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
     - name: Set up Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.26'
+        go-version: '1.27'
         cache: false
 
     - name: Install svu
@@ -93,13 +93,13 @@ jobs:
     needs: release
     if: ${{ github.ref_name == 'main' }}
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
 
     - name: Login to DockerHub
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -117,7 +117,7 @@ jobs:
 
     - name: Build and push
       id: docker_build
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         push: true
         tags: |
@@ -129,7 +129,7 @@ jobs:
           APP_COMMIT=${{ github.sha }}
 
     - name: Kubernetes Set Context
-      uses: Azure/k8s-set-context@v4
+      uses: Azure/k8s-set-context@v5
       with:
         method: kubeconfig
         kubeconfig: ${{ secrets.K8S_CLUSTER_CONFIG }}

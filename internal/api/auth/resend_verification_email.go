@@ -41,7 +41,7 @@ func (a *API) ResendVerificationEmailHandler(c fiber.Ctx) error {
 		switch {
 		case errors.Is(err, facade.ErrVerifyEmailAlreadyVerified):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
-				Error: "Email is already verified",
+				Error: emailAlreadyVerifiedMsg,
 			})
 		case errors.Is(err, facade.ErrResendVerificationNoEmail):
 			return c.Status(http.StatusBadRequest).JSON(web.ErrResp{

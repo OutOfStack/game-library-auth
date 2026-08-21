@@ -227,12 +227,10 @@ func TestCreateUserClaims_Subject(t *testing.T) {
 
 func TestClaims_ImplementsJWTClaims(t *testing.T) {
 	claims := auth.Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    "test",
-			Subject:   "user-123",
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
-		},
-		UserID: "user-123",
+		Issuer:    "test",
+		Subject:   "user-123",
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
+		UserID:    "user-123",
 	}
 
 	var _ jwt.Claims = claims

@@ -31,7 +31,7 @@ func (a *API) UnsubscribeConfirmHandler(c fiber.Ctx) error {
 
 	// render success page
 	return c.Render("unsubscribe_success", fiber.Map{
-		"Email":        email,
-		"ContactEmail": a.contactEmail,
+		emailTemplateKey:        email,
+		contactEmailTemplateKey: a.contactEmail,
 	})
 }

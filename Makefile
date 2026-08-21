@@ -65,7 +65,7 @@ generate-proto:
 
 generate: generate-swag generate-mocks generate-proto
 
-LINT_VERSION := v2.11
+LINT_VERSION := v2.13.1
 LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(LINT_VERSION)
 lint:
 	@golangci-lint version >/dev/null 2>&1 || { echo "Installing golangci-lint..."; go install ${LINT_PKG}; }

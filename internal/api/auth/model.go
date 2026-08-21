@@ -6,6 +6,9 @@ const (
 	authErrorMsg               = "Incorrect username or password"
 	invalidAuthTokenMsg        = "Invalid or missing authorization token"
 	invalidOrExpiredVrfCodeMsg = "Invalid or expired verification code"
+	invalidRequestMsg          = "Cannot parse request"
+	emailAlreadyVerifiedMsg    = "Email is already verified"
+	parsingDataErrorMsg        = "Error parsing data"
 
 	refreshTokenCookieName = "refresh_token"
 )

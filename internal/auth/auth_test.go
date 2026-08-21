@@ -20,14 +20,12 @@ func TestGenerateValidate(t *testing.T) {
 	require.NoError(t, err)
 
 	claims := auth.Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    "test_runner",
-			Subject:   "12345qwerty",
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(720 * time.Hour)),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-		UserRole: "super_admin",
+		Issuer:    "test_runner",
+		Subject:   "12345qwerty",
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(720 * time.Hour)),
+		NotBefore: jwt.NewNumericDate(time.Now()),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		UserRole:  "super_admin",
 	}
 
 	tokenStr, err := a.GenerateToken(claims)
@@ -135,14 +133,12 @@ func TestGetClaimsFromToken_Errors(t *testing.T) {
 
 	t.Run("expired token", func(t *testing.T) {
 		claims := auth.Claims{
-			RegisteredClaims: jwt.RegisteredClaims{
-				Issuer:    "test-issuer",
-				Subject:   "user123",
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(-1 * time.Hour)),
-				NotBefore: jwt.NewNumericDate(time.Now().Add(-2 * time.Hour)),
-				IssuedAt:  jwt.NewNumericDate(time.Now().Add(-2 * time.Hour)),
-			},
-			UserID: "user123",
+			Issuer:    "test-issuer",
+			Subject:   "user123",
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(-1 * time.Hour)),
+			NotBefore: jwt.NewNumericDate(time.Now().Add(-2 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now().Add(-2 * time.Hour)),
+			UserID:    "user123",
 		}
 
 		tokenStr, err := a.GenerateToken(claims)
@@ -171,14 +167,12 @@ func TestGetClaimsFromToken_Errors(t *testing.T) {
 		require.NoError(t, err)
 
 		claims := auth.Claims{
-			RegisteredClaims: jwt.RegisteredClaims{
-				Issuer:    "other-issuer",
-				Subject:   "user123",
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
-				NotBefore: jwt.NewNumericDate(time.Now()),
-				IssuedAt:  jwt.NewNumericDate(time.Now()),
-			},
-			UserID: "user123",
+			Issuer:    "other-issuer",
+			Subject:   "user123",
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			UserID:    "user123",
 		}
 
 		tokenStr, err := otherAuth.GenerateToken(claims)
@@ -190,14 +184,12 @@ func TestGetClaimsFromToken_Errors(t *testing.T) {
 
 	t.Run("token not yet valid", func(t *testing.T) {
 		claims := auth.Claims{
-			RegisteredClaims: jwt.RegisteredClaims{
-				Issuer:    "test-issuer",
-				Subject:   "user123",
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(2 * time.Hour)),
-				NotBefore: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
-				IssuedAt:  jwt.NewNumericDate(time.Now()),
-			},
-			UserID: "user123",
+			Issuer:    "test-issuer",
+			Subject:   "user123",
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(2 * time.Hour)),
+			NotBefore: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			UserID:    "user123",
 		}
 
 		tokenStr, err := a.GenerateToken(claims)
@@ -238,17 +230,15 @@ func TestGenerateToken_AllClaims(t *testing.T) {
 	require.NoError(t, err)
 
 	claims := auth.Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    "test-issuer",
-			Subject:   "user123",
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-		UserID:   "user123",
-		UserRole: "admin",
-		Username: "testuser",
-		Name:     "Test User",
+		Issuer:    "test-issuer",
+		Subject:   "user123",
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
+		NotBefore: jwt.NewNumericDate(time.Now()),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		UserID:    "user123",
+		UserRole:  "admin",
+		Username:  "testuser",
+		Name:      "Test User",
 	}
 
 	tokenStr, err := a.GenerateToken(claims)
