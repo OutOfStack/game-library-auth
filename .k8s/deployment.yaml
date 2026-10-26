@@ -14,6 +14,10 @@ spec:
         metadata:
             labels:
                 app: game-library-auth
+            annotations:
+                prometheus.io/scrape: "true"
+                prometheus.io/path: "/metrics"
+                prometheus.io/port: "6060"
         spec:
             containers:
               - name: game-library-auth
@@ -21,7 +25,7 @@ spec:
                 readinessProbe:
                     httpGet:
                         path: /readiness
-                        port: 8000
+                        port: debug
                     initialDelaySeconds: 20
                     periodSeconds: 45
                     timeoutSeconds: 3
@@ -29,7 +33,7 @@ spec:
                 livenessProbe:
                     httpGet:
                         path: /liveness
-                        port: 8000
+                        port: debug
                     initialDelaySeconds: 20
                     periodSeconds: 45
                     timeoutSeconds: 1
@@ -42,6 +46,11 @@ spec:
                   - name: grpc
                     containerPort: 9000
                 env:
+                  - name: EMAIL_SENDER_UNSUBSCRIBE_SECRET
+                    valueFrom:
+                        secretKeyRef:
+                            name: game-library-auth-email-sender
+                            key: EMAIL_SENDER_UNSUBSCRIBE_SECRET
                   - name: KUBERNETES_NAMESPACE
                     valueFrom:
                         fieldRef:
@@ -64,7 +73,7 @@ spec:
                   - secretRef:
                         name: game-library-auth
                   - secretRef:
-                        name: game-library-auth-email-sender
+                        name: game-library-auth-outbox
                   - configMapRef:
                         name: game-library-auth-config
                 imagePullPolicy: Always
@@ -76,3 +85,61 @@ spec:
               - name: token-volume
                 secret:
                     secretName: token-cert
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: game-library-auth-worker-deployment
+    namespace: game-library
+    labels:
+        app: game-library-auth-worker
+spec:
+    replicas: 2
+    strategy:
+        type: RollingUpdate
+    selector:
+        matchLabels:
+            app: game-library-auth-worker
+    template:
+        metadata:
+            labels:
+                app: game-library-auth-worker
+            annotations:
+                prometheus.io/scrape: "true"
+                prometheus.io/path: "/metrics"
+                prometheus.io/port: "6060"
+        spec:
+            terminationGracePeriodSeconds: 45
+            containers:
+              - name: game-library-auth-worker
+                image: asctod/game-library-auth:_IMAGE_TAG_
+                command: ["./game-library-auth-worker"]
+                imagePullPolicy: Always
+                ports:
+                  - name: debug
+                    containerPort: 6060
+                readinessProbe:
+                    httpGet:
+                        path: /readiness
+                        port: debug
+                    periodSeconds: 10
+                    timeoutSeconds: 3
+                livenessProbe:
+                    httpGet:
+                        path: /liveness
+                        port: debug
+                    periodSeconds: 15
+                    timeoutSeconds: 3
+                env:
+                  - name: EMAIL_SENDER_API_TOKEN
+                    valueFrom:
+                        secretKeyRef:
+                            name: game-library-auth-email-sender
+                            key: EMAIL_SENDER_API_TOKEN
+                envFrom:
+                  - secretRef:
+                        name: game-library-auth-dbconfig
+                  - secretRef:
+                        name: game-library-auth-outbox
+                  - configMapRef:
+                        name: game-library-auth-config

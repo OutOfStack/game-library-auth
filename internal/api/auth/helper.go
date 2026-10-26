@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"uuid"
 
 	"github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v3"
-	"github.com/google/uuid"
 )
 
 var oauthProviderNames = map[string]string{

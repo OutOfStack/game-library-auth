@@ -50,7 +50,7 @@ func TestGitHubOAuthHandler_InvalidRequest(t *testing.T) {
 }
 
 func TestGitHubOAuthHandler_Success(t *testing.T) {
-	cfg := &appconf.Cfg{
+	cfg := &appconf.API{
 		OAuth: appconf.OAuth{
 			GoogleClientID:     "test-client-id",
 			GitHubClientID:     "test-github-client-id",

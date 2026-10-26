@@ -1,7 +1,7 @@
 package appconf_test
 
 import (
-	"math/rand"
+	"encoding/base64"
 	"testing"
 	"time"
 
@@ -9,282 +9,343 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCfgValidate_ValidConfig(t *testing.T) {
-	cfg := validCfg()
-
-	err := cfg.Validate()
-	require.NoError(t, err)
+func TestCfgValidateValidConfig(t *testing.T) {
+	for _, cfg := range []any{api(nil), worker(nil), &appconf.Manage{DB: validTestAPI().DB}} {
+		require.NoError(t, appconf.Validate(cfg))
+	}
 }
 
-func TestCfgValidate_AllowsCaseInsensitiveSameSite(t *testing.T) {
-	cfg := validCfg()
-	cfg.Web.RefreshCookieSameSite = "StRiCt"
-
-	err := cfg.Validate()
-	require.NoError(t, err)
-}
-
-func TestCfgValidate_NilConfig(t *testing.T) {
-	var cfg *appconf.Cfg
-
-	err := cfg.Validate()
-	require.EqualError(t, err, "cfg is nil")
-}
-
-func TestCfgValidate_ErrorCases(t *testing.T) {
-	t.Parallel()
-
+func TestCfgValidateValidSpecialCases(t *testing.T) {
 	tests := []struct {
-		name    string
-		mutate  func(*appconf.Cfg)
-		wantErr string
+		name string
+		cfg  any
 	}{
 		{
-			name: "missing db dsn",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.DB.DSN = ""
-			},
-			wantErr: "DB_DSN is required",
+			name: "case insensitive cookie samesite",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Web.RefreshCookieSameSite = "StRiCt"
+			}),
 		},
 		{
-			name: "missing app http address",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Web.HTTPAddress = ""
-			},
-			wantErr: "APP_HTTP_ADDRESS is required",
-		},
-		{
-			name: "missing app grpc address",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Web.GRPCAddress = ""
-			},
-			wantErr: "APP_GRPC_ADDRESS is required",
-		},
-		{
-			name: "missing app debug address",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Web.DebugAddress = ""
-			},
-			wantErr: "APP_DEBUG_ADDRESS is required",
-		},
-		{
-			name: "invalid app read timeout",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Web.ReadTimeout = 0
-			},
-			wantErr: "APP_READTIMEOUT must be greater than 0",
-		},
-		{
-			name: "invalid app write timeout",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Web.WriteTimeout = 0
-			},
-			wantErr: "APP_WRITETIMEOUT must be greater than 0",
-		},
-		{
-			name: "missing cors origin",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Web.AllowedCORSOrigin = ""
-			},
-			wantErr: "APP_ALLOWEDCORSORIGIN is required",
-		},
-		{
-			name: "invalid cookie samesite",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Web.RefreshCookieSameSite = "invalid"
-			},
-			wantErr: "APP_REFRESH_TOKEN_COOKIE_SAMESITE must be one of lax, strict, none",
-		},
-		{
-			name: "missing auth private key file",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Auth.PrivateKeyFile = ""
-			},
-			wantErr: "AUTH_PRIVATEKEYFILE is required",
-		},
-		{
-			name: "missing auth signing algorithm",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Auth.SigningAlgorithm = ""
-			},
-			wantErr: "AUTH_SIGNINGALG is required",
-		},
-		{
-			name: "missing auth issuer",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Auth.Issuer = ""
-			},
-			wantErr: "AUTH_ISSUER is required",
-		},
-		{
-			name: "missing oauth google client id",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.OAuth.GoogleClientID = ""
-			},
-			wantErr: "OAUTH_GOOGLECLIENTID is required",
-		},
-		{
-			name: "missing oauth github client id",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.OAuth.GitHubClientID = ""
-			},
-			wantErr: "OAUTH_GITHUBCLIENTID is required",
-		},
-		{
-			name: "missing oauth github client secret",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.OAuth.GitHubClientSecret = ""
-			},
-			wantErr: "OAUTH_GITHUBCLIENTSECRET is required",
-		},
-		{
-			name: "invalid oauth github api timeout",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.OAuth.Timeout = 0
-			},
-			wantErr: "OAUTH_TIMEOUT must be greater than 0",
-		},
-		{
-			name: "invalid auth access token ttl",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Auth.AccessTokenTTL = 0
-			},
-			wantErr: "AUTH_ACCESSTOKENTTL must be greater than 0",
-		},
-		{
-			name: "invalid auth refresh token ttl",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Auth.RefreshTokenTTL = 0
-			},
-			wantErr: "AUTH_REFRESHTOKENTTL must be greater than 0",
-		},
-		{
-			name: "missing jaeger endpoint",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Jaeger.OTLPEndpoint = ""
-			},
-			wantErr: "JAEGER_OTLP_ENDPOINT is required",
-		},
-		{
-			name: "invalid jaeger endpoint format",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Jaeger.OTLPEndpoint = "%"
-			},
-			wantErr: "JAEGER_OTLP_ENDPOINT must be host:port without scheme",
-		},
-		{
-			name: "jaeger endpoint with scheme",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Jaeger.OTLPEndpoint = "http://" + cfg.Jaeger.OTLPEndpoint
-			},
-			wantErr: "JAEGER_OTLP_ENDPOINT must be host:port without scheme",
-		},
-		{
-			name: "missing graylog addr",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Graylog.Address = ""
-			},
-			wantErr: "GRAYLOG_ADDR is required",
-		},
-		{
-			name: "missing log level",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.Log.Level = ""
-			},
-			wantErr: "LOG_LEVEL is required",
-		},
-		{
-			name: "missing email sender api token",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.EmailSender.APIToken = ""
-			},
-			wantErr: "EMAIL_SENDER_API_TOKEN is required",
-		},
-		{
-			name: "invalid email sender api timeout",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.EmailSender.APITimeout = 0
-			},
-			wantErr: "EMAIL_SENDER_API_TIMEOUT must be greater than 0",
-		},
-		{
-			name: "missing email sender from",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.EmailSender.EmailFrom = ""
-			},
-			wantErr: "EMAIL_SENDER_EMAIL_FROM is required",
-		},
-		{
-			name: "missing email sender contact email",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.EmailSender.ContactEmail = ""
-			},
-			wantErr: "EMAIL_SENDER_CONTACT_EMAIL is required",
-		},
-		{
-			name: "missing email sender base url",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.EmailSender.BaseURL = ""
-			},
-			wantErr: "EMAIL_SENDER_BASE_URL is required",
-		},
-		{
-			name: "missing email sender unsubscribe url",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.EmailSender.UnsubscribeURL = ""
-			},
-			wantErr: "EMAIL_SENDER_UNSUBSCRIBE_URL is required",
-		},
-		{
-			name: "missing email sender unsubscribe secret",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.EmailSender.UnsubscribeSecret = ""
-			},
-			wantErr: "EMAIL_SENDER_UNSUBSCRIBE_SECRET is required",
-		},
-		{
-			name: "missing infoapi address",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.InfoAPI.Address = ""
-			},
-			wantErr: "INFOAPI_ADDRESS is required",
-		},
-		{
-			name: "invalid infoapi timeout",
-			mutate: func(cfg *appconf.Cfg) {
-				cfg.InfoAPI.Timeout = 0
-			},
-			wantErr: "INFOAPI_TIMEOUT must be greater than 0",
+			name: "ipv6 jaeger otlp endpoint",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Jaeger.OTLPEndpoint = "[::1]:4318"
+			}),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			cfg := validCfg()
-			tt.mutate(cfg)
-
-			err := cfg.Validate()
-			require.EqualError(t, err, tt.wantErr)
+			require.NoError(t, appconf.Validate(tt.cfg))
 		})
 	}
 }
 
-func validCfg() *appconf.Cfg {
-	return &appconf.Cfg{
+func TestCfgValidateErrorCases(t *testing.T) {
+	tests := []struct {
+		name      string
+		cfg       any
+		wantError string
+	}{
+		{
+			name: "missing db dsn",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.DB.DSN = ""
+			}),
+			wantError: "DB_DSN is required",
+		},
+		{
+			name: "missing app http address",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Web.HTTPAddress = ""
+			}),
+			wantError: "APP_HTTP_ADDRESS is required",
+		},
+		{
+			name: "missing app grpc address",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Web.GRPCAddress = ""
+			}),
+			wantError: "APP_GRPC_ADDRESS is required",
+		},
+		{
+			name: "invalid app read timeout",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Web.ReadTimeout = 0
+			}),
+			wantError: "APP_READTIMEOUT must be greater than 0",
+		},
+		{
+			name: "invalid app write timeout",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Web.WriteTimeout = 0
+			}),
+			wantError: "APP_WRITETIMEOUT must be greater than 0",
+		},
+		{
+			name: "missing cors origin",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Web.AllowedCORSOrigin = ""
+			}),
+			wantError: "APP_ALLOWEDCORSORIGIN is required",
+		},
+		{
+			name: "invalid cookie samesite",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Web.RefreshCookieSameSite = "invalid"
+			}),
+			wantError: "APP_REFRESH_TOKEN_COOKIE_SAMESITE must be one of lax, strict, none",
+		},
+		{
+			name: "missing app debug address",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Debug.Address = ""
+			}),
+			wantError: "APP_DEBUG_ADDRESS is required",
+		},
+		{
+			name: "missing worker debug address",
+			cfg: worker(func(cfg *appconf.Worker) {
+				cfg.Debug.Address = ""
+			}),
+			wantError: "APP_DEBUG_ADDRESS is required",
+		},
+		{
+			name: "missing auth private key file",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Auth.PrivateKeyFile = ""
+			}),
+			wantError: "AUTH_PRIVATEKEYFILE is required",
+		},
+		{
+			name: "missing auth signing algorithm",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Auth.SigningAlgorithm = ""
+			}),
+			wantError: "AUTH_SIGNINGALG is required",
+		},
+		{
+			name: "missing auth issuer",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Auth.Issuer = ""
+			}),
+			wantError: "AUTH_ISSUER is required",
+		},
+		{
+			name: "invalid auth access token ttl",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Auth.AccessTokenTTL = 0
+			}),
+			wantError: "AUTH_ACCESSTOKENTTL must be greater than 0",
+		},
+		{
+			name: "invalid auth refresh token ttl",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Auth.RefreshTokenTTL = 0
+			}),
+			wantError: "AUTH_REFRESHTOKENTTL must be greater than 0",
+		},
+		{
+			name: "missing oauth google client id",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.OAuth.GoogleClientID = ""
+			}),
+			wantError: "OAUTH_GOOGLECLIENTID is required",
+		},
+		{
+			name: "missing oauth github client id",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.OAuth.GitHubClientID = ""
+			}),
+			wantError: "OAUTH_GITHUBCLIENTID is required",
+		},
+		{
+			name: "missing oauth github client secret",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.OAuth.GitHubClientSecret = ""
+			}),
+			wantError: "OAUTH_GITHUBCLIENTSECRET is required",
+		},
+		{
+			name: "invalid oauth timeout",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.OAuth.Timeout = 0
+			}),
+			wantError: "OAUTH_TIMEOUT must be greater than 0",
+		},
+		{
+			name: "missing jaeger otlp endpoint",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Jaeger.OTLPEndpoint = ""
+			}),
+			wantError: "JAEGER_OTLP_ENDPOINT is required",
+		},
+		{
+			name: "jaeger otlp endpoint with scheme",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Jaeger.OTLPEndpoint = "http://jaeger:4318"
+			}),
+			wantError: "JAEGER_OTLP_ENDPOINT must be host:port without scheme",
+		},
+		{
+			name: "jaeger otlp endpoint invalid format",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Jaeger.OTLPEndpoint = "not a valid endpoint"
+			}),
+			wantError: "JAEGER_OTLP_ENDPOINT must be host:port without scheme",
+		},
+		{
+			name: "missing graylog addr",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Graylog.Address = ""
+			}),
+			wantError: "GRAYLOG_ADDR is required",
+		},
+		{
+			name: "missing log level",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.Log.Level = ""
+			}),
+			wantError: "LOG_LEVEL is required",
+		},
+		{
+			name: "missing email sender from",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.EmailSender.EmailFrom = ""
+			}),
+			wantError: "EMAIL_SENDER_EMAIL_FROM is required",
+		},
+		{
+			name: "missing email sender contact email",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.EmailSender.ContactEmail = ""
+			}),
+			wantError: "EMAIL_SENDER_CONTACT_EMAIL is required",
+		},
+		{
+			name: "missing email sender base url",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.EmailSender.BaseURL = ""
+			}),
+			wantError: "EMAIL_SENDER_BASE_URL is required",
+		},
+		{
+			name: "missing email sender unsubscribe url",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.EmailSender.UnsubscribeURL = ""
+			}),
+			wantError: "EMAIL_SENDER_UNSUBSCRIBE_URL is required",
+		},
+		{
+			name: "missing email sender unsubscribe secret",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.EmailSender.UnsubscribeSecret = ""
+			}),
+			wantError: "EMAIL_SENDER_UNSUBSCRIBE_SECRET is required",
+		},
+		{
+			name: "missing email sender api token",
+			cfg: worker(func(cfg *appconf.Worker) {
+				cfg.EmailDelivery.APIToken = ""
+			}),
+			wantError: "EMAIL_SENDER_API_TOKEN is required",
+		},
+		{
+			name: "zero email sender api timeout",
+			cfg: worker(func(cfg *appconf.Worker) {
+				cfg.EmailDelivery.APITimeout = 0
+			}),
+			wantError: "EMAIL_SENDER_API_TIMEOUT must be greater than 0 and less than 30s",
+		},
+		{
+			name: "too long email sender api timeout",
+			cfg: worker(func(cfg *appconf.Worker) {
+				cfg.EmailDelivery.APITimeout = 30 * time.Second
+			}),
+			wantError: "EMAIL_SENDER_API_TIMEOUT must be greater than 0 and less than 30s",
+		},
+		{
+			name: "missing infoapi address",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.InfoAPI.Address = ""
+			}),
+			wantError: "INFOAPI_ADDRESS is required",
+		},
+		{
+			name: "invalid infoapi timeout",
+			cfg: api(func(cfg *appconf.API) {
+				cfg.InfoAPI.Timeout = 0
+			}),
+			wantError: "INFOAPI_TIMEOUT must be greater than 0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := appconf.Validate(tt.cfg)
+
+			require.EqualError(t, err, tt.wantError)
+		})
+	}
+}
+
+func TestCfgValidateInvalidOutboxKey(t *testing.T) {
+	cfg := worker(func(cfg *appconf.Worker) {
+		cfg.Outbox.Key = "bad"
+	})
+
+	err := appconf.Validate(cfg)
+
+	require.Error(t, err)
+}
+
+func api(mutate func(*appconf.API)) *appconf.API {
+	cfg := validTestAPI()
+	if mutate != nil {
+		mutate(cfg)
+	}
+	return cfg
+}
+
+func worker(mutate func(*appconf.Worker)) *appconf.Worker {
+	a := validTestAPI()
+	cfg := &appconf.Worker{
+		Log:     a.Log,
+		DB:      a.DB,
+		Debug:   a.Debug,
+		Jaeger:  a.Jaeger,
+		Graylog: a.Graylog,
+		Outbox:  a.Outbox,
+		EmailDelivery: appconf.EmailDelivery{
+			APIToken:   "token",
+			APITimeout: 5 * time.Second,
+		},
+	}
+	if mutate != nil {
+		mutate(cfg)
+	}
+	return cfg
+}
+
+func validTestAPI() *appconf.API {
+	return &appconf.API{
+		Log: appconf.Log{
+			Level: "INFO",
+		},
 		DB: appconf.DB{
-			DSN: "postgres://localhost:5432/game_library?sslmode=disable",
+			DSN: "postgres://localhost:5432/auth?sslmode=disable",
 		},
 		Web: appconf.Web{
-			HTTPAddress:           ":8080",
-			GRPCAddress:           ":9090",
-			DebugAddress:          ":6060",
+			HTTPAddress:           "0.0.0.0:8000",
+			GRPCAddress:           "0.0.0.0:9000",
 			ReadTimeout:           time.Second,
 			WriteTimeout:          time.Second,
-			AllowedCORSOrigin:     "*",
+			AllowedCORSOrigin:     "http://localhost:3000",
 			RefreshCookieSameSite: "lax",
 			RefreshCookieSecure:   true,
+		},
+		Debug: appconf.Debug{
+			Address: "0.0.0.0:6060",
 		},
 		Auth: appconf.Auth{
 			PrivateKeyFile:   "private.pem",
@@ -300,17 +361,12 @@ func validCfg() *appconf.Cfg {
 			Timeout:            5 * time.Second,
 		},
 		Jaeger: appconf.Jaeger{
-			OTLPEndpoint: []string{"localhost:4318", "[::1]:4318"}[rand.Intn(2)],
+			OTLPEndpoint: "jaeger-service:4318",
 		},
 		Graylog: appconf.Graylog{
 			Address: "localhost:12201",
 		},
-		Log: appconf.Log{
-			Level: "info",
-		},
 		EmailSender: appconf.EmailSender{
-			APIToken:          "api-token",
-			APITimeout:        5 * time.Second,
 			EmailFrom:         "noreply@example.com",
 			ContactEmail:      "support@example.com",
 			BaseURL:           "https://example.com",
@@ -318,8 +374,11 @@ func validCfg() *appconf.Cfg {
 			UnsubscribeSecret: "unsubscribe-secret",
 		},
 		InfoAPI: appconf.InfoAPI{
-			Address: "localhost:50051",
+			Address: "localhost:9001",
 			Timeout: 2 * time.Second,
+		},
+		Outbox: appconf.Outbox{
+			Key: base64.StdEncoding.EncodeToString(make([]byte, 32)),
 		},
 	}
 }

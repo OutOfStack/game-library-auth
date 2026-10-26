@@ -17,13 +17,13 @@ type TooManyRequestsError struct {
 }
 
 // Error implements error interface
-func (e TooManyRequestsError) Error() string {
+func (e *TooManyRequestsError) Error() string {
 	return "too many requests, retry after" + e.RetryAfter.String()
 }
 
-// NewTooManyRequestsError - creates a new ErrTooManyRequestsRetryAfter
-func NewTooManyRequestsError(retryAfter time.Duration) TooManyRequestsError {
-	return TooManyRequestsError{
+// NewTooManyRequestsError creates an error with the required retry delay
+func NewTooManyRequestsError(retryAfter time.Duration) *TooManyRequestsError {
+	return &TooManyRequestsError{
 		RetryAfter: retryAfter,
 	}
 }

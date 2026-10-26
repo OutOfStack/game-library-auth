@@ -2,6 +2,7 @@ package facade_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -28,9 +29,19 @@ func TestTooManyRequestsError(t *testing.T) {
 }
 
 func TestAsTooManyRequestsError(t *testing.T) {
+	t.Run("with constructor pointer and wrapped pointer", func(t *testing.T) {
+		err := facade.NewTooManyRequestsError(time.Minute)
+		require.IsType(t, (*facade.TooManyRequestsError)(nil), err)
+		for _, input := range []error{err, fmt.Errorf("resend: %w", err)} {
+			result := facade.AsTooManyRequestsError(input)
+			require.NotNil(t, result)
+			assert.Equal(t, time.Minute, result.RetryAfter)
+		}
+	})
+
 	t.Run("with TooManyRequestsError", func(t *testing.T) {
 		retryAfter := 5 * time.Minute
-		result := facade.AsTooManyRequestsError(new(facade.NewTooManyRequestsError(retryAfter)))
+		result := facade.AsTooManyRequestsError(facade.NewTooManyRequestsError(retryAfter))
 		require.NotNil(t, result)
 		assert.Equal(t, retryAfter, result.RetryAfter)
 	})
@@ -42,7 +53,7 @@ func TestAsTooManyRequestsError(t *testing.T) {
 		assert.Nil(t, result)
 	})
 
-	t.Run("with wrapped TooManyRequestsError", func(t *testing.T) {
+	t.Run("with error message copied without wrapping", func(t *testing.T) {
 		retryAfter := 3 * time.Minute
 		baseErr := facade.NewTooManyRequestsError(retryAfter)
 		wrappedErr := errors.New("wrapped: " + baseErr.Error())

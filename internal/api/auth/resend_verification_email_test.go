@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+	"uuid"
 
 	mocks "github.com/OutOfStack/game-library-auth/internal/api/auth/mocks"
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
@@ -14,7 +15,6 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v3"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -31,8 +31,21 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 		emailVerificationEnabled bool
 		setupMocks               func(*mocks.MockUserFacade)
 		expectedStatus           int
+		expectedRetryAfter       string
 		expectedResp             any
 	}{
+		{
+			name:                     "resend cooldown",
+			authHeader:               "Bearer valid-token",
+			emailVerificationEnabled: true,
+			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
+				mockUserFacade.EXPECT().ResendVerificationEmail(gomock.Any(), userID).
+					Return(facade.NewTooManyRequestsError(time.Minute))
+			},
+			expectedStatus:     http.StatusTooManyRequests,
+			expectedRetryAfter: "60",
+			expectedResp:       web.ErrResp{Error: "Please wait before requesting another code"},
+		},
 		{
 			name:                     "successful resend",
 			authHeader:               "Bearer valid-token",
@@ -102,7 +115,7 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &appconf.Cfg{
+			cfg := &appconf.API{
 				EmailSender: appconf.EmailSender{},
 				OAuth: appconf.OAuth{
 					GoogleClientID: "test-client-id",
@@ -133,6 +146,9 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+			if tt.expectedRetryAfter != "" {
+				assert.Equal(t, tt.expectedRetryAfter, resp.Header.Get("Retry-After"))
+			}
 
 			if tt.expectedResp != nil {
 				var actual web.ErrResp

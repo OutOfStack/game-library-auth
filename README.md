@@ -49,15 +49,15 @@ To set up the service, follow these steps:
    make keygen # creates private/public key pair files
    ```
 
-4. Create the `app.env` file based on [`app.example.env`](./app.example.env) and update it with your local configuration settings.
+4. Create the `.env` file based on [`.example.env`](./.example.env) and update it with your local configuration settings.
 
-5. Get Google API Client ID for Google OAuth and set it in `app.env`:
+5. Get Google API Client ID for Google OAuth and set it in `.env`:
    https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid
 
-6. Get GitHub OAuth App Client ID and Secret for GitHub OAuth and set them in `app.env`:
+6. Get GitHub OAuth App Client ID and Secret for GitHub OAuth and set them in `.env`:
    https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app
 
-7. Get Resend API key and set it along with the sender details in `app.env`:
+7. Get Resend API key and set it along with the sender details in `.env`:
     https://resend.com/api-keys
 
 8. Build and run the service:
@@ -65,6 +65,11 @@ To set up the service, follow these steps:
    make build
    make run
    ```
+   Notification emails are delivered by a separate worker:
+   ```bash
+   make run-worker
+   ```
+   `make run-worker` overrides `APP_DEBUG_ADDRESS` to `localhost:6062` for the worker's debug server, so it can run alongside the API.
 
 Refer to the [List of Make Commands](#list-of-make-commands) for a complete list of commands.
 
@@ -91,9 +96,16 @@ Refer to the [List of Make Commands](#list-of-make-commands) for a complete list
 
 ## Configuration
 
-- The service can be configured using `app.env` or environment variables, described in [`settings.go`](./internal/appconf/settings.go)
+- The service can be configured using `.env` or environment variables, described in [`settings.go`](./internal/appconf/settings.go)
 - CI/CD configs are in [`./github/workflows/`](./.github/workflows/)
 - k8s deployment configs are in [`./k8s`](./.k8s/)
+- k8s secrets in [`secrets.yaml`](./.k8s/secrets.yaml) are not applied by CI. Create them in the cluster before deploying; both the API and the notification worker fail to start without the `game-library-auth-outbox` secret
+
+Both the API and the worker serve operational endpoints on a separate debug server (`APP_DEBUG_ADDRESS`, port 6060 in k8s):
+`/metrics` (Prometheus), `/liveness` and `/readiness` (k8s probes), `/debug/vars` and `/debug/pprof`. Readiness fails until all listeners are bound
+and again as soon as shutdown starts. Outside the cluster the debug server is reachable only through the basic-auth ingress (`/_debug/auth/`).
+The `game-library-infra` Prometheus discovers pods in the `game-library` namespace by `prometheus.io/scrape`, `prometheus.io/port` and `prometheus.io/path`
+annotations, scraping only the declared TCP container port equal to the annotated one. The pod `app` label becomes the job name (`game-library-auth` or `game-library-auth-worker`).
 
 ## Documentation
 
@@ -106,7 +118,7 @@ make generate
 
 The service exposes a gRPC endpoint for internal service-to-service communication.
 
-**Endpoint:** `localhost:9001` (`APP_GRPC_ADDRESS` environment variable in [`app.example.env`](./app.example.env))
+**Endpoint:** `localhost:9001` (`APP_GRPC_ADDRESS` environment variable in [`.example.env`](./.example.env))
 
 **Protobuf Definition:** [`api/proto/authapi/v1/authapi.proto`](./api/proto/authapi/v1/authapi.proto)
 

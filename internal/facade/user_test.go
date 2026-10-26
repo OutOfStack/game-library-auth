@@ -3,11 +3,14 @@ package facade_test
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
+	"github.com/OutOfStack/game-library-auth/internal/notification"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -672,6 +675,72 @@ func TestProvider_SignIn(t *testing.T) {
 
 		assert.ErrorIs(t, err, facade.ErrSignInInvalidCredentials)
 	})
+
+	t.Run("publisher verified concurrently", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		password := "testpass"
+		passwordHash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+		unverified := database.User{
+			ID:           "user-123",
+			Username:     "publisher",
+			PasswordHash: passwordHash,
+			Email:        sql.NullString{String: "pub@example.com", Valid: true},
+			Role:         model.PublisherRoleName,
+		}
+		verified := unverified
+		verified.EmailVerified = true
+
+		mockUserRepo.EXPECT().GetUserByUsername(ctx, "publisher").Return(unverified, nil)
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+		gomock.InOrder(
+			mockUserRepo.EXPECT().GetUserByID(ctx, "user-123").Return(verified, nil),
+			mockUserRepo.EXPECT().GetUserByID(ctx, "user-123").Return(verified, nil),
+		)
+
+		result, err := provider.SignIn(ctx, "publisher", password)
+
+		require.NoError(t, err)
+		assert.True(t, result.EmailVerified)
+	})
+
+	t.Run("publisher verified concurrently and refresh fails", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		password := "testpass"
+		passwordHash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+		unverified := database.User{
+			ID:           "user-123",
+			Username:     "publisher",
+			PasswordHash: passwordHash,
+			Email:        sql.NullString{String: "pub@example.com", Valid: true},
+			Role:         model.PublisherRoleName,
+		}
+		verified := unverified
+		verified.EmailVerified = true
+		refreshErr := errors.New("db down")
+
+		mockUserRepo.EXPECT().GetUserByUsername(ctx, "publisher").Return(unverified, nil)
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+		gomock.InOrder(
+			mockUserRepo.EXPECT().GetUserByID(ctx, "user-123").Return(verified, nil),
+			mockUserRepo.EXPECT().GetUserByID(ctx, "user-123").Return(database.User{}, refreshErr),
+		)
+
+		_, err := provider.SignIn(ctx, "publisher", password)
+
+		require.ErrorIs(t, err, refreshErr)
+	})
 }
 
 func TestProvider_SignUp(t *testing.T) {
@@ -731,6 +800,8 @@ func TestProvider_SignUp(t *testing.T) {
 			CreateUser(ctx, gomock.Any()).
 			Return(nil)
 
+		mockUserRepo.EXPECT().GetUserByID(ctx, gomock.Any()).Return(database.User{ID: "publisher", Username: "newpublisher", Email: sql.NullString{String: "pub@example.com", Valid: true}, Role: model.PublisherRoleName}, nil)
+		mockUserRepo.EXPECT().VerificationTime(ctx).Return(time.Now().UTC(), nil)
 		// mock unsubscribe check
 		mockUserRepo.EXPECT().
 			IsEmailUnsubscribed(ctx, "pub@example.com").
@@ -748,12 +819,12 @@ func TestProvider_SignUp(t *testing.T) {
 			AnyTimes()
 
 		mockEmailSender.EXPECT().
-			SendEmailVerification(ctx, gomock.Any()).
-			Return("message-id-123", nil).
+			PrepareVerification(gomock.Any()).
+			Return(notification.Email{Text: "123456"}, nil).
 			AnyTimes()
 
 		mockUserRepo.EXPECT().
-			SetEmailVerificationMessageID(ctx, gomock.Any(), "message-id-123").
+			CreateNotification(ctx, gomock.Any()).
 			Return(nil).
 			AnyTimes()
 

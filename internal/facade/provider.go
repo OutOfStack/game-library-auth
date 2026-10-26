@@ -8,6 +8,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/client/resendapi"
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/model"
+	"github.com/OutOfStack/game-library-auth/internal/notification"
 	"github.com/golang-jwt/jwt/v4"
 	"go.uber.org/zap"
 )
@@ -16,18 +17,20 @@ import (
 type Provider struct {
 	log                       *zap.Logger
 	userRepo                  UserRepo
-	emailSender               EmailSender
+	emailPreparer             EmailPreparer
+	notificationCipher        *notification.Cipher
 	auth                      Auth
 	unsubscribeTokenGenerator *auth.UnsubscribeTokenGenerator
 	infoAPIClient             InfoAPIClient
 }
 
 // New creates a new facade provider
-func New(log *zap.Logger, userRepo UserRepo, emailSender EmailSender, authService Auth, unsubscribeTokenGenerator *auth.UnsubscribeTokenGenerator, infoAPIClient InfoAPIClient) *Provider {
+func New(log *zap.Logger, userRepo UserRepo, emailPreparer EmailPreparer, authService Auth, unsubscribeTokenGenerator *auth.UnsubscribeTokenGenerator, infoAPIClient InfoAPIClient, notificationCipher *notification.Cipher) *Provider {
 	return &Provider{
 		log:                       log,
 		userRepo:                  userRepo,
-		emailSender:               emailSender,
+		emailPreparer:             emailPreparer,
+		notificationCipher:        notificationCipher,
 		auth:                      authService,
 		unsubscribeTokenGenerator: unsubscribeTokenGenerator,
 		infoAPIClient:             infoAPIClient,
@@ -60,7 +63,8 @@ type UserRepo interface {
 
 	CreateEmailVerification(ctx context.Context, verification database.EmailVerification) error
 	GetEmailVerificationByUserID(ctx context.Context, userID string) (database.EmailVerification, error)
-	SetEmailVerificationMessageID(ctx context.Context, verificationID string, messageID string) error
+	CreateNotification(ctx context.Context, notification database.Notification) error
+	VerificationTime(ctx context.Context) (time.Time, error)
 	SetEmailVerificationUsed(ctx context.Context, id string, verified bool) error
 	SetUnsubscribeToken(ctx context.Context, id string, token string) error
 
@@ -73,9 +77,9 @@ type UserRepo interface {
 	DeleteRefreshTokensByUserID(ctx context.Context, userID string) error
 }
 
-// EmailSender provides methods for sending emails
-type EmailSender interface {
-	SendEmailVerification(ctx context.Context, req resendapi.SendEmailVerificationRequest) (string, error)
+// EmailPreparer renders an immutable email without contacting the provider
+type EmailPreparer interface {
+	PrepareVerification(req resendapi.SendEmailVerificationRequest) (notification.Email, error)
 }
 
 // InfoAPIClient provides methods for interacting with game library info API

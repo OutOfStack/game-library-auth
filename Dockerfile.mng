@@ -8,12 +8,12 @@ COPY go.mod go.sum  ./
 RUN go mod download
 
 # copy code and config into container
-COPY ./app.example.env ./out/app.env
+COPY ./.example.env ./out/.env
 COPY ./migrations ./out/migrations
 COPY ./scripts ./out/scripts
 COPY . .
 
-RUN go build -o ./out/game-library-auth-manage cmd/game-library-auth-manage/main.go
+RUN go build -o ./out/game-library-auth-manage cmd/manage/main.go
 
 # run
 FROM alpine:3.24

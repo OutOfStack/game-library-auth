@@ -10,6 +10,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
+	"github.com/OutOfStack/game-library-auth/internal/notification"
 	"go.uber.org/mock/gomock"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -274,6 +275,7 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 			GetEmailVerificationByUserID(ctx, "user-123").
 			Return(database.EmailVerification{}, database.ErrNotFound)
 
+		mockUserRepo.EXPECT().VerificationTime(ctx).Return(time.Now().UTC(), nil)
 		// mock creating new verification record
 		mockUserRepo.EXPECT().
 			CreateEmailVerification(ctx, gomock.Any()).
@@ -281,12 +283,12 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 
 		// mock email sending
 		mockEmailSender.EXPECT().
-			SendEmailVerification(ctx, gomock.Any()).
-			Return("message-id-123", nil)
+			PrepareVerification(gomock.Any()).
+			Return(notification.Email{Text: "123456"}, nil)
 
 		// mock setting message ID
 		mockUserRepo.EXPECT().
-			SetEmailVerificationMessageID(ctx, gomock.Any(), "message-id-123").
+			CreateNotification(ctx, gomock.Any()).
 			Return(nil)
 
 		err := provider.ResendVerificationEmail(ctx, "user-123")
@@ -308,6 +310,11 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 			Role:          model.UserRoleName,
 		}
 
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
 		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
 			Return(user, nil)
@@ -332,6 +339,11 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 		}
 
 		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
 			Return(user, nil)
 
@@ -355,6 +367,11 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 		}
 
 		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "user-123").
 			Return(user, nil)
 
@@ -369,6 +386,11 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
 		defer ctrl.Finish()
 
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
 		mockUserRepo.EXPECT().
 			GetUserByID(ctx, "nonexistent").
 			Return(database.User{}, database.ErrNotFound)

@@ -297,7 +297,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Resends email verification code to the user's email address",
+                "description": "Queues an email verification code for asynchronous delivery",
                 "produces": [
                     "application/json"
                 ],
@@ -307,7 +307,7 @@ const docTemplate = `{
                 "summary": "Resend email verification code",
                 "responses": {
                     "204": {
-                        "description": "Successfully resent verification email"
+                        "description": "Verification email queued"
                     },
                     "400": {
                         "description": "User email is already verified",

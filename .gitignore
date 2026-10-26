@@ -9,6 +9,7 @@ bin/
 
 # config
 app.env
+.env
 
 # Test binary, built with `go test -c`
 *.test
@@ -28,3 +29,6 @@ thinking.md
 
 # certs
 *.pem
+
+# local
+docs/local

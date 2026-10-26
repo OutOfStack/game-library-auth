@@ -1,12 +1,13 @@
 package tools
 
 import (
+	"context"
+	"encoding/json"
 	"net/http"
 	"os"
+	"sync/atomic"
 
 	"github.com/OutOfStack/game-library-auth/internal/version"
-	"github.com/gofiber/fiber/v3"
-	"github.com/jmoiron/sqlx"
 )
 
 const (
@@ -23,31 +24,46 @@ type health struct {
 	Namespace string `json:"namespace,omitempty"`
 }
 
-// HealthCheckAPI has methods for readiness and liveness checking
-type HealthCheckAPI struct {
-	db *sqlx.DB
+// Pinger checks database connectivity
+type Pinger interface {
+	PingContext(ctx context.Context) error
 }
 
-// NewHealthCheckAPI returns new instance of healthcheck api
-func NewHealthCheckAPI(db *sqlx.DB) *HealthCheckAPI {
-	return &HealthCheckAPI{
-		db: db,
-	}
+// HealthCheck has methods for readiness and liveness probes
+type HealthCheck struct {
+	db    Pinger
+	ready atomic.Bool
+}
+
+// NewHealthCheck creates new HealthCheck
+func NewHealthCheck(db Pinger) *HealthCheck {
+	return &HealthCheck{db: db}
+}
+
+// SetReady marks whether service accepts traffic. Set it after listeners are bound and clear it on shutdown
+func (hc *HealthCheck) SetReady(ready bool) {
+	hc.ready.Store(ready)
 }
 
 // Readiness determines whether service is ready
-func (a *HealthCheckAPI) Readiness(c fiber.Ctx) error {
+func (hc *HealthCheck) Readiness(w http.ResponseWriter, r *http.Request) {
 	h := newHealth()
-	if err := a.db.PingContext(c.Context()); err != nil {
+	if !hc.ready.Load() {
+		h.Status = "not ready"
+		respond(w, h, http.StatusServiceUnavailable)
+		return
+	}
+	if err := hc.db.PingContext(r.Context()); err != nil {
 		h.Status = "database not ready"
-		return c.Status(http.StatusInternalServerError).JSON(h)
+		respond(w, h, http.StatusServiceUnavailable)
+		return
 	}
 	h.Status = "OK"
-	return c.JSON(h)
+	respond(w, h, http.StatusOK)
 }
 
 // Liveness determines whether service is up
-func (a *HealthCheckAPI) Liveness(c fiber.Ctx) error {
+func (hc *HealthCheck) Liveness(w http.ResponseWriter, _ *http.Request) {
 	h := newHealth()
 	h.Status = "OK"
 	h.Pod = os.Getenv("KUBERNETES_PODNAME")
@@ -55,7 +71,7 @@ func (a *HealthCheckAPI) Liveness(c fiber.Ctx) error {
 	h.Node = os.Getenv("KUBERNETES_NODENAME")
 	h.Namespace = os.Getenv("KUBERNETES_NAMESPACE")
 
-	return c.JSON(h)
+	respond(w, h, http.StatusOK)
 }
 
 func newHealth() health {
@@ -68,4 +84,10 @@ func newHealth() health {
 		Info: version.Get(),
 		Host: host,
 	}
+}
+
+func respond(w http.ResponseWriter, h health, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(h)
 }

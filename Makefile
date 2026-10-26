@@ -5,14 +5,21 @@ dockerrunpg:
 ### Auth service
 build:
 	mkdir -p bin
-	go build -o bin/game-library-auth cmd/game-library-auth/main.go
+	go build -o bin/game-library-auth cmd/api/main.go
 
 build-mng:
 	mkdir -p bin
-	go build -o bin/game-library-auth-manage cmd/game-library-auth-manage/main.go
+	go build -o bin/game-library-auth-manage cmd/manage/main.go
+
+build-worker:
+	mkdir -p bin
+	go build -o bin/game-library-auth-worker cmd/worker/main.go
+
+run-worker:
+	APP_DEBUG_ADDRESS=localhost:6062 go run ./cmd/worker/.
 
 run:
-	go run ./cmd/game-library-auth/.
+	go run ./cmd/api/.
 
 dockerbuildauth:
 	docker build -t game-library-auth:latest .
@@ -32,7 +39,7 @@ generate-swag:
 	@swag --version >/dev/null 2>&1 || { echo "Installing swag..."; go install ${SWAG_PKG}; }
 	@echo "Found swag, generating documentation..."
 	swag init \
-	-d cmd/game-library-auth,internal/api,internal/web
+	-d cmd/api,internal/api,internal/web
 
 MOCKGEN_VERSION := v0.6
 MOCKGEN_PKG := go.uber.org/mock/mockgen@$(MOCKGEN_VERSION)
@@ -65,7 +72,7 @@ generate-proto:
 
 generate: generate-swag generate-mocks generate-proto
 
-LINT_VERSION := v2.13.1
+LINT_VERSION := v2.15.0
 LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(LINT_VERSION)
 lint:
 	@golangci-lint version >/dev/null 2>&1 || { echo "Installing golangci-lint..."; go install ${LINT_PKG}; }
@@ -75,17 +82,17 @@ lint:
 ### Manage service
 # apply all migrations
 migrate:
-	go run ./cmd/game-library-auth-manage/. -from-file migrate
+	go run ./cmd/manage/. -from-file migrate
 
 # rollback last migration
 rollback:
-	go run ./cmd/game-library-auth-manage/. -from-file rollback
+	go run ./cmd/manage/. -from-file rollback
 
 keygen:
-	go run ./cmd/game-library-auth-manage/. keygen
+	go run ./cmd/manage/. keygen
 
 secretgen:
-	go run ./cmd/game-library-auth-manage/. secretgen
+	go run ./cmd/manage/. secretgen
 
 dbuildmng:
 	docker build -f Dockerfile.mng -t game-library-auth-mng:latest .

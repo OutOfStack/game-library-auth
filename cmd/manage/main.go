@@ -25,7 +25,7 @@ func main() {
 
 	var dsn string
 	if fromFile {
-		cfg, err := appconf.Get()
+		cfg, err := appconf.Load[appconf.Manage]()
 		if err != nil {
 			log.Fatal("read config file:", err)
 		}
@@ -125,5 +125,5 @@ func secretgen() {
 	}
 	fmt.Println("Generated secret (base64-encoded 32 bytes):")
 	fmt.Println(secret)
-	fmt.Println("\nAdd this to your app.env file as EMAIL_SENDER_UNSUBSCRIBE_SECRET")
+	fmt.Println("\nUse a separately generated secret for EMAIL_SENDER_UNSUBSCRIBE_SECRET and NOTIFICATION_OUTBOX_KEY")
 }

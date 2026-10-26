@@ -17,7 +17,7 @@ const (
 	authErrorMsg     string = "Incorrect username or password"
 )
 
-func setupTest(t *testing.T, cfg *appconf.Cfg) (
+func setupTest(t *testing.T, cfg *appconf.API) (
 	*mocks.MockGoogleIDTokenClient, *mocks.MockGitHubOAuthClient, *auth.API, *mocks.MockUserFacade, *fiber.App, *gomock.Controller) {
 	t.Helper()
 
@@ -28,7 +28,7 @@ func setupTest(t *testing.T, cfg *appconf.Cfg) (
 
 	logger := zap.NewNop()
 	if cfg == nil {
-		cfg = &appconf.Cfg{
+		cfg = &appconf.API{
 			OAuth: appconf.OAuth{
 				GoogleClientID:     "test-client-id",
 				GitHubClientID:     "test-github-client-id",
