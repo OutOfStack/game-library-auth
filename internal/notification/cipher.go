@@ -56,12 +56,12 @@ func (c *Cipher) Encrypt(id, kind, referenceID string, email Email) ([]byte, err
 		return nil, err
 	}
 	// envelope: version byte, random nonce, authenticated ciphertext
-	envelope := make([]byte, 1+c.aead.NonceSize())
-	envelope[0] = 1
-	if _, err = rand.Read(envelope[1:]); err != nil {
+	nonce := make([]byte, c.aead.NonceSize())
+	if _, err = rand.Read(nonce); err != nil {
 		return nil, fmt.Errorf("generate notification nonce: %w", err)
 	}
-	return c.aead.Seal(envelope, envelope[1:], plain, identity(id, kind, referenceID)), nil
+	envelope := append([]byte{1}, nonce...)
+	return c.aead.Seal(envelope, nonce, plain, identity(id, kind, referenceID)), nil
 }
 
 // Decrypt rejects tampered envelopes and payloads copied from another notification
