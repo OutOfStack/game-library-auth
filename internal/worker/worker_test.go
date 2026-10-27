@@ -2,17 +2,15 @@ package worker //nolint:testpackage // Tests control scheduling and individual a
 
 import (
 	"context"
-	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"testing"
 	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/notification"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/resend/resend-go/v2"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
@@ -78,16 +76,14 @@ func (s *senderStub) Send(ctx context.Context, e notification.Email, key string)
 
 func testWorker(t *testing.T) (*Worker, *storeStub, *senderStub, database.Notification) {
 	t.Helper()
-	cipher, err := notification.NewCipher(base64.StdEncoding.EncodeToString(make([]byte, 32)))
-	require.NoError(t, err)
 	s := &storeStub{eligible: true}
 	sender := &senderStub{}
-	w, err := New(zap.NewNop(), s, sender, cipher, prometheus.NewRegistry())
-	require.NoError(t, err)
+	w := New(zap.NewNop(), s, sender, prometheus.NewRegistry())
 	w.random = func() float64 { return 0.5 }
 	n := database.Notification{ID: "id", ReferenceID: "verification", Kind: notification.VerificationKind, Attempts: 1,
 		ExpiresAt: time.Now().Add(time.Hour), LockedAt: time.Now(), LockedBy: "owner"}
-	n.Payload, err = cipher.Encrypt(n.ID, n.Kind, n.ReferenceID, notification.Email{From: "sender@example.com", To: []string{"user@example.com"}, Subject: "Verify", Text: "123456"})
+	var err error
+	n.Payload, err = json.Marshal(notification.Email{From: "sender@example.com", To: []string{"user@example.com"}, Subject: "Verify", Text: "123456"})
 	require.NoError(t, err)
 	return w, s, sender, n
 }
@@ -115,12 +111,10 @@ func TestWorkerRetriesSDKFailuresWithoutLoggingProviderMessages(t *testing.T) {
 	}{
 		{"network", errors.New("timeout"), "delivery_error", time.Second},
 		{"invalid recipient", errors.New("[ERROR]: invalid sensitive recipient"), "delivery_error", time.Second},
-		{"rate limit", &resend.RateLimitError{Message: "sensitive recipient", RetryAfter: "60"}, "rate_limit", time.Minute},
-		{"wrapped rate limit", fmt.Errorf("send: %w", &resend.RateLimitError{RetryAfter: "60"}), "rate_limit", time.Minute},
-		{"date retry", &resend.RateLimitError{RetryAfter: time.Now().Add(time.Minute).UTC().Format(http.TimeFormat)}, "rate_limit", 50 * time.Second},
-		{"invalid retry", &resend.RateLimitError{RetryAfter: "invalid"}, "rate_limit", time.Second},
-		{"negative retry", &resend.RateLimitError{RetryAfter: "-1"}, "rate_limit", time.Second},
-		{"short retry", &resend.RateLimitError{RetryAfter: "1"}, "rate_limit", 3750 * time.Millisecond},
+		{"rate limit", &notification.RateLimitError{RetryAfter: time.Minute}, "rate_limit", time.Minute},
+		{"wrapped rate limit", fmt.Errorf("send: %w", &notification.RateLimitError{RetryAfter: time.Minute}), "rate_limit", time.Minute},
+		{"no retry hint", &notification.RateLimitError{}, "rate_limit", time.Second},
+		{"short retry", &notification.RateLimitError{RetryAfter: time.Second}, "rate_limit", 3750 * time.Millisecond},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			w, s, sender, n := testWorker(t)
@@ -153,16 +147,17 @@ func TestWorkerSkipsObsoleteAndExpiredMessages(t *testing.T) {
 	require.Empty(t, sender.keys)
 }
 
-func TestWrongKeyRetriesWithoutDestroyingPayload(t *testing.T) {
-	w, s, sender, n := testWorker(t)
-	n.Payload[len(n.Payload)-1] ^= 1
-	pause, err := w.process(t.Context(), n)
-	require.NoError(t, err)
-	require.Zero(t, pause)
-	require.Empty(t, s.status)
-	require.Positive(t, s.delay)
-	require.Equal(t, "payload_authentication", s.reason)
-	require.Empty(t, sender.keys)
+func TestMalformedPayloadFailsWithoutSending(t *testing.T) {
+	for _, payload := range []string{`{`, `{"from":"sender@example.com","to":[],"subject":"Verify","text":"123456"}`} {
+		w, s, sender, n := testWorker(t)
+		n.Payload = []byte(payload)
+		pause, err := w.process(t.Context(), n)
+		require.NoError(t, err)
+		require.Zero(t, pause)
+		require.Equal(t, "failed", s.status)
+		require.Equal(t, "invalid_payload", s.reason)
+		require.Empty(t, sender.keys)
+	}
 }
 
 func TestProviderRejectionFailsWithoutRetry(t *testing.T) {
@@ -199,15 +194,15 @@ func TestProviderMisconfigurationPausesFurtherClaims(t *testing.T) {
 	w.random = func() float64 { return 0 }
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	done := make(chan error, 1)
-	go func() { done <- w.Run(ctx) }()
+	done := make(chan struct{})
+	go func() { w.Run(ctx); close(done) }()
 	select {
 	case <-started:
 	case <-time.After(time.Second):
 		t.Fatal("worker did not start")
 	}
 	time.AfterFunc(30*time.Millisecond, cancel)
-	require.NoError(t, <-done)
+	<-done
 	require.Equal(t, 1, s.claims)
 }
 
@@ -219,7 +214,7 @@ func TestHousekeepingFailureDoesNotBlockClaims(t *testing.T) {
 	defer cancel()
 	sender.onSend = func(context.Context) { cancel() }
 	w.random = func() float64 { return 0 }
-	require.NoError(t, w.Run(ctx))
+	w.Run(ctx)
 	require.Equal(t, 1, s.claims)
 	require.Equal(t, "provider-id", s.message)
 }
@@ -244,7 +239,7 @@ func TestShutdownFinishesCurrentAttemptAndStopsClaims(t *testing.T) {
 	defer cancel()
 	sender.onSend = func(ctx context.Context) { cancel(); require.NoError(t, ctx.Err()) }
 	w.random = func() float64 { return 0 }
-	require.NoError(t, w.Run(ctx))
+	w.Run(ctx)
 	require.Equal(t, 1, s.claims)
 	require.Equal(t, "provider-id", s.message)
 }
@@ -258,8 +253,8 @@ func TestProviderTransportOutagePausesFurtherClaims(t *testing.T) {
 	w.random = func() float64 { return 0 }
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	done := make(chan error, 1)
-	go func() { done <- w.Run(ctx) }()
+	done := make(chan struct{})
+	go func() { w.Run(ctx); close(done) }()
 	select {
 	case <-started:
 	case <-time.After(time.Second):
@@ -267,6 +262,6 @@ func TestProviderTransportOutagePausesFurtherClaims(t *testing.T) {
 	}
 	// the retry delay is 2.5 seconds; cancellation should occur before another claim
 	time.AfterFunc(30*time.Millisecond, cancel)
-	require.NoError(t, <-done)
+	<-done
 	require.Equal(t, 1, s.claims)
 }

@@ -94,7 +94,8 @@ func (p *Provider) SignUp(ctx context.Context, username, displayName, email, pas
 
 		// send verification email only for publishers
 		if isPublisher {
-			if err = p.enqueueVerificationEmail(ctx, user.ID); err != nil {
+			// the inserted row is already locked by this transaction, so skip re-reading it
+			if err = p.queueVerificationEmail(ctx, user); err != nil {
 				switch {
 				case errors.Is(err, ErrSendVerifyEmailUnsubscribed):
 					// ignore 'user unsubscribed' error as emails are unique and this situation should not happen
@@ -136,7 +137,8 @@ func (p *Provider) SignIn(ctx context.Context, username, password string) (model
 
 	// send verification code to email if publisher has unverified email
 	if !user.EmailVerified && user.Role == model.PublisherRoleName {
-		if err = p.enqueueVerificationEmail(ctx, user.ID); err != nil {
+		locked, err := p.enqueueVerificationEmail(ctx, user.ID)
+		if err != nil {
 			switch {
 			case errors.Is(err, ErrSendVerifyEmailUnsubscribed):
 				// ignore 'user unsubscribed' error as such error will be displayed on resend email attempt
@@ -145,13 +147,8 @@ func (p *Provider) SignIn(ctx context.Context, username, password string) (model
 				// ignore 'too many requests' error as user should already have vrf code sent to them
 				p.log.Warn("vrf code is requested too many times", zap.String("email", user.Email.String))
 			case errors.Is(err, ErrVerifyEmailAlreadyVerified):
-				// user was verified (or role changed) after the read above, so refresh the user for token claims
-				refreshed, gErr := p.userRepo.GetUserByID(ctx, user.ID)
-				if gErr != nil {
-					p.log.Error("get user by id after concurrent verification", zap.String("userID", user.ID), zap.Error(gErr))
-					return model.User{}, gErr
-				}
-				user = refreshed
+				// user was verified (or role changed) after the read above, so use the locked read for token claims
+				user = locked
 			default:
 				p.log.Error("sending verification email on sign in", zap.Error(err))
 				return model.User{}, err

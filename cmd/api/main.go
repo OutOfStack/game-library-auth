@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	_ "expvar"
 	"fmt"
 	"log"
 	"net"
-	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"sync"
@@ -26,7 +24,6 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/client/resendapi"
 	store "github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
-	"github.com/OutOfStack/game-library-auth/internal/notification"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	"github.com/OutOfStack/game-library-auth/pkg/keys"
 	zaplog "github.com/OutOfStack/game-library-auth/pkg/logger"
@@ -91,7 +88,7 @@ func run() error {
 		return fmt.Errorf("create google id token client: %w", err)
 	}
 
-	// Render and encrypt notifications
+	// render notifications
 	emailPreparer, err := resendapi.NewRenderer(resendapi.Config{
 		FromEmail:      cfg.EmailSender.EmailFrom,
 		ContactEmail:   cfg.EmailSender.ContactEmail,
@@ -100,10 +97,6 @@ func run() error {
 	})
 	if err != nil {
 		return fmt.Errorf("create email renderer: %w", err)
-	}
-	notificationCipher, err := notification.NewCipher(cfg.Outbox.Key)
-	if err != nil {
-		return err
 	}
 
 	// create auth token service
@@ -150,7 +143,7 @@ func run() error {
 	})
 
 	// create user facade
-	userFacade := facade.New(logger, userRepo, emailPreparer, authService, unsubscribeTokenGenerator, infoAPIClient, notificationCipher)
+	userFacade := facade.New(logger, userRepo, emailPreparer, authService, unsubscribeTokenGenerator, infoAPIClient)
 
 	// auth api
 	authAPI, err := auth.NewAPI(logger, googleIDTokenClient, githubOAuthClient, userFacade, auth.APICfg{

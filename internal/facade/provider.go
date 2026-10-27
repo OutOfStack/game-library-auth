@@ -18,19 +18,17 @@ type Provider struct {
 	log                       *zap.Logger
 	userRepo                  UserRepo
 	emailPreparer             EmailPreparer
-	notificationCipher        *notification.Cipher
 	auth                      Auth
 	unsubscribeTokenGenerator *auth.UnsubscribeTokenGenerator
 	infoAPIClient             InfoAPIClient
 }
 
 // New creates a new facade provider
-func New(log *zap.Logger, userRepo UserRepo, emailPreparer EmailPreparer, authService Auth, unsubscribeTokenGenerator *auth.UnsubscribeTokenGenerator, infoAPIClient InfoAPIClient, notificationCipher *notification.Cipher) *Provider {
+func New(log *zap.Logger, userRepo UserRepo, emailPreparer EmailPreparer, authService Auth, unsubscribeTokenGenerator *auth.UnsubscribeTokenGenerator, infoAPIClient InfoAPIClient) *Provider {
 	return &Provider{
 		log:                       log,
 		userRepo:                  userRepo,
 		emailPreparer:             emailPreparer,
-		notificationCipher:        notificationCipher,
 		auth:                      authService,
 		unsubscribeTokenGenerator: unsubscribeTokenGenerator,
 		infoAPIClient:             infoAPIClient,
@@ -63,8 +61,8 @@ type UserRepo interface {
 
 	CreateEmailVerification(ctx context.Context, verification database.EmailVerification) error
 	GetEmailVerificationByUserID(ctx context.Context, userID string) (database.EmailVerification, error)
+	GetVerificationState(ctx context.Context, userID, email string) (database.VerificationState, error)
 	CreateNotification(ctx context.Context, notification database.Notification) error
-	VerificationTime(ctx context.Context) (time.Time, error)
 	SetEmailVerificationUsed(ctx context.Context, id string, verified bool) error
 	SetUnsubscribeToken(ctx context.Context, id string, token string) error
 

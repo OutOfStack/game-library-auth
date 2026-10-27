@@ -258,11 +258,6 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 			GetUserByID(ctx, "user-123").
 			Return(user, nil)
 
-		// mock unsubscribe check
-		mockUserRepo.EXPECT().
-			IsEmailUnsubscribed(ctx, "test@example.com").
-			Return(false, nil)
-
 		// mock the transaction call for sendVerificationEmail
 		mockUserRepo.EXPECT().
 			RunWithTx(ctx, gomock.Any()).
@@ -270,12 +265,11 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 				return f(ctx)
 			})
 
-		// mock the call to check existing verification record (returns not found)
+		// no previous code and not unsubscribed
 		mockUserRepo.EXPECT().
-			GetEmailVerificationByUserID(ctx, "user-123").
-			Return(database.EmailVerification{}, database.ErrNotFound)
+			GetVerificationState(ctx, "user-123", "test@example.com").
+			Return(database.VerificationState{Now: time.Now().UTC()}, nil)
 
-		mockUserRepo.EXPECT().VerificationTime(ctx).Return(time.Now().UTC(), nil)
 		// mock creating new verification record
 		mockUserRepo.EXPECT().
 			CreateEmailVerification(ctx, gomock.Any()).
@@ -295,6 +289,45 @@ func TestProvider_ResendVerificationEmail(t *testing.T) {
 
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
+		}
+	})
+
+	t.Run("previous code handling and unsubscribe", func(t *testing.T) {
+		now := time.Now().UTC()
+		user := database.User{ID: "user-123", Username: "testuser", Email: sql.NullString{String: "test@example.com", Valid: true}, Role: model.PublisherRoleName}
+		previous := func(age time.Duration) database.VerificationState {
+			return database.VerificationState{Now: now, LatestID: sql.NullString{String: "old", Valid: true}, LatestCreated: sql.NullTime{Time: now.Add(-age), Valid: true}}
+		}
+		for name, tc := range map[string]struct {
+			state   database.VerificationState
+			replace bool
+			check   func(error) bool
+		}{
+			"within cooldown": {state: previous(time.Second), check: func(err error) bool { return facade.AsTooManyRequestsError(err) != nil }},
+			"past cooldown":   {state: previous(model.ResendVerificationCodeCooldown), replace: true, check: func(err error) bool { return err == nil }},
+			"unsubscribed":    {state: database.VerificationState{Now: now, Unsubscribed: true}, check: func(err error) bool { return errors.Is(err, facade.ErrSendVerifyEmailUnsubscribed) }},
+		} {
+			t.Run(name, func(t *testing.T) {
+				provider, mockUserRepo, mockEmailSender, _, _, ctrl := setupTest(t)
+				defer ctrl.Finish()
+
+				mockUserRepo.EXPECT().RunWithTx(ctx, gomock.Any()).
+					DoAndReturn(func(ctx context.Context, f func(context.Context) error) error { return f(ctx) })
+				mockUserRepo.EXPECT().GetUserByID(ctx, "user-123").Return(user, nil)
+				mockUserRepo.EXPECT().GetVerificationState(ctx, "user-123", "test@example.com").Return(tc.state, nil)
+				if tc.replace {
+					mockUserRepo.EXPECT().SetEmailVerificationUsed(ctx, "old", false).Return(nil)
+					mockUserRepo.EXPECT().CreateEmailVerification(ctx, gomock.Any()).Return(nil)
+					mockEmailSender.EXPECT().PrepareVerification(gomock.Any()).Return(notification.Email{Text: "123456"}, nil)
+					mockUserRepo.EXPECT().CreateNotification(ctx, gomock.Any()).Return(nil)
+				}
+
+				err := provider.ResendVerificationEmail(ctx, "user-123")
+
+				if !tc.check(err) {
+					t.Fatalf("unexpected result: %v", err)
+				}
+			})
 		}
 	})
 

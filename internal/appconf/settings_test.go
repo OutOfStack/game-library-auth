@@ -1,7 +1,6 @@
 package appconf_test
 
 import (
-	"encoding/base64"
 	"testing"
 	"time"
 
@@ -289,16 +288,6 @@ func TestCfgValidateErrorCases(t *testing.T) {
 	}
 }
 
-func TestCfgValidateInvalidOutboxKey(t *testing.T) {
-	cfg := worker(func(cfg *appconf.Worker) {
-		cfg.Outbox.Key = "bad"
-	})
-
-	err := appconf.Validate(cfg)
-
-	require.Error(t, err)
-}
-
 func api(mutate func(*appconf.API)) *appconf.API {
 	cfg := validTestAPI()
 	if mutate != nil {
@@ -315,7 +304,6 @@ func worker(mutate func(*appconf.Worker)) *appconf.Worker {
 		Debug:   a.Debug,
 		Jaeger:  a.Jaeger,
 		Graylog: a.Graylog,
-		Outbox:  a.Outbox,
 		EmailDelivery: appconf.EmailDelivery{
 			APIToken:   "token",
 			APITimeout: 5 * time.Second,
@@ -376,9 +364,6 @@ func validTestAPI() *appconf.API {
 		InfoAPI: appconf.InfoAPI{
 			Address: "localhost:9001",
 			Timeout: 2 * time.Second,
-		},
-		Outbox: appconf.Outbox{
-			Key: base64.StdEncoding.EncodeToString(make([]byte, 32)),
 		},
 	}
 }

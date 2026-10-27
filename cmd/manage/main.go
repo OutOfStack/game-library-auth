@@ -125,5 +125,5 @@ func secretgen() {
 	}
 	fmt.Println("Generated secret (base64-encoded 32 bytes):")
 	fmt.Println(secret)
-	fmt.Println("\nUse a separately generated secret for EMAIL_SENDER_UNSUBSCRIBE_SECRET and NOTIFICATION_OUTBOX_KEY")
+	fmt.Println("\nAdd this to your .env file as EMAIL_SENDER_UNSUBSCRIBE_SECRET")
 }

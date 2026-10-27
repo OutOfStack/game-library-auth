@@ -99,7 +99,7 @@ Refer to the [List of Make Commands](#list-of-make-commands) for a complete list
 - The service can be configured using `.env` or environment variables, described in [`settings.go`](./internal/appconf/settings.go)
 - CI/CD configs are in [`./github/workflows/`](./.github/workflows/)
 - k8s deployment configs are in [`./k8s`](./.k8s/)
-- k8s secrets in [`secrets.yaml`](./.k8s/secrets.yaml) are not applied by CI. Create them in the cluster before deploying; both the API and the notification worker fail to start without the `game-library-auth-outbox` secret
+- k8s secrets in [`secrets.yaml`](./.k8s/secrets.yaml) are not applied by CI. Create them in the cluster before deploying
 
 Both the API and the worker serve operational endpoints on a separate debug server (`APP_DEBUG_ADDRESS`, port 6060 in k8s):
 `/metrics` (Prometheus), `/liveness` and `/readiness` (k8s probes), `/debug/vars` and `/debug/pprof`. Readiness fails until all listeners are bound

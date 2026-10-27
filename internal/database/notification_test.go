@@ -2,7 +2,7 @@ package database_test
 
 import (
 	"context"
-	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"sync"
 	"testing"
@@ -25,7 +25,9 @@ func queueNotification(t *testing.T, repo *database.UserRepo) database.Notificat
 	user.SetEmail(uuid.New().String()+"@example.com", false)
 	require.NoError(t, repo.CreateUser(t.Context(), user))
 	v := database.NewEmailVerification(user.ID, "hash", "unsubscribe", time.Now().UTC())
-	n := database.Notification{ID: uuid.New().String(), ReferenceID: v.ID, Kind: "email_verification", Payload: []byte("encrypted"),
+	payload, err := json.Marshal(notification.Email{To: []string{user.Email.String}})
+	require.NoError(t, err)
+	n := database.Notification{ID: uuid.New().String(), ReferenceID: v.ID, Kind: "email_verification", Payload: payload,
 		CreatedAt: v.DateCreated, ExpiresAt: v.DateCreated.Add(model.VerificationCodeTTL)}
 	require.NoError(t, repo.RunWithTx(t.Context(), func(ctx context.Context) error {
 		if err := repo.CreateEmailVerification(ctx, v); err != nil {
@@ -69,10 +71,10 @@ func TestNotificationClaimsAreExclusiveAndFenced(t *testing.T) {
 	require.NoError(t, repo.CompleteNotification(t.Context(), current, "message-id"))
 	var got struct {
 		Status    string `db:"status"`
-		Payload   []byte `db:"encrypted_payload"`
+		Payload   []byte `db:"payload"`
 		MessageID string `db:"provider_message_id"`
 	}
-	require.NoError(t, db.Get(&got, `SELECT status, encrypted_payload, provider_message_id FROM notification_outbox WHERE id=$1`, n.ID))
+	require.NoError(t, db.Get(&got, `SELECT status, payload, provider_message_id FROM notification_outbox WHERE id=$1`, n.ID))
 	require.Equal(t, "sent", got.Status)
 	require.Empty(t, got.Payload)
 	require.Equal(t, "message-id", got.MessageID)
@@ -120,9 +122,7 @@ func TestConcurrentResendsQueueOnlyOneNotification(t *testing.T) {
 	require.NoError(t, repo.CreateUser(t.Context(), u))
 	renderer, err := resendapi.NewRenderer(resendapi.Config{FromEmail: "from@example.com", BaseURL: "https://example.com"})
 	require.NoError(t, err)
-	cipher, err := notification.NewCipher(base64.StdEncoding.EncodeToString(make([]byte, 32)))
-	require.NoError(t, err)
-	p := facade.New(zap.NewNop(), repo, renderer, nil, auth.NewUnsubscribeTokenGenerator([]byte("test")), nil, cipher)
+	p := facade.New(zap.NewNop(), repo, renderer, nil, auth.NewUnsubscribeTokenGenerator([]byte("test")), nil)
 	results := make(chan error, 2)
 	var wg sync.WaitGroup
 	for range 2 {
@@ -144,8 +144,8 @@ func TestConcurrentResendsQueueOnlyOneNotification(t *testing.T) {
 	require.True(t, matches)
 	n, err := repo.ClaimNotification(t.Context(), "worker")
 	require.NoError(t, err)
-	email, err := cipher.Decrypt(n.ID, n.Kind, n.ReferenceID, n.Payload)
-	require.NoError(t, err)
+	var email notification.Email
+	require.NoError(t, json.Unmarshal(n.Payload, &email))
 	require.Equal(t, []string{u.Email.String}, email.To)
 }
 
@@ -188,7 +188,7 @@ func TestNotificationAcknowledgmentRollsBackBothWrites(t *testing.T) {
 	var status string
 	var payload []byte
 	require.NoError(t, db.Get(&status, `SELECT status FROM notification_outbox WHERE id=$1`, n.ID))
-	require.NoError(t, db.Get(&payload, `SELECT encrypted_payload FROM notification_outbox WHERE id=$1`, n.ID))
+	require.NoError(t, db.Get(&payload, `SELECT payload FROM notification_outbox WHERE id=$1`, n.ID))
 	require.Equal(t, "pending", status)
 	require.NotEmpty(t, payload)
 }
@@ -204,6 +204,9 @@ func TestNotificationEligibilityAndActiveLeaseExpiry(t *testing.T) {
 	eligible, err := repo.NotificationEligible(t.Context(), n, email)
 	require.NoError(t, err)
 	require.True(t, eligible)
+	eligible, err = repo.NotificationEligible(t.Context(), n, "other@example.com")
+	require.NoError(t, err)
+	require.False(t, eligible, "recipient must match the user's email")
 	require.NoError(t, repo.CreateEmailUnsubscribe(t.Context(), database.NewEmailUnsubscribe(email)))
 	eligible, err = repo.NotificationEligible(t.Context(), n, email)
 	require.NoError(t, err)
@@ -226,7 +229,7 @@ func TestNotificationReferenceAndUpdateTime(t *testing.T) {
 	defer teardown(t)
 	now := time.Now().UTC().Add(-time.Minute)
 	n := database.Notification{ID: uuid.New().String(), ReferenceID: "order-123", Kind: "order_receipt",
-		Payload: []byte("encrypted"), CreatedAt: now, ExpiresAt: now.Add(time.Hour)}
+		Payload: []byte("{}"), CreatedAt: now, ExpiresAt: now.Add(time.Hour)}
 	require.NoError(t, repo.CreateNotification(t.Context(), n), "no referenced entity is required")
 	var created, updated time.Time
 	require.NoError(t, db.Get(&created, `SELECT created_at FROM notification_outbox WHERE id=$1`, n.ID))
@@ -279,6 +282,6 @@ func TestNotificationMissingReferenceIsCancelled(t *testing.T) {
 	require.False(t, eligible)
 	require.NoError(t, repo.FinishNotification(t.Context(), claim, "cancelled", "obsolete_or_unsubscribed"))
 	var payload []byte
-	require.NoError(t, db.Get(&payload, `SELECT encrypted_payload FROM notification_outbox WHERE id=$1`, n.ID))
+	require.NoError(t, db.Get(&payload, `SELECT payload FROM notification_outbox WHERE id=$1`, n.ID))
 	require.Empty(t, payload)
 }

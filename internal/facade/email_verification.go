@@ -3,6 +3,7 @@ package facade
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -97,65 +98,65 @@ func (p *Provider) VerifyEmail(ctx context.Context, userID string, code string) 
 
 // ResendVerificationEmail resends email verification code to a user
 func (p *Provider) ResendVerificationEmail(ctx context.Context, userID string) error {
-	return p.enqueueVerificationEmail(ctx, userID)
+	_, err := p.enqueueVerificationEmail(ctx, userID)
+	return err
 }
 
-// queues verification email. Returns ErrTooManyRequests if a code was queued recently
-func (p *Provider) enqueueVerificationEmail(ctx context.Context, userID string) error {
-	return p.userRepo.RunWithTx(ctx, func(ctx context.Context) error {
+// locks the user and queues a verification email. Returns the user as read under lock, so callers see concurrent verification
+func (p *Provider) enqueueVerificationEmail(ctx context.Context, userID string) (database.User, error) {
+	var user database.User
+	err := p.userRepo.RunWithTx(ctx, func(ctx context.Context) error {
 		// lock the user before reading the current code, including when no code exists yet
-		user, err := p.userRepo.GetUserByID(ctx, userID)
-		if err != nil {
+		var err error
+		if user, err = p.userRepo.GetUserByID(ctx, userID); err != nil {
 			return err
 		}
-		if user.EmailVerified || user.Role != model.PublisherRoleName {
-			return ErrVerifyEmailAlreadyVerified
-		}
-		if !user.Email.Valid {
-			return ErrResendVerificationNoEmail
-		}
-		unsubscribed, err := p.userRepo.IsEmailUnsubscribed(ctx, user.Email.String)
-		if err != nil {
-			return fmt.Errorf("check email unsubscribe status: %w", err)
-		}
-		if unsubscribed {
-			return ErrSendVerifyEmailUnsubscribed
-		}
-
-		now, err := p.userRepo.VerificationTime(ctx)
-		if err != nil {
-			return fmt.Errorf("get verification time: %w", err)
-		}
-		previous, err := p.userRepo.GetEmailVerificationByUserID(ctx, userID)
-		if err != nil && !errors.Is(err, database.ErrNotFound) {
-			return fmt.Errorf("get verification record: %w", err)
-		}
-		if err == nil {
-			if elapsed := now.Sub(previous.DateCreated); elapsed < model.ResendVerificationCodeCooldown {
-				return NewTooManyRequestsError(model.ResendVerificationCodeCooldown - elapsed)
-			}
-			if err = p.userRepo.SetEmailVerificationUsed(ctx, previous.ID, false); err != nil {
-				return err
-			}
-		}
-		result, err := p.createEmailVerificationRecord(ctx, userID, user.Email.String, now)
-		if err != nil {
-			return fmt.Errorf("create verification record: %w", err)
-		}
-		email, err := p.emailPreparer.PrepareVerification(resendapi.SendEmailVerificationRequest{
-			Email: user.Email.String, Username: user.Username, VerificationCode: result.Code, UnsubscribeToken: result.UnsubscribeToken,
-		})
-		if err != nil {
-			return fmt.Errorf("prepare verification email: %w", err)
-		}
-		n := database.Notification{ID: uuid.New().String(), ReferenceID: result.ID, Kind: notification.VerificationKind,
-			CreatedAt: now, ExpiresAt: now.Add(model.VerificationCodeTTL)}
-		n.Payload, err = p.notificationCipher.Encrypt(n.ID, n.Kind, n.ReferenceID, email)
-		if err != nil {
-			return fmt.Errorf("encrypt verification email: %w", err)
-		}
-		return p.userRepo.CreateNotification(ctx, n)
+		return p.queueVerificationEmail(ctx, user)
 	})
+	return user, err
+}
+
+// queues verification email for a user whose row the caller's transaction holds locked.
+// Returns ErrTooManyRequests if a code was queued recently
+func (p *Provider) queueVerificationEmail(ctx context.Context, user database.User) error {
+	if user.EmailVerified || user.Role != model.PublisherRoleName {
+		return ErrVerifyEmailAlreadyVerified
+	}
+	if !user.Email.Valid {
+		return ErrResendVerificationNoEmail
+	}
+	state, err := p.userRepo.GetVerificationState(ctx, user.ID, user.Email.String)
+	if err != nil {
+		return fmt.Errorf("get verification state: %w", err)
+	}
+	if state.Unsubscribed {
+		return ErrSendVerifyEmailUnsubscribed
+	}
+	if state.LatestID.Valid {
+		if elapsed := state.Now.Sub(state.LatestCreated.Time); elapsed < model.ResendVerificationCodeCooldown {
+			return NewTooManyRequestsError(model.ResendVerificationCodeCooldown - elapsed)
+		}
+		if err = p.userRepo.SetEmailVerificationUsed(ctx, state.LatestID.String, false); err != nil {
+			return err
+		}
+	}
+	result, err := p.createEmailVerificationRecord(ctx, user.ID, user.Email.String, state.Now)
+	if err != nil {
+		return fmt.Errorf("create verification record: %w", err)
+	}
+	email, err := p.emailPreparer.PrepareVerification(resendapi.SendEmailVerificationRequest{
+		Email: user.Email.String, Username: user.Username, VerificationCode: result.Code, UnsubscribeToken: result.UnsubscribeToken,
+	})
+	if err != nil {
+		return fmt.Errorf("prepare verification email: %w", err)
+	}
+	n := database.Notification{ID: uuid.New().String(), ReferenceID: result.ID, Kind: notification.VerificationKind,
+		CreatedAt: state.Now, ExpiresAt: state.Now.Add(model.VerificationCodeTTL)}
+	n.Payload, err = json.Marshal(email)
+	if err != nil {
+		return fmt.Errorf("marshal verification email: %w", err)
+	}
+	return p.userRepo.CreateNotification(ctx, n)
 }
 
 // creates a new email verification record and returns the result

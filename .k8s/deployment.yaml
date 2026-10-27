@@ -72,8 +72,6 @@ spec:
                         name: game-library-auth-dbconfig
                   - secretRef:
                         name: game-library-auth
-                  - secretRef:
-                        name: game-library-auth-outbox
                   - configMapRef:
                         name: game-library-auth-config
                 imagePullPolicy: Always
@@ -139,7 +137,5 @@ spec:
                 envFrom:
                   - secretRef:
                         name: game-library-auth-dbconfig
-                  - secretRef:
-                        name: game-library-auth-outbox
                   - configMapRef:
                         name: game-library-auth-config

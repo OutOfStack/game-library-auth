@@ -362,6 +362,21 @@ func (mr *MockUserRepoMockRecorder) GetUserByUsername(ctx, username any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByUsername", reflect.TypeOf((*MockUserRepo)(nil).GetUserByUsername), ctx, username)
 }
 
+// GetVerificationState mocks base method.
+func (m *MockUserRepo) GetVerificationState(ctx context.Context, userID, email string) (database.VerificationState, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVerificationState", ctx, userID, email)
+	ret0, _ := ret[0].(database.VerificationState)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVerificationState indicates an expected call of GetVerificationState.
+func (mr *MockUserRepoMockRecorder) GetVerificationState(ctx, userID, email any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVerificationState", reflect.TypeOf((*MockUserRepo)(nil).GetVerificationState), ctx, userID, email)
+}
+
 // HasOAuthLink mocks base method.
 func (m *MockUserRepo) HasOAuthLink(ctx context.Context, userID string) (bool, error) {
 	m.ctrl.T.Helper()
@@ -460,21 +475,6 @@ func (m *MockUserRepo) UpdateUser(ctx context.Context, user database.User) error
 func (mr *MockUserRepoMockRecorder) UpdateUser(ctx, user any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockUserRepo)(nil).UpdateUser), ctx, user)
-}
-
-// VerificationTime mocks base method.
-func (m *MockUserRepo) VerificationTime(ctx context.Context) (time.Time, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "VerificationTime", ctx)
-	ret0, _ := ret[0].(time.Time)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// VerificationTime indicates an expected call of VerificationTime.
-func (mr *MockUserRepoMockRecorder) VerificationTime(ctx any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerificationTime", reflect.TypeOf((*MockUserRepo)(nil).VerificationTime), ctx)
 }
 
 // MockEmailPreparer is a mock of EmailPreparer interface.

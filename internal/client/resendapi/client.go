@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/notification"
@@ -46,6 +47,9 @@ func (c *Client) Send(ctx context.Context, email notification.Email, idempotency
 	ctx = context.WithValue(ctx, statusKey{}, &status)
 	sent, err := c.client.Emails.SendWithOptions(ctx, params, &resend.SendEmailOptions{IdempotencyKey: idempotencyKey})
 	if err != nil {
+		if rateLimit, ok := errors.AsType[*resend.RateLimitError](err); ok {
+			return "", &notification.RateLimitError{RetryAfter: retryAfter(rateLimit.RetryAfter)}
+		}
 		// the SDK message may contain recipient details, so keep only the status
 		switch status {
 		case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
@@ -60,6 +64,17 @@ func (c *Client) Send(ctx context.Context, email notification.Email, idempotency
 		return "", errors.New("email provider returned no message ID")
 	}
 	return sent.Id, nil
+}
+
+// parses a Retry-After header given in seconds or as an HTTP date; zero when absent or invalid
+func retryAfter(value string) time.Duration {
+	if seconds, err := strconv.ParseInt(value, 10, 32); err == nil && seconds > 0 {
+		return time.Duration(seconds) * time.Second
+	}
+	if deadline, err := http.ParseTime(value); err == nil {
+		return max(0, time.Until(deadline))
+	}
+	return 0
 }
 
 type statusKey struct{}

@@ -1,19 +1,17 @@
-// Package worker delivers encrypted notifications claimed from the PostgreSQL outbox
+// Package worker delivers notifications claimed from the PostgreSQL outbox
 package worker
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"math/rand/v2"
-	"net/http"
-	"strconv"
 	"time"
 	"uuid"
 
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/notification"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/resend/resend-go/v2"
 	"go.uber.org/zap"
 )
 
@@ -45,25 +43,20 @@ type Worker struct {
 	log     *zap.Logger
 	store   Store
 	sender  Sender
-	cipher  *notification.Cipher
 	owner   string
 	random  func() float64
 	metrics *metrics
 }
 
 // New creates one independently identified worker and registers its metrics
-func New(log *zap.Logger, store Store, sender Sender, cipher *notification.Cipher, registry prometheus.Registerer) (*Worker, error) {
-	m, err := newMetrics(registry)
-	if err != nil {
-		return nil, err
-	}
-	return &Worker{log: log, store: store, sender: sender, cipher: cipher, owner: uuid.New().String(), random: rand.Float64, metrics: m}, nil
+func New(log *zap.Logger, store Store, sender Sender, registry prometheus.Registerer) *Worker {
+	return &Worker{log: log, store: store, sender: sender, owner: uuid.New().String(), random: rand.Float64, metrics: newMetrics(registry)}
 }
 
 // Run stops acquiring work on cancellation, while an already claimed attempt may finish
-func (w *Worker) Run(ctx context.Context) error {
+func (w *Worker) Run(ctx context.Context) {
 	if !sleep(ctx, time.Duration(w.random()*float64(5*time.Second))) {
-		return nil
+		return
 	}
 	var lastSweep, lastPurge, pausedUntil time.Time
 	dbFailures := 0
@@ -80,7 +73,7 @@ func (w *Worker) Run(ctx context.Context) error {
 		}
 		if delay := time.Until(pausedUntil); delay > 0 {
 			if !sleep(ctx, min(delay, w.pollDelay())) {
-				return nil
+				return
 			}
 			continue
 		}
@@ -90,7 +83,7 @@ func (w *Worker) Run(ctx context.Context) error {
 		if errors.Is(err, database.ErrNotFound) {
 			dbFailures = 0
 			if !sleep(ctx, w.pollDelay()) {
-				return nil
+				return
 			}
 			continue
 		}
@@ -98,7 +91,7 @@ func (w *Worker) Run(ctx context.Context) error {
 			w.log.Error("claim notification failed", zap.Error(err))
 			dbFailures++
 			if !sleep(ctx, w.retryDelay(dbFailures)) {
-				return nil
+				return
 			}
 			continue
 		}
@@ -110,14 +103,13 @@ func (w *Worker) Run(ctx context.Context) error {
 		if err != nil {
 			w.log.Error("notification processing failed; lease will recover", zap.String("notification_id", n.ID), zap.Error(err))
 			if !sleep(ctx, w.retryDelay(1)) {
-				return nil
+				return
 			}
 		}
 		if pause > 0 {
 			pausedUntil = time.Now().Add(pause)
 		}
 	}
-	return nil
 }
 
 func (w *Worker) process(parent context.Context, n database.Notification) (time.Duration, error) {
@@ -131,13 +123,8 @@ func (w *Worker) process(parent context.Context, n database.Notification) (time.
 	if n.Kind != notification.VerificationKind {
 		return 0, w.finish(ctx, n, "failed", "unsupported_kind")
 	}
-	email, err := w.cipher.Decrypt(n.ID, n.Kind, n.ReferenceID, n.Payload)
-	if err != nil {
-		// keep the payload for recovery after a key fix and keep draining the rest of the queue
-		w.log.Error("notification payload authentication failed; check NOTIFICATION_OUTBOX_KEY", zap.String("notification_id", n.ID))
-		return 0, w.retry(ctx, n, w.retryDelay(n.Attempts), "payload_authentication")
-	}
-	if len(email.To) != 1 || email.To[0] == "" || email.From == "" || email.Subject == "" || (email.Text == "" && email.HTML == "") {
+	var email notification.Email
+	if err := json.Unmarshal(n.Payload, &email); err != nil || len(email.To) != 1 || email.To[0] == "" || email.From == "" || email.Subject == "" || (email.Text == "" && email.HTML == "") {
 		return 0, w.finish(ctx, n, "failed", "invalid_payload")
 	}
 	eligible, err := w.store.NotificationEligible(ctx, n, email.To[0])
@@ -149,9 +136,6 @@ func (w *Worker) process(parent context.Context, n database.Notification) (time.
 	}
 	sendCtx, sendCancel := context.WithDeadline(ctx, n.ExpiresAt)
 	defer sendCancel()
-	if err = sendCtx.Err(); err != nil {
-		return 0, err
-	}
 	messageID, err := w.sender.Send(sendCtx, email, "notification/"+n.ID)
 	if err == nil {
 		if err = w.store.CompleteNotification(ctx, n, messageID); err != nil {
@@ -169,8 +153,8 @@ func (w *Worker) process(parent context.Context, n database.Notification) (time.
 	}
 	delay := w.retryDelay(n.Attempts)
 	reason := "delivery_error"
-	if rateLimit, ok := errors.AsType[*resend.RateLimitError](err); ok {
-		delay = max(delay, retryAfter(rateLimit.RetryAfter))
+	if rateLimit, ok := errors.AsType[*notification.RateLimitError](err); ok {
+		delay = max(delay, rateLimit.RetryAfter)
 		reason = "rate_limit"
 	}
 	if errors.Is(err, notification.ErrMisconfigured) {
@@ -241,14 +225,4 @@ func sleep(ctx context.Context, d time.Duration) bool {
 	case <-timer.C:
 		return ctx.Err() == nil
 	}
-}
-
-func retryAfter(value string) time.Duration {
-	if seconds, err := strconv.ParseInt(value, 10, 32); err == nil && seconds > 0 {
-		return time.Duration(seconds) * time.Second
-	}
-	if deadline, err := http.ParseTime(value); err == nil {
-		return max(0, time.Until(deadline))
-	}
-	return 0
 }

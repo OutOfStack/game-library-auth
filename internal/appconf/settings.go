@@ -5,8 +5,6 @@ import (
 	"net/url"
 	"strings"
 	"time"
-
-	"github.com/OutOfStack/game-library-auth/internal/notification"
 )
 
 // ServiceName - service name
@@ -24,7 +22,6 @@ type API struct {
 	Graylog     Graylog     `mapstructure:",squash"`
 	EmailSender EmailSender `mapstructure:",squash"`
 	InfoAPI     InfoAPI     `mapstructure:",squash"`
-	Outbox      Outbox      `mapstructure:",squash"`
 }
 
 // Worker - notification worker configuration. Deliberately omits JWT keys, OAuth and downstream API credentials
@@ -34,7 +31,6 @@ type Worker struct {
 	Debug         Debug         `mapstructure:",squash"`
 	Jaeger        Jaeger        `mapstructure:",squash"`
 	Graylog       Graylog       `mapstructure:",squash"`
-	Outbox        Outbox        `mapstructure:",squash"`
 	EmailDelivery EmailDelivery `mapstructure:",squash"`
 }
 
@@ -115,11 +111,6 @@ type EmailDelivery struct {
 type InfoAPI struct {
 	Address string        `mapstructure:"INFOAPI_ADDRESS"`
 	Timeout time.Duration `mapstructure:"INFOAPI_TIMEOUT"`
-}
-
-// Outbox represents settings for notification outbox shared by api and worker
-type Outbox struct {
-	Key string `mapstructure:"NOTIFICATION_OUTBOX_KEY"`
 }
 
 // Validate validates db settings
@@ -206,9 +197,6 @@ func (c Jaeger) Validate() error {
 	if c.OTLPEndpoint == "" {
 		return errors.New("JAEGER_OTLP_ENDPOINT is required")
 	}
-	if strings.Contains(c.OTLPEndpoint, "://") {
-		return errors.New("JAEGER_OTLP_ENDPOINT must be host:port without scheme")
-	}
 	u, err := url.Parse("http://" + c.OTLPEndpoint)
 	if err != nil || u.Host != c.OTLPEndpoint {
 		return errors.New("JAEGER_OTLP_ENDPOINT must be host:port without scheme")
@@ -272,10 +260,4 @@ func (c InfoAPI) Validate() error {
 		return errors.New("INFOAPI_TIMEOUT must be greater than 0")
 	}
 	return nil
-}
-
-// Validate validates outbox encryption key
-func (c Outbox) Validate() error {
-	_, err := notification.NewCipher(c.Key)
-	return err
 }

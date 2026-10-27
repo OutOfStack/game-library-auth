@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/notification"
-	"github.com/resend/resend-go/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,7 +38,7 @@ func TestSendReusesPreparedPayloadAndIdempotencyKey(t *testing.T) {
 	require.Equal(t, bodies[0], bodies[1])
 }
 
-func TestSendReturnsSDKRateLimitError(t *testing.T) {
+func TestSendReturnsRateLimitDelay(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Retry-After", "60")
@@ -52,10 +51,18 @@ func TestSendReturnsSDKRateLimitError(t *testing.T) {
 	c.client.BaseURL, err = url.Parse(server.URL + "/")
 	require.NoError(t, err)
 	_, err = c.Send(t.Context(), notification.Email{}, "notification/id")
-	var providerErr *resend.RateLimitError
-	require.ErrorAs(t, err, &providerErr)
-	require.ErrorIs(t, err, resend.ErrRateLimit)
-	require.Equal(t, "60", providerErr.RetryAfter)
+	var rateLimit *notification.RateLimitError
+	require.ErrorAs(t, err, &rateLimit)
+	require.Equal(t, time.Minute, rateLimit.RetryAfter)
+	require.NotContains(t, err.Error(), "sensitive recipient")
+}
+
+func TestRetryAfter(t *testing.T) {
+	require.Equal(t, time.Minute, retryAfter("60"))
+	require.InDelta(t, time.Minute, retryAfter(time.Now().Add(time.Minute).UTC().Format(http.TimeFormat)), float64(2*time.Second))
+	for _, value := range []string{"", "invalid", "-1", "0", time.Now().Add(-time.Minute).UTC().Format(http.TimeFormat)} {
+		require.Zero(t, retryAfter(value), value)
+	}
 }
 
 func TestSendClassifiesProviderFailures(t *testing.T) {

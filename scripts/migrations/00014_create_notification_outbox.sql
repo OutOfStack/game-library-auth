@@ -3,7 +3,7 @@ CREATE TABLE notification_outbox (
     id UUID PRIMARY KEY,
     reference_id TEXT NOT NULL,
     kind TEXT NOT NULL,
-    encrypted_payload BYTEA,
+    payload JSONB,
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'cancelled', 'expired', 'failed')),
     attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0),
     next_attempt_at TIMESTAMPTZ NOT NULL,
@@ -16,8 +16,8 @@ CREATE TABLE notification_outbox (
     last_error TEXT,
     UNIQUE (kind, reference_id),
     CHECK ((locked_by IS NULL) = (locked_at IS NULL)),
-    CHECK ((status = 'pending' AND encrypted_payload IS NOT NULL)
-        OR (status <> 'pending' AND encrypted_payload IS NULL AND locked_by IS NULL))
+    CHECK ((status = 'pending' AND payload IS NOT NULL)
+        OR (status <> 'pending' AND payload IS NULL AND locked_by IS NULL))
 );
 CREATE INDEX notification_outbox_due_idx ON notification_outbox (next_attempt_at, created_at)
     WHERE status = 'pending';

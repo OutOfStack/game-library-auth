@@ -15,7 +15,6 @@ import (
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/client/resendapi"
 	store "github.com/OutOfStack/game-library-auth/internal/database"
-	"github.com/OutOfStack/game-library-auth/internal/notification"
 	"github.com/OutOfStack/game-library-auth/internal/worker"
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	zaplog "github.com/OutOfStack/game-library-auth/pkg/logger"
@@ -57,15 +56,8 @@ func run() error {
 			logger.Error("close worker database", zap.Error(closeErr))
 		}
 	}()
-	cipher, err := notification.NewCipher(cfg.Outbox.Key)
-	if err != nil {
-		return err
-	}
 	sender := resendapi.NewClient(cfg.EmailDelivery.APIToken, cfg.EmailDelivery.APITimeout)
-	processor, err := worker.New(logger, store.NewUserRepo(db, logger), sender, cipher, prometheus.DefaultRegisterer)
-	if err != nil {
-		return err
-	}
+	processor := worker.New(logger, store.NewUserRepo(db, logger), sender, prometheus.DefaultRegisterer)
 	hc := tools.NewHealthCheck(db)
 	server := observability.NewDebugServer(cfg.Debug.Address, hc.Liveness, hc.Readiness)
 	lc := net.ListenConfig{}
@@ -74,9 +66,9 @@ func run() error {
 		return fmt.Errorf("listen for debug server: %w", err)
 	}
 	serverDone := make(chan error, 1)
-	workerDone := make(chan error, 1)
+	workerDone := make(chan struct{})
 	go func() { serverDone <- server.Serve(listener) }()
-	go func() { workerDone <- processor.Run(ctx); stop() }()
+	go func() { processor.Run(ctx); stop(); close(workerDone) }()
 	hc.SetReady(true)
 	logger.Info("Notification worker started", zap.String("debug_address", server.Addr))
 	select {
@@ -89,9 +81,7 @@ func run() error {
 	hc.SetReady(false)
 	stop()
 	// Run bounds the current attempt to 30 seconds; no further claims are made
-	if workerErr := <-workerDone; err == nil {
-		err = workerErr
-	}
+	<-workerDone
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if shutdownErr := server.Shutdown(shutdownCtx); shutdownErr != nil {

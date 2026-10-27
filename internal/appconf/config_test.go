@@ -1,7 +1,6 @@
 package appconf_test
 
 import (
-	"encoding/base64"
 	"os"
 	"strings"
 	"testing"
@@ -45,7 +44,6 @@ EMAIL_SENDER_UNSUBSCRIBE_URL=https://example.com/unsubscribe
 EMAIL_SENDER_UNSUBSCRIBE_SECRET=test
 INFOAPI_ADDRESS=localhost:9001
 INFOAPI_TIMEOUT=5s
-NOTIFICATION_OUTBOX_KEY=` + base64.StdEncoding.EncodeToString(make([]byte, 32)) + `
 `
 	for line := range strings.SplitSeq(strings.TrimSpace(config), "\n") {
 		key, _, _ := strings.Cut(line, "=")

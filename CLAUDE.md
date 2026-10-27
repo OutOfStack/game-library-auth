@@ -45,6 +45,7 @@
 ## Git Workflow Restrictions
 - DO NOT run any modifying `git` commands (i.e. `git add`, `git commit`, `git push`), only read commands allowed (i.e. `git status`, `git diff`, `git log`)
 - DO NOT delete files - notify me if files become redundant
+- NEVER add `Co-Authored-By` or any other co-author trailer to git commit messages
 
 ## File Ignoring Guidelines
 - DO NOT review or analyze files in the following directories:
