@@ -1,149 +1,92 @@
 package resendapi
 
 import (
-	"bytes"
 	"context"
-	"embed"
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
-	"strings"
+	"strconv"
 	"time"
 
+	"github.com/OutOfStack/game-library-auth/internal/notification"
 	"github.com/OutOfStack/game-library-auth/pkg/observability"
 	"github.com/resend/resend-go/v2"
 	"go.opentelemetry.io/otel"
 )
 
-//go:embed templates/*
-var templateFS embed.FS
+var tracer = otel.Tracer("resendapi")
 
-var (
-	// ErrDailyQuotaExceeded is returned when the daily email quota is exceeded
-	ErrDailyQuotaExceeded = errors.New("daily quota exceeded")
-
-	tracer = otel.Tracer("resendapi")
-)
-
-// Client represents Resend client
+// Client delivers prepared emails
 type Client struct {
-	client               *resend.Client
-	baseURL              string
-	fromEmail            string
-	fromName             string
-	contactEmail         string
-	unsubscribeURL       string
-	verificationHTMLTmpl *template.Template
-	verificationTextTmpl *template.Template
+	client *resend.Client
 }
 
-// Config represents Resend client configuration
-type Config struct {
-	APIToken       string
-	FromEmail      string
-	ContactEmail   string
-	BaseURL        string
-	UnsubscribeURL string
-	Timeout        time.Duration
-}
-
-// NewClient creates a new Resend client
-func NewClient(cfg Config) (*Client, error) {
+// NewClient creates a delivery client with bounded HTTP requests
+func NewClient(apiToken string, timeout time.Duration) *Client {
 	httpClient := &http.Client{
-		Timeout:   cfg.Timeout,
-		Transport: observability.NewTransport("resend_api_client", observability.WithOtel()),
+		Transport: statusTransport{next: observability.NewTransport("resend_api_client", observability.WithOtel())},
+		Timeout:   timeout,
 	}
-	client := resend.NewCustomClient(httpClient, cfg.APIToken)
-
-	htmlTemplateContent, err := templateFS.ReadFile("templates/email_verification.html")
-	if err != nil {
-		return nil, fmt.Errorf("load HTML template: %w", err)
-	}
-
-	textTemplateContent, err := templateFS.ReadFile("templates/email_verification.txt")
-	if err != nil {
-		return nil, fmt.Errorf("load text template: %w", err)
-	}
-
-	htmlTmpl, err := template.New("email").Parse(string(htmlTemplateContent))
-	if err != nil {
-		return nil, fmt.Errorf("parse HTML template: %w", err)
-	}
-
-	textTmpl, err := template.New("email").Parse(string(textTemplateContent))
-	if err != nil {
-		return nil, fmt.Errorf("parse text template: %w", err)
-	}
-
-	return &Client{
-		client:               client,
-		baseURL:              cfg.BaseURL,
-		fromEmail:            cfg.FromEmail,
-		fromName:             "Game Library",
-		contactEmail:         cfg.ContactEmail,
-		unsubscribeURL:       cfg.UnsubscribeURL,
-		verificationHTMLTmpl: htmlTmpl,
-		verificationTextTmpl: textTmpl,
-	}, nil
+	return &Client{client: resend.NewCustomClient(httpClient, apiToken)}
 }
 
-// SendEmailVerification sends email verification email with verification code and returns message id
-func (c *Client) SendEmailVerification(ctx context.Context, req SendEmailVerificationRequest) (string, error) {
-	ctx, span := tracer.Start(ctx, "sendEmailVerification")
+// Send submits payload with its stable idempotency key
+func (c *Client) Send(ctx context.Context, email notification.Email, idempotencyKey string) (string, error) {
+	ctx, span := tracer.Start(ctx, "sendNotification")
 	defer span.End()
 
-	htmlContent, err := c.fillTemplate(c.verificationHTMLTmpl, req)
-	if err != nil {
-		return "", fmt.Errorf("fill HTML template: %w", err)
-	}
-	textContent, err := c.fillTemplate(c.verificationTextTmpl, req)
-	if err != nil {
-		return "", fmt.Errorf("fill text template: %w", err)
-	}
-
 	params := &resend.SendEmailRequest{
-		From:    fmt.Sprintf("%s <%s>", c.fromName, c.fromEmail),
-		To:      []string{req.Email},
-		Subject: "Verify Your Email Address - Game Library",
-		Html:    htmlContent,
-		Text:    textContent,
+		From:    email.From,
+		To:      email.To,
+		Subject: email.Subject,
+		Html:    email.HTML,
+		Text:    email.Text,
 	}
-
-	sent, err := c.client.Emails.SendWithContext(ctx, params)
+	// the SDK drops HTTP status codes, so capture them to tell rejections from transient failures
+	var status int
+	ctx = context.WithValue(ctx, statusKey{}, &status)
+	sent, err := c.client.Emails.SendWithOptions(ctx, params, &resend.SendEmailOptions{IdempotencyKey: idempotencyKey})
 	if err != nil {
-		if isQuotaExceededError(err) {
-			return "", ErrDailyQuotaExceeded
+		if rateLimit, ok := errors.AsType[*resend.RateLimitError](err); ok {
+			return "", &notification.RateLimitError{RetryAfter: retryAfter(rateLimit.RetryAfter)}
 		}
-		return "", fmt.Errorf("send email: %w", err)
+		// the SDK message may contain recipient details, so keep only the status
+		switch status {
+		case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
+			// invalid API key, unverified domain or wrong endpoint affect every message until fixed
+			return "", fmt.Errorf("%w: status %d", notification.ErrMisconfigured, status)
+		case http.StatusBadRequest, http.StatusUnprocessableEntity:
+			return "", fmt.Errorf("%w: status %d", notification.ErrRejected, status)
+		}
+		return "", err
 	}
-
+	if sent == nil || sent.Id == "" {
+		return "", errors.New("email provider returned no message ID")
+	}
 	return sent.Id, nil
 }
 
-// fillTemplate fills template placeholders
-func (c *Client) fillTemplate(tmpl *template.Template, req SendEmailVerificationRequest) (string, error) {
-	data := templateData{
-		Email:             req.Email,
-		Username:          req.Username,
-		VerificationCode:  req.VerificationCode,
-		UnsubscribeToken:  req.UnsubscribeToken,
-		BaseURL:           c.baseURL,
-		UnsubscribeURL:    c.unsubscribeURL,
-		ContactEmail:      c.contactEmail,
-		PrivacyPolicyURL:  c.baseURL + "/privacy-policy.html",
-		TermsOfServiceURL: c.baseURL + "/terms-of-service.html",
-		CurrentYear:       time.Now().Year(),
+// parses a Retry-After header given in seconds or as an HTTP date; zero when absent or invalid
+func retryAfter(value string) time.Duration {
+	if seconds, err := strconv.ParseInt(value, 10, 32); err == nil && seconds > 0 {
+		return time.Duration(seconds) * time.Second
 	}
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("execute template: %w", err)
+	if deadline, err := http.ParseTime(value); err == nil {
+		return max(0, time.Until(deadline))
 	}
-
-	return buf.String(), nil
+	return 0
 }
 
-func isQuotaExceededError(err error) bool {
-	errStr := err.Error()
-	return strings.Contains(errStr, "429") || strings.Contains(errStr, "Too Many Requests")
+type statusKey struct{}
+
+// statusTransport records the response status into the *int stored in the request context under statusKey
+type statusTransport struct{ next http.RoundTripper }
+
+// RoundTrip implements http.RoundTripper
+func (t statusTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := t.next.RoundTrip(req)
+	if status, ok := req.Context().Value(statusKey{}).(*int); ok && resp != nil {
+		*status = resp.StatusCode
+	}
+	return resp, err
 }

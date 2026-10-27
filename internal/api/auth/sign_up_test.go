@@ -167,7 +167,7 @@ func TestSignUpHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &appconf.Cfg{
+			cfg := &appconf.API{
 				EmailSender: appconf.EmailSender{},
 				OAuth:       appconf.OAuth{GoogleClientID: "test-client-id", GitHubClientID: "test-github-client-id"},
 			}

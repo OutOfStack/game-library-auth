@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	_ "expvar"
 	"fmt"
 	"log"
 	"net"
-	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"sync"
@@ -29,6 +27,7 @@ import (
 	"github.com/OutOfStack/game-library-auth/pkg/database"
 	"github.com/OutOfStack/game-library-auth/pkg/keys"
 	zaplog "github.com/OutOfStack/game-library-auth/pkg/logger"
+	"github.com/OutOfStack/game-library-auth/pkg/observability"
 	authpb "github.com/OutOfStack/game-library-auth/pkg/proto/authapi/v1"
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
@@ -54,7 +53,7 @@ func main() {
 }
 
 func run() error {
-	cfg, err := appconf.Get()
+	cfg, err := appconf.Load[appconf.API]()
 	if err != nil {
 		log.Fatalf("can't parse config: %v", err)
 	}
@@ -89,17 +88,15 @@ func run() error {
 		return fmt.Errorf("create google id token client: %w", err)
 	}
 
-	// create email sender
-	emailSender, err := resendapi.NewClient(resendapi.Config{
-		APIToken:       cfg.EmailSender.APIToken,
+	// render notifications
+	emailPreparer, err := resendapi.NewRenderer(resendapi.Config{
 		FromEmail:      cfg.EmailSender.EmailFrom,
 		ContactEmail:   cfg.EmailSender.ContactEmail,
 		BaseURL:        cfg.EmailSender.BaseURL,
 		UnsubscribeURL: cfg.EmailSender.UnsubscribeURL,
-		Timeout:        cfg.EmailSender.APITimeout,
 	})
 	if err != nil {
-		return fmt.Errorf("create email sender client: %w", err)
+		return fmt.Errorf("create email renderer: %w", err)
 	}
 
 	// create auth token service
@@ -146,7 +143,7 @@ func run() error {
 	})
 
 	// create user facade
-	userFacade := facade.New(logger, userRepo, emailSender, authService, unsubscribeTokenGenerator, infoAPIClient)
+	userFacade := facade.New(logger, userRepo, emailPreparer, authService, unsubscribeTokenGenerator, infoAPIClient)
 
 	// auth api
 	authAPI, err := auth.NewAPI(logger, googleIDTokenClient, githubOAuthClient, userFacade, auth.APICfg{
@@ -161,26 +158,29 @@ func run() error {
 	// unsubscribe api
 	unsubscribeAPI := unsubscribe.NewAPI(logger, unsubscribeTokenGenerator, userFacade, cfg.EmailSender.ContactEmail)
 
-	// health check api
-	checkAPI := tools.NewHealthCheckAPI(db)
-
 	serverErrors := make(chan error, 3)
 
-	// start debug service
-	debugApp := api.DebugService()
+	// start debug service; it serves probes, so it starts first
+	hc := tools.NewHealthCheck(db)
+	debugService := observability.NewDebugServer(cfg.Debug.Address, hc.Liveness, hc.Readiness)
 	go func() {
-		logger.Info("Debug service started", zap.String("address", cfg.Web.DebugAddress))
-		serverErrors <- debugApp.Listen(cfg.Web.DebugAddress)
+		logger.Info("Debug service started", zap.String("address", cfg.Debug.Address))
+		serverErrors <- debugService.ListenAndServe()
 	}()
 
 	// start http service
-	app, tracerProvider, err := api.Service(logger, authAPI, checkAPI, unsubscribeAPI, cfg)
+	app, tracerProvider, err := api.Service(logger, authAPI, unsubscribeAPI, cfg)
 	if err != nil {
 		return fmt.Errorf("creating auth service: %w", err)
 	}
+	httpListenConfig := net.ListenConfig{}
+	httpListener, err := httpListenConfig.Listen(ctx, "tcp", cfg.Web.HTTPAddress)
+	if err != nil {
+		return fmt.Errorf("failed to create http listener: %w", err)
+	}
 	go func() {
 		logger.Info("Auth service started", zap.String("address", cfg.Web.HTTPAddress))
-		serverErrors <- app.Listen(cfg.Web.HTTPAddress)
+		serverErrors <- app.Listener(httpListener)
 	}()
 
 	// start grpc service
@@ -209,6 +209,8 @@ func run() error {
 		serverErrors <- grpcServer.Serve(listener)
 	}()
 
+	hc.SetReady(true)
+
 	// wait for shutdown signal
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
@@ -218,6 +220,10 @@ func run() error {
 		return fmt.Errorf("server error: %w", err)
 	case sig := <-shutdown:
 		logger.Info("shutdown signal received", zap.String("signal", sig.String()))
+
+		// fail readiness so traffic drains before servers stop
+		hc.SetReady(false)
+		time.Sleep(5 * time.Second)
 
 		bCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
@@ -238,7 +244,7 @@ func run() error {
 
 		// stop debug service
 		wg.Go(func() {
-			if shutdownErr := debugApp.ShutdownWithContext(bCtx); shutdownErr != nil {
+			if shutdownErr := debugService.Shutdown(bCtx); shutdownErr != nil {
 				logger.Error("debug service shutdown failed", zap.Error(shutdownErr))
 			}
 		})

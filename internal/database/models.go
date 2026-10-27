@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+	"uuid"
 
 	"github.com/OutOfStack/game-library-auth/internal/model"
-	"github.com/google/uuid"
 )
 
 const (

@@ -88,23 +88,6 @@ func TestMetrics_DifferentMethods(t *testing.T) {
 	}
 }
 
-func TestMetrics_SkipsMetricsEndpoint(t *testing.T) {
-	app := fiber.New()
-	app.Use(middleware.Metrics())
-	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
-
-	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/metrics", nil)
-	resp, err := app.Test(req)
-	require.NoError(t, err)
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
-
-	// /metrics endpoint should not be counted in http_server_requests_total
-	assert.NotContains(t, string(body), `http_server_requests_total{code="200",method="GET",path="/metrics"}`)
-}
-
 func TestMetrics_ResponseBodyWritten(t *testing.T) {
 	app := fiber.New()
 	app.Use(middleware.Metrics())

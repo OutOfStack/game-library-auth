@@ -13,11 +13,11 @@ import (
 
 // ResendVerificationEmailHandler godoc
 // @Summary      Resend email verification code
-// @Description  Resends email verification code to the user's email address
+// @Description  Queues an email verification code for asynchronous delivery
 // @Tags         auth
 // @Security     Bearer
 // @Produce      json
-// @Success      204 "Successfully resent verification email"
+// @Success      204 "Verification email queued"
 // @Failure      400 {object} web.ErrResp "User email is already verified"
 // @Failure      401 {object} web.ErrResp "Invalid or missing authorization token"
 // @Failure      429 {object} web.ErrResp "Too many resend requests"

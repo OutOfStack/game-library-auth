@@ -15,9 +15,9 @@ func (r *UserRepo) CreateUser(ctx context.Context, user User) error {
 	ctx, span := tracer.Start(ctx, "createUser")
 	defer span.End()
 
-	const q = `INSERT INTO users
-        (id, username, name, email, email_verified, password_hash, role, date_created)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`
+	const q = `
+INSERT INTO users (id, username, name, email, email_verified, password_hash, role, date_created)
+VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`
 
 	_, err := r.query().Exec(ctx, q, user.ID, user.Username, user.DisplayName, user.Email, user.EmailVerified, user.PasswordHash, user.Role)
 	if err != nil {
@@ -35,11 +35,12 @@ func (r *UserRepo) UpdateUser(ctx context.Context, user User) error {
 	ctx, span := tracer.Start(ctx, "updateUser")
 	defer span.End()
 
-	const q = `UPDATE users
-		SET name = COALESCE(NULLIF($2, ''), name),
-		password_hash = COALESCE(NULLIF($3, ''), password_hash),
-		date_updated = NOW()
-		WHERE id = $1`
+	const q = `
+UPDATE users
+SET name = COALESCE(NULLIF($2, ''), name),
+	password_hash = COALESCE(NULLIF($3, ''), password_hash),
+	date_updated = NOW()
+WHERE id = $1`
 
 	_, err := r.query().Exec(ctx, q, user.ID, user.DisplayName, user.PasswordHash)
 	if err != nil {
@@ -54,10 +55,11 @@ func (r *UserRepo) GetUserByID(ctx context.Context, userID string) (user User, e
 	ctx, span := tracer.Start(ctx, "getUserByID")
 	defer span.End()
 
-	const q = `SELECT id, username, name, email, email_verified, password_hash, role, date_created, date_updated
-		FROM users
-		WHERE id = $1
-		FOR NO KEY UPDATE`
+	const q = `
+SELECT id, username, name, email, email_verified, password_hash, role, date_created, date_updated
+FROM users
+WHERE id = $1
+FOR NO KEY UPDATE`
 
 	if err = r.query().Get(ctx, &user, q, userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -74,10 +76,11 @@ func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (user
 	ctx, span := tracer.Start(ctx, "getUserByUsername")
 	defer span.End()
 
-	const q = `SELECT id, username, name, email, email_verified, password_hash, role, date_created, date_updated
-		FROM users
-		WHERE username = $1
-		FOR NO KEY UPDATE`
+	const q = `
+SELECT id, username, name, email, email_verified, password_hash, role, date_created, date_updated
+FROM users
+WHERE username = $1
+FOR NO KEY UPDATE`
 
 	if err = r.query().Get(ctx, &user, q, username); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -94,10 +97,12 @@ func (r *UserRepo) CheckUserExists(ctx context.Context, name string, role model.
 	ctx, span := tracer.Start(ctx, "checkUserExists")
 	defer span.End()
 
-	const q = `SELECT EXISTS(
-		SELECT id
-		FROM users
-		WHERE name = $1 AND role = $2)`
+	const q = `
+SELECT EXISTS (
+	SELECT id
+	FROM users
+	WHERE name = $1 AND role = $2
+)`
 
 	var exists bool
 	if err := r.query().Get(ctx, &exists, q, name, role); err != nil {
@@ -112,10 +117,11 @@ func (r *UserRepo) GetUserByOAuthLink(ctx context.Context, provider string, oaut
 	ctx, span := tracer.Start(ctx, "getUserByOAuthLink")
 	defer span.End()
 
-	const q = `SELECT u.id, u.username, u.name, u.email, u.email_verified, u.role, u.date_created, u.date_updated
-		FROM users u 
-		JOIN user_oauth_links uol ON u.id = uol.user_id
-		WHERE uol.oauth_provider = $1 AND uol.oauth_id = $2`
+	const q = `
+SELECT u.id, u.username, u.name, u.email, u.email_verified, u.role, u.date_created, u.date_updated
+FROM users u
+JOIN user_oauth_links uol ON u.id = uol.user_id
+WHERE uol.oauth_provider = $1 AND uol.oauth_id = $2`
 
 	var user User
 	if err := r.query().Get(ctx, &user, q, provider, oauthID); err != nil {
@@ -133,9 +139,10 @@ func (r *UserRepo) CreateUserOAuthLink(ctx context.Context, link UserOAuthLink) 
 	ctx, span := tracer.Start(ctx, "createUserOAuthLink")
 	defer span.End()
 
-	const q = `INSERT INTO user_oauth_links (user_id, oauth_provider, oauth_id)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (oauth_provider, oauth_id) DO NOTHING`
+	const q = `
+INSERT INTO user_oauth_links (user_id, oauth_provider, oauth_id)
+VALUES ($1, $2, $3)
+ON CONFLICT (oauth_provider, oauth_id) DO NOTHING`
 
 	_, err := r.query().Exec(ctx, q, link.UserID, link.OAuthProvider, link.OAuthID)
 	if err != nil {
@@ -152,8 +159,12 @@ func (r *UserRepo) HasOAuthLink(ctx context.Context, userID string) (bool, error
 	ctx, span := tracer.Start(ctx, "hasOAuthLink")
 	defer span.End()
 
-	const q = `SELECT EXISTS(
-		SELECT 1 FROM user_oauth_links WHERE user_id = $1)`
+	const q = `
+SELECT EXISTS (
+	SELECT 1
+	FROM user_oauth_links
+	WHERE user_id = $1
+)`
 
 	var exists bool
 	if err := r.query().Get(ctx, &exists, q, userID); err != nil {
@@ -167,7 +178,9 @@ func (r *UserRepo) DeleteUser(ctx context.Context, userID string) error {
 	ctx, span := tracer.Start(ctx, "deleteUser")
 	defer span.End()
 
-	const q = `DELETE FROM users WHERE id = $1`
+	const q = `
+DELETE FROM users
+WHERE id = $1`
 
 	_, err := r.query().Exec(ctx, q, userID)
 	if err != nil {
@@ -182,9 +195,10 @@ func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (User, erro
 	ctx, span := tracer.Start(ctx, "getUserByEmail")
 	defer span.End()
 
-	const q = `SELECT id, username, name, email, email_verified, password_hash, role, date_created, date_updated
-		FROM users
-		WHERE email = $1`
+	const q = `
+SELECT id, username, name, email, email_verified, password_hash, role, date_created, date_updated
+FROM users
+WHERE email = $1`
 
 	var user User
 	if err := r.query().Get(ctx, &user, q, email); err != nil {
@@ -201,9 +215,10 @@ func (r *UserRepo) SetUserEmailVerified(ctx context.Context, userID string) erro
 	ctx, span := tracer.Start(ctx, "setUserVerified")
 	defer span.End()
 
-	const q = `UPDATE users
-        SET email_verified = TRUE, date_updated = NOW()
-        WHERE id = $1`
+	const q = `
+UPDATE users
+SET email_verified = TRUE, date_updated = NOW()
+WHERE id = $1`
 
 	_, err := r.query().Exec(ctx, q, userID)
 	if err != nil {

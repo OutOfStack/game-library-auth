@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
+	"github.com/OutOfStack/game-library-auth/internal/notification"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -672,6 +674,36 @@ func TestProvider_SignIn(t *testing.T) {
 
 		assert.ErrorIs(t, err, facade.ErrSignInInvalidCredentials)
 	})
+
+	t.Run("publisher verified concurrently", func(t *testing.T) {
+		provider, mockUserRepo, _, _, _, ctrl := setupTest(t)
+		defer ctrl.Finish()
+
+		password := "testpass"
+		passwordHash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+		unverified := database.User{
+			ID:           "user-123",
+			Username:     "publisher",
+			PasswordHash: passwordHash,
+			Email:        sql.NullString{String: "pub@example.com", Valid: true},
+			Role:         model.PublisherRoleName,
+		}
+		verified := unverified
+		verified.EmailVerified = true
+
+		mockUserRepo.EXPECT().GetUserByUsername(ctx, "publisher").Return(unverified, nil)
+		mockUserRepo.EXPECT().
+			RunWithTx(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, f func(context.Context) error) error {
+				return f(ctx)
+			})
+		mockUserRepo.EXPECT().GetUserByID(ctx, "user-123").Return(verified, nil)
+
+		result, err := provider.SignIn(ctx, "publisher", password)
+
+		require.NoError(t, err)
+		assert.True(t, result.EmailVerified)
+	})
 }
 
 func TestProvider_SignUp(t *testing.T) {
@@ -731,16 +763,9 @@ func TestProvider_SignUp(t *testing.T) {
 			CreateUser(ctx, gomock.Any()).
 			Return(nil)
 
-		// mock unsubscribe check
 		mockUserRepo.EXPECT().
-			IsEmailUnsubscribed(ctx, "pub@example.com").
-			Return(false, nil)
-
-		// mock email verification calls (with email sender enabled)
-		mockUserRepo.EXPECT().
-			GetEmailVerificationByUserID(ctx, gomock.Any()).
-			Return(database.EmailVerification{}, database.ErrNotFound).
-			AnyTimes()
+			GetVerificationState(ctx, gomock.Any(), "pub@example.com").
+			Return(database.VerificationState{Now: time.Now().UTC()}, nil)
 
 		mockUserRepo.EXPECT().
 			CreateEmailVerification(ctx, gomock.Any()).
@@ -748,12 +773,12 @@ func TestProvider_SignUp(t *testing.T) {
 			AnyTimes()
 
 		mockEmailSender.EXPECT().
-			SendEmailVerification(ctx, gomock.Any()).
-			Return("message-id-123", nil).
+			PrepareVerification(gomock.Any()).
+			Return(notification.Email{Text: "123456"}, nil).
 			AnyTimes()
 
 		mockUserRepo.EXPECT().
-			SetEmailVerificationMessageID(ctx, gomock.Any(), "message-id-123").
+			CreateNotification(ctx, gomock.Any()).
 			Return(nil).
 			AnyTimes()
 

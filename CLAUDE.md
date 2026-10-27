@@ -10,7 +10,7 @@
 - Write proper openapi-style specs for handlers.
 
 # Code practices:
-- For introducing config params, add new params to @app.example.env, then to @internal/appconf/settings.go and then to @.k8s/config.yaml
+- For introducing config params, add new params to @.example.env, then to @internal/appconf/settings.go and then to @.k8s/config.yaml
 - After adding new package, run `go mod tidy`
 
 ## gRPC
@@ -45,6 +45,7 @@
 ## Git Workflow Restrictions
 - DO NOT run any modifying `git` commands (i.e. `git add`, `git commit`, `git push`), only read commands allowed (i.e. `git status`, `git diff`, `git log`)
 - DO NOT delete files - notify me if files become redundant
+- NEVER add `Co-Authored-By` or any other co-author trailer to git commit messages
 
 ## File Ignoring Guidelines
 - DO NOT review or analyze files in the following directories:

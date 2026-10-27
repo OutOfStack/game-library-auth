@@ -2,10 +2,10 @@ package database_test
 
 import (
 	"testing"
+	"uuid"
 
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/model"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 

@@ -35,11 +35,6 @@ var (
 // Metrics records Prometheus metrics for each HTTP request
 func Metrics() fiber.Handler {
 	return func(c fiber.Ctx) error {
-		// skip metrics endpoint to avoid self-instrumentation
-		if c.Path() == "/metrics" {
-			return c.Next()
-		}
-
 		httpServerInFlight.Inc()
 		defer httpServerInFlight.Dec()
 

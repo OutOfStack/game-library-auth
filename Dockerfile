@@ -8,7 +8,7 @@ COPY go.mod go.sum  ./
 RUN go mod download
 
 # copy code and config into container
-COPY ./app.example.env ./out/app.env
+COPY ./.example.env ./out/.env
 COPY . .
 
 # build app
@@ -16,7 +16,10 @@ ARG APP_VERSION=dev
 ARG APP_COMMIT=unknown
 RUN go build \
     -ldflags "-X github.com/OutOfStack/game-library-auth/internal/version.appVersion=${APP_VERSION} -X github.com/OutOfStack/game-library-auth/internal/version.appCommit=${APP_COMMIT}" \
-    -o ./out/game-library-auth cmd/game-library-auth/main.go
+    -o ./out/game-library-auth cmd/api/main.go
+RUN go build \
+    -ldflags "-X github.com/OutOfStack/game-library-auth/internal/version.appVersion=${APP_VERSION} -X github.com/OutOfStack/game-library-auth/internal/version.appCommit=${APP_COMMIT}" \
+    -o ./out/game-library-auth-worker cmd/worker/main.go
 
 # run
 FROM alpine:3.24

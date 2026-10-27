@@ -3,10 +3,10 @@ package database_test
 import (
 	"testing"
 	"time"
+	"uuid"
 
 	"github.com/OutOfStack/game-library-auth/internal/database"
 	"github.com/OutOfStack/game-library-auth/internal/model"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -93,28 +93,37 @@ func TestGetEmailVerificationByUserID_MostRecent(t *testing.T) {
 	require.Equal(t, verification2.CodeHash, foundVerification.CodeHash)
 }
 
-func TestSetEmailVerificationMessageID_Ok(t *testing.T) {
+func TestGetVerificationState(t *testing.T) {
 	s := setup(t)
 	defer teardown(t)
 
 	ctx := t.Context()
+	email := "state@example.com"
+	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.PublisherRoleName)
+	require.NoError(t, s.CreateUser(ctx, user))
 
-	user := database.NewUser("testuser", "Test User", []byte("hashedpassword"), model.UserRoleName)
-	err := s.CreateUser(ctx, user)
+	state, err := s.GetVerificationState(ctx, user.ID, email)
 	require.NoError(t, err)
+	require.False(t, state.LatestID.Valid)
+	require.False(t, state.Unsubscribed)
+	require.WithinDuration(t, time.Now(), state.Now, time.Minute)
 
-	verification := database.NewEmailVerification(user.ID, "hashedcode123", "unsubscribe_token", time.Now())
-	err = s.CreateEmailVerification(ctx, verification)
-	require.NoError(t, err)
+	older := database.NewEmailVerification(user.ID, "hash1", "token1", time.Now().Add(-time.Hour))
+	latest := database.NewEmailVerification(user.ID, "hash2", "token2", time.Now())
+	require.NoError(t, s.CreateEmailVerification(ctx, older))
+	require.NoError(t, s.CreateEmailVerification(ctx, latest))
+	require.NoError(t, s.CreateEmailUnsubscribe(ctx, database.NewEmailUnsubscribe(email)))
 
-	messageID := "msg_12345"
-	err = s.SetEmailVerificationMessageID(ctx, verification.ID, messageID)
+	state, err = s.GetVerificationState(ctx, user.ID, email)
 	require.NoError(t, err)
+	require.Equal(t, latest.ID, state.LatestID.String)
+	require.WithinDuration(t, latest.DateCreated, state.LatestCreated.Time, time.Millisecond)
+	require.True(t, state.Unsubscribed)
 
-	// Verify message ID was set
-	updatedVerification, err := s.GetEmailVerificationByUserID(ctx, user.ID)
+	require.NoError(t, s.SetEmailVerificationUsed(ctx, latest.ID, true))
+	state, err = s.GetVerificationState(ctx, user.ID, email)
 	require.NoError(t, err)
-	require.Equal(t, messageID, updatedVerification.MessageID.String)
+	require.Equal(t, older.ID, state.LatestID.String, "used codes are skipped")
 }
 
 func TestSetEmailVerificationUsed_Ok(t *testing.T) {

@@ -10,9 +10,10 @@ func (r *UserRepo) CreateEmailUnsubscribe(ctx context.Context, unsubscribe Email
 	ctx, span := tracer.Start(ctx, "createEmailUnsubscribe")
 	defer span.End()
 
-	const q = `INSERT INTO email_unsubscribes (id, email, date_created)
-        VALUES ($1, $2, NOW())
-        ON CONFLICT (email) DO NOTHING`
+	const q = `
+INSERT INTO email_unsubscribes (id, email, date_created)
+VALUES ($1, $2, NOW())
+ON CONFLICT (email) DO NOTHING`
 
 	_, err := r.query().Exec(ctx, q, unsubscribe.ID, unsubscribe.Email)
 	if err != nil {
@@ -27,7 +28,12 @@ func (r *UserRepo) IsEmailUnsubscribed(ctx context.Context, email string) (bool,
 	ctx, span := tracer.Start(ctx, "isEmailUnsubscribed")
 	defer span.End()
 
-	const q = `SELECT EXISTS(SELECT 1 FROM email_unsubscribes WHERE email = $1)`
+	const q = `
+SELECT EXISTS (
+	SELECT 1
+	FROM email_unsubscribes
+	WHERE email = $1
+)`
 
 	var exists bool
 	if err := r.query().Get(ctx, &exists, q, email); err != nil {
@@ -42,7 +48,10 @@ func (r *UserRepo) SetUnsubscribeToken(ctx context.Context, id string, token str
 	ctx, span := tracer.Start(ctx, "setUnsubscribeToken")
 	defer span.End()
 
-	const q = `UPDATE email_verifications SET unsubscribe_token = $1 WHERE id = $2`
+	const q = `
+UPDATE email_verifications
+SET unsubscribe_token = $1
+WHERE id = $2`
 
 	_, err := r.query().Exec(ctx, q, token, id)
 	if err != nil {
