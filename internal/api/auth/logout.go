@@ -10,14 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// LogoutHandler godoc
-// @Summary      Logout user
-// @Description  Revokes the refresh token and clears the refresh token cookie
-// @Tags         auth
-// @Success      204 "Successfully logged out"
-// @Failure      500 {object} web.ErrResp
-// @Router       /logout [post]
-func (a *API) LogoutHandler(c fiber.Ctx) error {
+// Logout revokes refresh token from cookie if present and clears refresh token cookie
+func (a *API) Logout(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "logout")
 	defer span.End()
 

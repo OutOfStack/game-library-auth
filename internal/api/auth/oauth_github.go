@@ -3,30 +3,19 @@ package auth
 import (
 	"net/http"
 
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
-// GitHubOAuthHandler godoc
-// @Summary 		  GitHub OAuth sign in handler
-// @Description 	  Handles GitHub OAuth 2.0 authentication using authorization code
-// @Tags 			  auth
-// @Accept 			  json
-// @Produce 		  json
-// @Param 			  code body GitHubOAuthRequest true "GitHub OAuth authorization code"
-// @Success 		  200 {object} TokenResp "User credentials"
-// @Failure 		  400 {object} web.ErrResp
-// @Failure 		  401 {object} web.ErrResp
-// @Failure 		  403 {object} web.ErrResp
-// @Failure 		  409 {object} web.ErrResp
-// @Router 			  /oauth/github [post]
-func (a *API) GitHubOAuthHandler(c fiber.Ctx) error {
+// GitHubOAuth signs in or signs up user with GitHub authorization code, returns access token and sets refresh token cookie
+func (a *API) GitHubOAuth(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "gitHubOAuth")
 	defer span.End()
 
-	var req GitHubOAuthRequest
+	var req openapi.GitHubOAuthRequest
 	if err := c.Bind().Body(&req); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
@@ -61,7 +50,7 @@ func (a *API) GitHubOAuthHandler(c fiber.Ctx) error {
 	// set refresh token as a cookie
 	a.setRefreshTokenCookie(c, tokens.RefreshToken)
 
-	return c.JSON(TokenResp{
+	return c.JSON(openapi.TokenResp{
 		AccessToken: tokens.AccessToken,
 	})
 }

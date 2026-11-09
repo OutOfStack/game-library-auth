@@ -21,3 +21,9 @@ func (e *ValidationError) Error() string {
 	}
 	return fmt.Sprintf("%s%s", e.Err.Error(), fieldsMsg)
 }
+
+// ErrResp is a response in case of an error
+type ErrResp struct {
+	Error  string       `json:"error"`
+	Fields []FieldError `json:"fields,omitempty"`
+}

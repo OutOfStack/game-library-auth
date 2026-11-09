@@ -11,19 +11,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// ResendVerificationEmailHandler godoc
-// @Summary      Resend email verification code
-// @Description  Queues an email verification code for asynchronous delivery
-// @Tags         auth
-// @Security     Bearer
-// @Produce      json
-// @Success      204 "Verification email queued"
-// @Failure      400 {object} web.ErrResp "User email is already verified"
-// @Failure      401 {object} web.ErrResp "Invalid or missing authorization token"
-// @Failure      429 {object} web.ErrResp "Too many resend requests"
-// @Failure      500 {object} web.ErrResp "Internal server error"
-// @Router       /resend-verification [post]
-func (a *API) ResendVerificationEmailHandler(c fiber.Ctx) error {
+// ResendVerificationEmail queues email verification code for asynchronous delivery
+func (a *API) ResendVerificationEmail(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "resendVerificationEmail")
 	defer span.End()
 

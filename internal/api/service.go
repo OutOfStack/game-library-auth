@@ -2,13 +2,16 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
-	_ "github.com/OutOfStack/game-library-auth/docs" // swagger docs
+	"github.com/OutOfStack/game-library-auth/api"
 	"github.com/OutOfStack/game-library-auth/internal/api/auth"
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	"github.com/OutOfStack/game-library-auth/internal/api/unsubscribe"
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/middleware"
+	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/OutOfStack/game-library-auth/pkg/observability"
 	fiberotel "github.com/gofiber/contrib/v3/otel"
 	"github.com/gofiber/contrib/v3/swaggo"
@@ -34,7 +37,7 @@ func Service(
 	}
 
 	// initialize HTML template engine
-	viewEngine := html.New("./internal/web/templates", ".html")
+	viewEngine := html.NewFileSystem(http.FS(web.Templates()), ".html")
 
 	app := fiber.New(fiber.Config{
 		AppName:      appconf.ServiceName,
@@ -62,27 +65,27 @@ func Service(
 	return app, tp, nil
 }
 
+// aliases give embedded APIs distinct field names
+type (
+	authHandlers        = auth.API
+	unsubscribeHandlers = unsubscribe.API
+)
+
+// server implements operations generated from OpenAPI spec
+type server struct {
+	*authHandlers
+	*unsubscribeHandlers
+}
+
+var _ openapi.ServerInterface = server{}
+
 func registerRoutes(app *fiber.App, authAPI *auth.API, unsubscribeAPI *unsubscribe.API) {
-	// user
-	app.Post("/signin", authAPI.SignInHandler)
-	app.Post("/signup", authAPI.SignUpHandler)
-	app.Patch("/account", authAPI.UpdateProfileHandler)
-	app.Delete("/account", authAPI.DeleteAccountHandler)
-	app.Post("/oauth/google", authAPI.GoogleOAuthHandler)
-	app.Post("/oauth/github", authAPI.GitHubOAuthHandler)
-	app.Post("/logout", authAPI.LogoutHandler)
-
-	// email verification
-	app.Post("/verify-email", authAPI.VerifyEmailHandler)
-	app.Post("/resend-verification", authAPI.ResendVerificationEmailHandler)
-
-	// unsubscribe
-	app.Get("/unsubscribe", unsubscribeAPI.UnsubscribeHandler)
-	app.Post("/unsubscribe", unsubscribeAPI.UnsubscribeConfirmHandler)
-
-	// token
-	app.Post("/refresh", authAPI.RefreshTokenHandler)
+	openapi.RegisterHandlers(app, server{authHandlers: authAPI, unsubscribeHandlers: unsubscribeAPI})
 
 	// swagger
-	app.Get("/swagger/*", swaggo.HandlerDefault)
+	app.Get("/swagger/openapi.yaml", func(c fiber.Ctx) error {
+		c.Set(fiber.HeaderContentType, "application/yaml")
+		return c.Send(api.OpenAPISpec)
+	})
+	app.Get("/swagger/*", swaggo.New(swaggo.Config{URL: "/swagger/openapi.yaml"}))
 }

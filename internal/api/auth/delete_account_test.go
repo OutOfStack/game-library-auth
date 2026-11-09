@@ -98,7 +98,7 @@ func TestDeleteAccountHandler(t *testing.T) {
 				tt.setupMocks(mockUserFacade)
 			}
 
-			app.Post("/delete_account", authAPI.DeleteAccountHandler)
+			app.Post("/delete_account", authAPI.DeleteAccount)
 
 			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/delete_account", nil)
 			if tt.authHeader != "" {

@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/OutOfStack/game-library-auth/internal/api/auth"
 	mocks "github.com/OutOfStack/game-library-auth/internal/api/auth/mocks"
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v3"
@@ -38,7 +38,7 @@ func TestRefreshTokenHandler(t *testing.T) {
 					}, nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedResp: auth.TokenResp{
+			expectedResp: openapi.TokenResp{
 				AccessToken: "new-access-token",
 			},
 		},
@@ -100,7 +100,7 @@ func TestRefreshTokenHandler(t *testing.T) {
 
 			tt.setupMocks(mockUserFacade)
 
-			app.Post("/refresh", authAPI.RefreshTokenHandler)
+			app.Post("/refresh", authAPI.RefreshToken)
 
 			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/refresh", nil)
 			if tt.cookieValue != "" {
@@ -120,8 +120,8 @@ func TestRefreshTokenHandler(t *testing.T) {
 			require.NoError(t, err)
 
 			switch expected := tt.expectedResp.(type) {
-			case auth.TokenResp:
-				var tokenResp auth.TokenResp
+			case openapi.TokenResp:
+				var tokenResp openapi.TokenResp
 				err = json.Unmarshal(body, &tokenResp)
 				require.NoError(t, err)
 				assert.Equal(t, expected.AccessToken, tokenResp.AccessToken)

@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/OutOfStack/game-library-auth/internal/api/auth"
 	mocks "github.com/OutOfStack/game-library-auth/internal/api/auth/mocks"
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
@@ -22,14 +22,14 @@ import (
 func TestSignInHandler(t *testing.T) {
 	tests := []struct {
 		name           string
-		request        auth.SignInReq
+		request        openapi.SignInReq
 		setupMocks     func(*mocks.MockUserFacade)
 		expectedStatus int
 		expectedResp   any
 	}{
 		{
 			name: "successful sign in",
-			request: auth.SignInReq{
+			request: openapi.SignInReq{
 				Username: "testuser",
 				Password: "password123",
 			},
@@ -48,13 +48,13 @@ func TestSignInHandler(t *testing.T) {
 					}, nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedResp: auth.TokenResp{
+			expectedResp: openapi.TokenResp{
 				AccessToken: "valid.jwt.token",
 			},
 		},
 		{
 			name: "user not found",
-			request: auth.SignInReq{
+			request: openapi.SignInReq{
 				Username: "nonexistent",
 				Password: "password123",
 			},
@@ -70,7 +70,7 @@ func TestSignInHandler(t *testing.T) {
 		},
 		{
 			name: "invalid password",
-			request: auth.SignInReq{
+			request: openapi.SignInReq{
 				Username: "testuser",
 				Password: "wrongpassword",
 			},
@@ -86,7 +86,7 @@ func TestSignInHandler(t *testing.T) {
 		},
 		{
 			name: "user repo error",
-			request: auth.SignInReq{
+			request: openapi.SignInReq{
 				Username: "testuser",
 				Password: "password123",
 			},
@@ -102,7 +102,7 @@ func TestSignInHandler(t *testing.T) {
 		},
 		{
 			name: "token generation error",
-			request: auth.SignInReq{
+			request: openapi.SignInReq{
 				Username: "testuser",
 				Password: "password123",
 			},
@@ -133,7 +133,7 @@ func TestSignInHandler(t *testing.T) {
 				tt.setupMocks(mockUserFacade)
 			}
 
-			app.Post("/signin", authAPI.SignInHandler)
+			app.Post("/signin", authAPI.SignIn)
 
 			reqBody, _ := json.Marshal(tt.request)
 			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/signin", bytes.NewReader(reqBody))
@@ -149,8 +149,8 @@ func TestSignInHandler(t *testing.T) {
 			require.NoError(t, err)
 
 			switch v := tt.expectedResp.(type) {
-			case auth.TokenResp:
-				var actual auth.TokenResp
+			case openapi.TokenResp:
+				var actual openapi.TokenResp
 				err = json.Unmarshal(body, &actual)
 				require.NoError(t, err)
 				assert.Equal(t, v, actual)

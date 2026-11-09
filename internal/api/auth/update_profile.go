@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
@@ -11,22 +12,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// UpdateProfileHandler godoc
-// @Summary 			Update user profile
-// @Description 		Updates the profile information of a user
-// @Tags 				auth
-// @Security     		Bearer
-// @Accept 				json
-// @Produce 			json
-// @Param 				Authorization header string true "Bearer token"
-// @Param 				profile body UpdateProfileReq true "Update profile parameters"
-// @Success 			200 {object} TokenResp "Returns new access token"
-// @Failure 			400 {object} web.ErrResp "Bad request"
-// @Failure 			401 {object} web.ErrResp "Invalid password or token"
-// @Failure 			404 {object} web.ErrResp "User not found"
-// @Failure 			500 {object} web.ErrResp "Internal server error"
-// @Router 				/account [patch]
-func (a *API) UpdateProfileHandler(c fiber.Ctx) error {
+// UpdateProfile updates user name and/or password, returns new access token and sets refresh token cookie
+func (a *API) UpdateProfile(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "updateProfile")
 	defer span.End()
 
@@ -39,7 +26,7 @@ func (a *API) UpdateProfileHandler(c fiber.Ctx) error {
 		})
 	}
 
-	var params UpdateProfileReq
+	var params openapi.UpdateProfileReq
 	if err = c.Bind().Body(&params); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
@@ -114,7 +101,7 @@ func (a *API) UpdateProfileHandler(c fiber.Ctx) error {
 	// set refresh token as a cookie
 	a.setRefreshTokenCookie(c, tokens.RefreshToken)
 
-	return c.JSON(TokenResp{
+	return c.JSON(openapi.TokenResp{
 		AccessToken: tokens.AccessToken,
 	})
 }
