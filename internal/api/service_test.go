@@ -46,6 +46,17 @@ func TestService(t *testing.T) {
 		assert.Equal(t, specs.OpenAPISpec, body)
 	})
 
+	t.Run("swagger ui loads spec by relative url", func(t *testing.T) {
+		resp, err := app.Test(httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/swagger/index.html", nil))
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Contains(t, string(body), `"url":"openapi.yaml"`)
+	})
+
 	t.Run("registers spec routes", func(t *testing.T) {
 		registered := make(map[[2]string]bool)
 		for _, r := range app.GetRoutes(true) {

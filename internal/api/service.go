@@ -87,5 +87,6 @@ func registerRoutes(app *fiber.App, authAPI *auth.API, unsubscribeAPI *unsubscri
 		c.Set(fiber.HeaderContentType, "application/yaml")
 		return c.Send(api.OpenAPISpec)
 	})
-	app.Get("/swagger/*", swaggo.New(swaggo.Config{URL: "/swagger/openapi.yaml"}))
+	// relative spec URL resolves against index page, so it also works behind ingress path prefix
+	app.Get("/swagger/*", swaggo.New(swaggo.Config{URL: "openapi.yaml"}))
 }
