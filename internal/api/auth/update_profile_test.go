@@ -10,8 +10,8 @@ import (
 	"testing"
 	"uuid"
 
-	"github.com/OutOfStack/game-library-auth/internal/api/auth"
 	mocks "github.com/OutOfStack/game-library-auth/internal/api/auth/mocks"
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	auth_ "github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
@@ -30,7 +30,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 	tests := []struct {
 		name           string
 		authHeader     string
-		request        auth.UpdateProfileReq
+		request        openapi.UpdateProfileReq
 		setupMocks     func(*mocks.MockUserFacade)
 		expectedStatus int
 		expectedResp   any
@@ -38,7 +38,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 		{
 			name:       "successful update name",
 			authHeader: "Bearer valid-token",
-			request: auth.UpdateProfileReq{
+			request: openapi.UpdateProfileReq{
 				Name: &newName,
 			},
 			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
@@ -61,14 +61,14 @@ func TestUpdateProfileHandler(t *testing.T) {
 					}, nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedResp: auth.TokenResp{
+			expectedResp: openapi.TokenResp{
 				AccessToken: "updated.jwt.token",
 			},
 		},
 		{
 			name:       "successful update password",
 			authHeader: "Bearer valid-token",
-			request: auth.UpdateProfileReq{
+			request: openapi.UpdateProfileReq{
 				Password:           &oldPassword,
 				NewPassword:        &newPassword,
 				ConfirmNewPassword: &newPassword,
@@ -93,14 +93,14 @@ func TestUpdateProfileHandler(t *testing.T) {
 					}, nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedResp: auth.TokenResp{
+			expectedResp: openapi.TokenResp{
 				AccessToken: "updated.jwt.token",
 			},
 		},
 		{
 			name:       "user not found",
 			authHeader: "Bearer valid-token",
-			request: auth.UpdateProfileReq{
+			request: openapi.UpdateProfileReq{
 				Name: &newName,
 			},
 			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
@@ -122,7 +122,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 		{
 			name:       "invalid current password",
 			authHeader: "Bearer valid-token",
-			request: auth.UpdateProfileReq{
+			request: openapi.UpdateProfileReq{
 				Password:           &oldPassword,
 				NewPassword:        &newPassword,
 				ConfirmNewPassword: &newPassword,
@@ -145,7 +145,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 		{
 			name:       "user repo error on update",
 			authHeader: "Bearer valid-token",
-			request: auth.UpdateProfileReq{
+			request: openapi.UpdateProfileReq{
 				Name: &newName,
 			},
 			setupMocks: func(mockUserFacade *mocks.MockUserFacade) {
@@ -166,7 +166,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 		{
 			name:       "missing authorization header",
 			authHeader: "",
-			request: auth.UpdateProfileReq{
+			request: openapi.UpdateProfileReq{
 				Name: &newName,
 			},
 			setupMocks:     func(_ *mocks.MockUserFacade) {},
@@ -178,7 +178,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 		{
 			name:       "invalid authorization header format",
 			authHeader: "InvalidFormat",
-			request: auth.UpdateProfileReq{
+			request: openapi.UpdateProfileReq{
 				Name: &newName,
 			},
 			setupMocks:     func(_ *mocks.MockUserFacade) {},
@@ -198,7 +198,7 @@ func TestUpdateProfileHandler(t *testing.T) {
 				tt.setupMocks(mockUserFacade)
 			}
 
-			app.Post("/update_profile", authAPI.UpdateProfileHandler)
+			app.Post("/update_profile", authAPI.UpdateProfile)
 
 			reqBody, _ := json.Marshal(tt.request)
 			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/update_profile", bytes.NewReader(reqBody))
@@ -217,8 +217,8 @@ func TestUpdateProfileHandler(t *testing.T) {
 			require.NoError(t, err)
 
 			switch v := tt.expectedResp.(type) {
-			case auth.TokenResp:
-				var actual auth.TokenResp
+			case openapi.TokenResp:
+				var actual openapi.TokenResp
 				err = json.Unmarshal(body, &actual)
 				require.NoError(t, err)
 				assert.Equal(t, v, actual)

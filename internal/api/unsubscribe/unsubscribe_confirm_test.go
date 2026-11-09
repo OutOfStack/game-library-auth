@@ -31,7 +31,7 @@ func TestUnsubscribeConfirmHandler_Success(t *testing.T) {
 	mockFacade.EXPECT().UnsubscribeEmail(gomock.Any(), token).Return(email, nil)
 
 	app := fiber.New(fiber.Config{Views: mockViews})
-	app.Post("/unsubscribe", api.UnsubscribeConfirmHandler)
+	app.Post("/unsubscribe", api.UnsubscribeConfirm)
 
 	form := url.Values{}
 	form.Add("token", token)
@@ -51,7 +51,7 @@ func TestUnsubscribeConfirmHandler_MissingToken(t *testing.T) {
 	defer ctrl.Finish()
 
 	app := fiber.New()
-	app.Post("/unsubscribe", api.UnsubscribeConfirmHandler)
+	app.Post("/unsubscribe", api.UnsubscribeConfirm)
 
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/unsubscribe", nil)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -71,7 +71,7 @@ func TestUnsubscribeConfirmHandler_NotFound(t *testing.T) {
 	defer ctrl.Finish()
 
 	app := fiber.New()
-	app.Post("/unsubscribe", api.UnsubscribeConfirmHandler)
+	app.Post("/unsubscribe", api.UnsubscribeConfirm)
 
 	email := "test@example.com"
 	expiresAt := time.Now().Add(24 * time.Hour)
@@ -100,7 +100,7 @@ func TestUnsubscribeConfirmHandler_DatabaseError(t *testing.T) {
 	defer ctrl.Finish()
 
 	app := fiber.New()
-	app.Post("/unsubscribe", api.UnsubscribeConfirmHandler)
+	app.Post("/unsubscribe", api.UnsubscribeConfirm)
 
 	email := "test@example.com"
 	expiresAt := time.Now().Add(24 * time.Hour)

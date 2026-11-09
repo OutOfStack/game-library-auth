@@ -37,15 +37,6 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-// @title Game library auth API
-// @version 0.4
-// @description API for game library auth service
-// @termsOfService http://swagger.io/terms/
-
-// @host localhost:8001
-// @BasePath /
-// @query.collection.format multi
-// @schemes http
 func main() {
 	if err := run(); err != nil {
 		log.Fatal(err)
