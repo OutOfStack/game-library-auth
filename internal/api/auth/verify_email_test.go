@@ -9,8 +9,8 @@ import (
 	"time"
 	"uuid"
 
-	"github.com/OutOfStack/game-library-auth/internal/api/auth"
 	mocks "github.com/OutOfStack/game-library-auth/internal/api/auth/mocks"
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	auth_ "github.com/OutOfStack/game-library-auth/internal/auth"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
@@ -35,7 +35,7 @@ func TestVerifyEmailHandler(t *testing.T) {
 	}{
 		{
 			name: "successful verification",
-			request: auth.VerifyEmailReq{
+			request: openapi.VerifyEmailReq{
 				Code: code,
 			},
 			authHeader: "Bearer valid-token",
@@ -48,11 +48,11 @@ func TestVerifyEmailHandler(t *testing.T) {
 				}, nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedResp:   auth.TokenResp{AccessToken: "new.jwt.token"},
+			expectedResp:   openapi.TokenResp{AccessToken: "new.jwt.token"},
 		},
 		{
 			name: "missing auth header",
-			request: auth.VerifyEmailReq{
+			request: openapi.VerifyEmailReq{
 				Code: code,
 			},
 			authHeader:     "",
@@ -62,7 +62,7 @@ func TestVerifyEmailHandler(t *testing.T) {
 		},
 		{
 			name: "expired verification code",
-			request: auth.VerifyEmailReq{
+			request: openapi.VerifyEmailReq{
 				Code: code,
 			},
 			authHeader: "Bearer valid-token",
@@ -74,7 +74,7 @@ func TestVerifyEmailHandler(t *testing.T) {
 		},
 		{
 			name: "user email already verified",
-			request: auth.VerifyEmailReq{
+			request: openapi.VerifyEmailReq{
 				Code: code,
 			},
 			authHeader: "Bearer valid-token",
@@ -102,7 +102,7 @@ func TestVerifyEmailHandler(t *testing.T) {
 				tt.setupMocks(mockUserFacade)
 			}
 
-			app.Post("/verify-email", authAPI.VerifyEmailHandler)
+			app.Post("/verify-email", authAPI.VerifyEmail)
 
 			reqBody, _ := json.Marshal(tt.request)
 			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/verify-email", bytes.NewReader(reqBody))
@@ -122,7 +122,7 @@ func TestVerifyEmailHandler(t *testing.T) {
 				if _, ok := tt.expectedResp.(web.ErrResp); ok {
 					actual = &web.ErrResp{}
 				} else {
-					actual = &auth.TokenResp{}
+					actual = &openapi.TokenResp{}
 				}
 				require.NoError(t, json.NewDecoder(resp.Body).Decode(actual))
 
@@ -131,8 +131,8 @@ func TestVerifyEmailHandler(t *testing.T) {
 					actual, ok := actual.(*web.ErrResp)
 					require.True(t, ok)
 					assert.Equal(t, expected.Error, actual.Error)
-				case auth.TokenResp:
-					actual, ok := actual.(*auth.TokenResp)
+				case openapi.TokenResp:
+					actual, ok := actual.(*openapi.TokenResp)
 					require.True(t, ok)
 					assert.Equal(t, expected.AccessToken, actual.AccessToken)
 				}

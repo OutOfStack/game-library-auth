@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
+	"github.com/OutOfStack/game-library-auth/internal/api/unsubscribe"
 	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +29,7 @@ func TestUnsubscribeHandler_Success(t *testing.T) {
 	mockFacade.EXPECT().IsEmailUnsubscribed(gomock.Any(), email).Return(false, nil)
 
 	app := fiber.New(fiber.Config{Views: mockViews})
-	app.Get("/unsubscribe", api.UnsubscribeHandler)
+	app.Get("/unsubscribe", unsubscribeRoute(api))
 
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/unsubscribe?token="+token, nil)
 	resp, err := app.Test(req)
@@ -42,7 +44,7 @@ func TestUnsubscribeHandler_MissingToken(t *testing.T) {
 	defer ctrl.Finish()
 
 	app := fiber.New()
-	app.Get("/unsubscribe", api.UnsubscribeHandler)
+	app.Get("/unsubscribe", unsubscribeRoute(api))
 
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/unsubscribe", nil)
 	resp, err := app.Test(req)
@@ -60,7 +62,7 @@ func TestUnsubscribeHandler_InvalidToken(t *testing.T) {
 	defer ctrl.Finish()
 
 	app := fiber.New()
-	app.Get("/unsubscribe", api.UnsubscribeHandler)
+	app.Get("/unsubscribe", unsubscribeRoute(api))
 
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/unsubscribe?token=invalid-token", nil)
 	resp, err := app.Test(req)
@@ -78,7 +80,7 @@ func TestUnsubscribeHandler_ExpiredToken(t *testing.T) {
 	defer ctrl.Finish()
 
 	app := fiber.New()
-	app.Get("/unsubscribe", api.UnsubscribeHandler)
+	app.Get("/unsubscribe", unsubscribeRoute(api))
 
 	email := "test@example.com"
 	expiresAt := time.Now().Add(-1 * time.Hour)
@@ -109,7 +111,7 @@ func TestUnsubscribeHandler_AlreadyUnsubscribed(t *testing.T) {
 	mockFacade.EXPECT().IsEmailUnsubscribed(gomock.Any(), email).Return(true, nil)
 
 	app := fiber.New(fiber.Config{Views: mockViews})
-	app.Get("/unsubscribe", api.UnsubscribeHandler)
+	app.Get("/unsubscribe", unsubscribeRoute(api))
 
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/unsubscribe?token="+token, nil)
 	resp, err := app.Test(req)
@@ -117,4 +119,10 @@ func TestUnsubscribeHandler_AlreadyUnsubscribed(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func unsubscribeRoute(api *unsubscribe.API) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		return api.Unsubscribe(c, openapi.UnsubscribeParams{Token: c.Query("token")})
+	}
 }

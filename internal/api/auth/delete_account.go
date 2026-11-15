@@ -10,17 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// DeleteAccountHandler godoc
-// @Summary 			Delete user account
-// @Description 		Deletes a user account
-// @Tags 				auth
-// @Produce 			json
-// @Param 				Authorization header string true "Bearer token"
-// @Success 			204 "Successfully deleted account"
-// @Failure 			401 {object} web.ErrResp "Unauthorized"
-// @Failure 			500 {object} web.ErrResp "Internal server error"
-// @Router 				/account [delete]
-func (a *API) DeleteAccountHandler(c fiber.Ctx) error {
+// DeleteAccount deletes user account and clears refresh token cookie
+func (a *API) DeleteAccount(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "deleteAccount")
 	defer span.End()
 

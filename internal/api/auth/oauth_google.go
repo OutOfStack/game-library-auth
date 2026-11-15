@@ -5,30 +5,19 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	"github.com/OutOfStack/game-library-auth/internal/model"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
-// GoogleOAuthHandler godoc
-// @Summary 		  Google OAuth sign in handler
-// @Description 	  Handles Google OAuth 2.0 authentication
-// @Tags 			  auth
-// @Accept 			  json
-// @Produce 		  json
-// @Param 			  token body GoogleOAuthRequest true "Google OAuth token"
-// @Success 		  200 {object} TokenResp "User credentials"
-// @Failure 		  400 {object} web.ErrResp
-// @Failure 		  401 {object} web.ErrResp
-// @Failure 		  403 {object} web.ErrResp
-// @Failure 		  409 {object} web.ErrResp
-// @Router 			  /oauth/google [post]
-func (a *API) GoogleOAuthHandler(c fiber.Ctx) error {
+// GoogleOAuth signs in or signs up user with Google ID token, returns access token and sets refresh token cookie
+func (a *API) GoogleOAuth(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "googleOAuth")
 	defer span.End()
 
-	var req GoogleOAuthRequest
+	var req openapi.GoogleOAuthRequest
 	if err := c.Bind().Body(&req); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
@@ -63,7 +52,7 @@ func (a *API) GoogleOAuthHandler(c fiber.Ctx) error {
 	// set refresh token as a cookie
 	a.setRefreshTokenCookie(c, tokens.RefreshToken)
 
-	return c.JSON(TokenResp{
+	return c.JSON(openapi.TokenResp{
 		AccessToken: tokens.AccessToken,
 	})
 }

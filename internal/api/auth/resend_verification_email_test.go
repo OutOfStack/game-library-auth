@@ -136,7 +136,7 @@ func TestResendVerificationEmailHandler(t *testing.T) {
 				tt.setupMocks(mockUserFacade)
 			}
 
-			app.Post("/resend-verification", authAPI.ResendVerificationEmailHandler)
+			app.Post("/resend-verification", authAPI.ResendVerificationEmail)
 
 			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/resend-verification", nil)
 			req.Header.Set("Authorization", tt.authHeader)

@@ -18,7 +18,7 @@ services:
       - .env
     ports:
       - "8001:8000"
-      - "6061:6060"
+      - "6062:6060"
       - "9001:9000"
     environment:
       DB_DSN: postgres://auth-user:auth-password@db/auth?sslmode=disable
@@ -34,7 +34,7 @@ services:
     env_file:
       - .env
     ports:
-      - "6062:6060"
+      - "6063:6060"
     environment:
       DB_DSN: postgres://auth-user:auth-password@db/auth?sslmode=disable
       APP_DEBUG_ADDRESS: 0.0.0.0:6060

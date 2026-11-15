@@ -66,7 +66,7 @@ func TestLogoutHandler(t *testing.T) {
 
 			tt.setupMocks(mockUserFacade)
 
-			app.Post("/logout", authAPI.LogoutHandler)
+			app.Post("/logout", authAPI.Logout)
 
 			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/logout", nil)
 			if tt.cookieValue != "" {

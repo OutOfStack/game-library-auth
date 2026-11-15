@@ -1,0 +1,522 @@
+openapi: 3.0.3
+info:
+  title: Game library auth API
+  description: API for game library auth service
+  version: "0.4"
+servers:
+  - url: /
+
+tags:
+  - name: auth
+  - name: account
+  - name: unsubscribe
+
+paths:
+  /signin:
+    post:
+      tags: [auth]
+      operationId: SignIn
+      summary: Sign in
+      description: authenticates user with username and password, returns access token and sets refresh token cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInReq"
+      responses:
+        "200":
+          $ref: "#/components/responses/Token"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+
+  /signup:
+    post:
+      tags: [auth]
+      operationId: SignUp
+      summary: Sign up
+      description: creates new user account, returns access token and sets refresh token cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpReq"
+      responses:
+        "200":
+          $ref: "#/components/responses/Token"
+        "400":
+          $ref: "#/components/responses/Error"
+        "409":
+          description: username, email or publisher name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/Error"
+
+  /oauth/google:
+    post:
+      tags: [auth]
+      operationId: GoogleOAuth
+      summary: Google OAuth sign in
+      description: signs in or signs up user with Google ID token, returns access token and sets refresh token cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleOAuthRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/Token"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          description: Google email is not verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: account conflicts with existing publisher or incomplete account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/Error"
+
+  /oauth/github:
+    post:
+      tags: [auth]
+      operationId: GitHubOAuth
+      summary: GitHub OAuth sign in
+      description: signs in or signs up user with GitHub authorization code, returns access token and sets refresh token cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GitHubOAuthRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/Token"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          description: GitHub email is not verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: account conflicts with existing publisher or incomplete account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/Error"
+
+  /refresh:
+    post:
+      tags: [auth]
+      operationId: RefreshToken
+      summary: Refresh tokens
+      description: exchanges refresh token cookie for new access token and rotates refresh token cookie
+      security:
+        - RefreshTokenCookie: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Token"
+        "401":
+          description: refresh token is missing, invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/Error"
+
+  /logout:
+    post:
+      tags: [auth]
+      operationId: Logout
+      summary: Logout
+      description: revokes refresh token from cookie if present and clears refresh token cookie
+      security:
+        - {}
+        - RefreshTokenCookie: []
+      responses:
+        "204":
+          description: No Content
+        "500":
+          $ref: "#/components/responses/Error"
+
+  /account:
+    patch:
+      tags: [account]
+      operationId: UpdateProfile
+      summary: Update profile
+      description: updates user name and/or password, returns new access token and sets refresh token cookie
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileReq"
+      responses:
+        "200":
+          $ref: "#/components/responses/Token"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          description: invalid authorization token or current password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+    delete:
+      tags: [account]
+      operationId: DeleteAccount
+      summary: Delete account
+      description: deletes user account and clears refresh token cookie
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+
+  /verify-email:
+    post:
+      tags: [account]
+      operationId: VerifyEmail
+      summary: Verify email
+      description: verifies user email with code sent via email, returns new access token and sets refresh token cookie
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEmailReq"
+      responses:
+        "200":
+          $ref: "#/components/responses/Token"
+        "400":
+          description: invalid request, email already verified or invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+
+  /resend-verification:
+    post:
+      tags: [account]
+      operationId: ResendVerificationEmail
+      summary: Resend verification email
+      description: queues email verification code for asynchronous delivery
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: email already verified, missing or unsubscribed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "429":
+          description: too many resend requests
+          headers:
+            Retry-After:
+              description: seconds to wait before next request
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/Error"
+
+  /unsubscribe:
+    get:
+      tags: [unsubscribe]
+      operationId: Unsubscribe
+      summary: Unsubscribe page
+      description: validates unsubscribe token from email link and renders confirmation page
+      parameters:
+        - name: token
+          in: query
+          description: unsubscribe token from email link
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/HTML"
+        "400":
+          $ref: "#/components/responses/Text"
+        "500":
+          $ref: "#/components/responses/Text"
+    post:
+      tags: [unsubscribe]
+      operationId: UnsubscribeConfirm
+      summary: Confirm unsubscribe
+      description: unsubscribes email from notifications and renders success page
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/UnsubscribeConfirmForm"
+      responses:
+        "200":
+          $ref: "#/components/responses/HTML"
+        "400":
+          $ref: "#/components/responses/Text"
+        "404":
+          $ref: "#/components/responses/Text"
+        "500":
+          $ref: "#/components/responses/Text"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    RefreshTokenCookie:
+      type: apiKey
+      in: cookie
+      name: refresh_token
+
+  responses:
+    Token:
+      description: OK, refresh token is set in httpOnly cookie
+      headers:
+        Set-Cookie:
+          description: refresh_token httpOnly cookie
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TokenResp"
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    HTML:
+      description: HTML page
+      content:
+        text/html:
+          schema:
+            type: string
+    Text:
+      description: Error message
+      content:
+        text/plain:
+          schema:
+            type: string
+
+  # request validation is done by go-playground/validator via validate tags; schema constraints mirror them for documentation
+  schemas:
+    # error schemas map to internal/web types
+    ErrorResponse:
+      x-go-type: web.ErrResp
+      x-go-type-import:
+        path: github.com/OutOfStack/game-library-auth/internal/web
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/FieldError"
+
+    FieldError:
+      x-go-type: web.FieldError
+      x-go-type-import:
+        path: github.com/OutOfStack/game-library-auth/internal/web
+      type: object
+      required: [field, error]
+      properties:
+        field:
+          type: string
+        error:
+          type: string
+
+    TokenResp:
+      type: object
+      required: [accessToken]
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token
+
+    SignInReq:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 4
+          maxLength: 64
+          x-oapi-codegen-extra-tags:
+            validate: required,min=4,max=64
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 64
+          x-oapi-codegen-extra-tags:
+            validate: required,min=8,max=64
+
+    SignUpReq:
+      type: object
+      required: [username, name, password, confirmPassword]
+      properties:
+        username:
+          type: string
+          minLength: 4
+          pattern: "^[a-zA-Z0-9_]+$"
+          x-oapi-codegen-extra-tags:
+            validate: required,min=4,usernameregex
+        name:
+          type: string
+          description: display name
+          x-go-name: DisplayName
+          x-oapi-codegen-extra-tags:
+            validate: required
+        email:
+          type: string
+          format: email
+          description: required for publishers
+          # plain string: openapi_types.Email rejects empty value on unmarshal before validation runs
+          x-go-type: string
+          x-oapi-codegen-extra-tags:
+            validate: omitempty,email
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 64
+          x-oapi-codegen-extra-tags:
+            validate: required,min=8,max=64
+        confirmPassword:
+          type: string
+          format: password
+          description: must be equal to password
+          x-oapi-codegen-extra-tags:
+            validate: eqfield=Password
+        isPublisher:
+          type: boolean
+
+    UpdateProfileReq:
+      type: object
+      description: password and newPassword must be provided together
+      properties:
+        name:
+          type: string
+          x-go-type-skip-optional-pointer: false
+        password:
+          type: string
+          format: password
+          description: current password
+          minLength: 8
+          maxLength: 64
+          x-go-type-skip-optional-pointer: false
+          x-oapi-codegen-extra-tags:
+            validate: omitempty,min=8,max=64
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 64
+          x-go-type-skip-optional-pointer: false
+          x-oapi-codegen-extra-tags:
+            validate: omitempty,min=8,max=64
+        confirmNewPassword:
+          type: string
+          format: password
+          description: must be equal to newPassword
+          minLength: 8
+          maxLength: 64
+          x-go-type-skip-optional-pointer: false
+          x-oapi-codegen-extra-tags:
+            validate: omitempty,min=8,max=64
+
+    VerifyEmailReq:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          description: 6-digit verification code
+          minLength: 6
+          maxLength: 6
+          x-oapi-codegen-extra-tags:
+            validate: required,len=6
+
+    GoogleOAuthRequest:
+      type: object
+      required: [idToken]
+      properties:
+        idToken:
+          type: string
+          description: Google ID token
+          x-oapi-codegen-extra-tags:
+            validate: required
+
+    GitHubOAuthRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          description: GitHub OAuth authorization code
+          x-oapi-codegen-extra-tags:
+            validate: required
+
+    UnsubscribeConfirmForm:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: unsubscribe token

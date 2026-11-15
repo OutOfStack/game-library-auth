@@ -4,29 +4,19 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
-// SignUpHandler godoc
-// @Summary		Register a new user
-// @Description Create a new user account with the provided information
-// @Tags  		auth
-// @Accept 		json
-// @Produce 	json
-// @Param 		signup body SignUpReq true "User signup information"
-// @Success		200 {object} TokenResp 	 "User credentials"
-// @Failure 	400 {object} web.ErrResp "Invalid input data"
-// @Failure 	409 {object} web.ErrResp "Username or publisher name already exists"
-// @Failure 	500 {object} web.ErrResp "Internal server error"
-// @Router		/signup [post]
-func (a *API) SignUpHandler(c fiber.Ctx) error {
+// SignUp creates new user account, returns access token and sets refresh token cookie
+func (a *API) SignUp(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "signUp")
 	defer span.End()
 
-	var signUp SignUpReq
+	var signUp openapi.SignUpReq
 	if err := c.Bind().Body(&signUp); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
@@ -87,7 +77,7 @@ func (a *API) SignUpHandler(c fiber.Ctx) error {
 	// set refresh token as a cookie
 	a.setRefreshTokenCookie(c, tokens.RefreshToken)
 
-	return c.JSON(TokenResp{
+	return c.JSON(openapi.TokenResp{
 		AccessToken: tokens.AccessToken,
 	})
 }

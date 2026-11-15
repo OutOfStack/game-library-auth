@@ -20,6 +20,17 @@ spec:
                         name: game-library-auth-service
                         port:
                             number: 8000
+      # serve auth on the UI domain too, so the refresh token cookie stays first-party
+      - host: _UI_URL_
+        http:
+            paths:
+              - path: /_auth(/|$)(.*)
+                pathType: Prefix
+                backend:
+                    service:
+                        name: game-library-auth-service
+                        port:
+                            number: 8000
 ---
 kind: Ingress
 apiVersion: networking.k8s.io/v1

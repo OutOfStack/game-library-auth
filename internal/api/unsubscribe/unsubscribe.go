@@ -3,6 +3,7 @@ package unsubscribe
 import (
 	"net/http"
 
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
@@ -12,12 +13,12 @@ const (
 	contactEmailTemplateKey = "ContactEmail"
 )
 
-// UnsubscribeHandler handles GET /unsubscribe?token=xxx - shows confirmation page
-func (a *API) UnsubscribeHandler(c fiber.Ctx) error {
+// Unsubscribe handles GET /unsubscribe?token=xxx - shows confirmation page
+func (a *API) Unsubscribe(c fiber.Ctx, params openapi.UnsubscribeParams) error {
 	ctx, span := tracer.Start(c.Context(), "unsubscribeHandler")
 	defer span.End()
 
-	token := c.Query("token")
+	token := params.Token
 	if token == "" {
 		return c.Status(http.StatusBadRequest).SendString("Missing token parameter")
 	}

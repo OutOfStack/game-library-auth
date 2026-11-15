@@ -4,29 +4,19 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
-// SignInHandler godoc
-// @Summary      Sign in
-// @Description  Authenticate a user and return an access token
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Param        signin body SignInReq true "User credentials"
-// @Success      200 {object} TokenResp
-// @Failure      400 {object} web.ErrResp
-// @Failure      401 {object} web.ErrResp
-// @Failure      500 {object} web.ErrResp
-// @Router       /signin [post]
-func (a *API) SignInHandler(c fiber.Ctx) error {
+// SignIn authenticates user with username and password, returns access token and sets refresh token cookie
+func (a *API) SignIn(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "signIn")
 	defer span.End()
 
-	var signIn SignInReq
+	var signIn openapi.SignInReq
 	if err := c.Bind().Body(&signIn); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
@@ -73,7 +63,7 @@ func (a *API) SignInHandler(c fiber.Ctx) error {
 	// set refresh token as a cookie
 	a.setRefreshTokenCookie(c, tokens.RefreshToken)
 
-	return c.JSON(TokenResp{
+	return c.JSON(openapi.TokenResp{
 		AccessToken: tokens.AccessToken,
 	})
 }

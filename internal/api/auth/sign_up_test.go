@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/OutOfStack/game-library-auth/internal/api/auth"
 	mocks "github.com/OutOfStack/game-library-auth/internal/api/auth/mocks"
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
@@ -33,7 +33,7 @@ func TestSignUpHandler(t *testing.T) {
 	}{
 		{
 			name: "successful user signup",
-			request: auth.SignUpReq{
+			request: openapi.SignUpReq{
 				Username:        "newuser",
 				DisplayName:     "New User",
 				Password:        "password123",
@@ -53,11 +53,11 @@ func TestSignUpHandler(t *testing.T) {
 					}, nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedResp:   auth.TokenResp{AccessToken: "test-token"},
+			expectedResp:   openapi.TokenResp{AccessToken: "test-token"},
 		},
 		{
 			name: "successful publisher signup",
-			request: auth.SignUpReq{
+			request: openapi.SignUpReq{
 				Username:        "newpublisher",
 				DisplayName:     "Publisher Co",
 				Password:        "password123",
@@ -77,11 +77,11 @@ func TestSignUpHandler(t *testing.T) {
 					}, nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedResp:   auth.TokenResp{AccessToken: "test-token"},
+			expectedResp:   openapi.TokenResp{AccessToken: "test-token"},
 		},
 		{
 			name: "successful user signup with email verification",
-			request: auth.SignUpReq{
+			request: openapi.SignUpReq{
 				Username:        "newuser_verify",
 				DisplayName:     "New User Verify",
 				Email:           "verify@example.com",
@@ -103,11 +103,11 @@ func TestSignUpHandler(t *testing.T) {
 					}, nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedResp:   auth.TokenResp{AccessToken: "test-token"},
+			expectedResp:   openapi.TokenResp{AccessToken: "test-token"},
 		},
 		{
 			name: "username already exists",
-			request: auth.SignUpReq{
+			request: openapi.SignUpReq{
 				Username:        "existinguser",
 				DisplayName:     "Existing User",
 				Password:        "password123",
@@ -124,7 +124,7 @@ func TestSignUpHandler(t *testing.T) {
 		},
 		{
 			name: "publisher name already exists",
-			request: auth.SignUpReq{
+			request: openapi.SignUpReq{
 				Username:        "newpublisher",
 				DisplayName:     "Existing Publisher",
 				Password:        "password123",
@@ -141,7 +141,7 @@ func TestSignUpHandler(t *testing.T) {
 		},
 		{
 			name: "database error on create",
-			request: auth.SignUpReq{
+			request: openapi.SignUpReq{
 				Username:        "newuser",
 				DisplayName:     "New User",
 				Password:        "password123",
@@ -178,7 +178,7 @@ func TestSignUpHandler(t *testing.T) {
 				tt.setupMocks(mockUserFacade)
 			}
 
-			app.Post("/signup", authAPI.SignUpHandler)
+			app.Post("/signup", authAPI.SignUp)
 
 			reqBody, _ := json.Marshal(tt.request)
 			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/signup", bytes.NewReader(reqBody))
@@ -194,8 +194,8 @@ func TestSignUpHandler(t *testing.T) {
 			require.NoError(t, err)
 
 			switch v := tt.expectedResp.(type) {
-			case auth.TokenResp:
-				var actual auth.TokenResp
+			case openapi.TokenResp:
+				var actual openapi.TokenResp
 				err = json.Unmarshal(body, &actual)
 				require.NoError(t, err)
 				if v.AccessToken != "" {

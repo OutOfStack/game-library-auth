@@ -9,8 +9,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// UnsubscribeConfirmHandler handles POST /unsubscribe - processes the unsubscribe action
-func (a *API) UnsubscribeConfirmHandler(c fiber.Ctx) error {
+// UnsubscribeConfirm handles POST /unsubscribe - processes the unsubscribe action
+func (a *API) UnsubscribeConfirm(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "unsubscribeConfirmHandler")
 	defer span.End()
 

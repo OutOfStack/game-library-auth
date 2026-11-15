@@ -21,7 +21,7 @@ spec:
         spec:
             containers:
               - name: game-library-auth
-                image: asctod/game-library-auth:_IMAGE_TAG_
+                image: ghcr.io/outofstack/game-library-auth:_IMAGE_TAG_
                 readinessProbe:
                     httpGet:
                         path: /readiness
@@ -110,7 +110,7 @@ spec:
             terminationGracePeriodSeconds: 45
             containers:
               - name: game-library-auth-worker
-                image: asctod/game-library-auth:_IMAGE_TAG_
+                image: ghcr.io/outofstack/game-library-auth:_IMAGE_TAG_
                 command: ["./game-library-auth-worker"]
                 imagePullPolicy: Always
                 ports:

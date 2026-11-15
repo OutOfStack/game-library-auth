@@ -7,9 +7,7 @@ WORKDIR /tmp/game-library-auth-manage
 COPY go.mod go.sum  ./
 RUN go mod download
 
-# copy code and config into container
-COPY ./.example.env ./out/.env
-COPY ./migrations ./out/migrations
+# copy scripts (with migrations) and code into container
 COPY ./scripts ./out/scripts
 COPY . .
 

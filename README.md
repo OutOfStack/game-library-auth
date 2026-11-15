@@ -40,7 +40,7 @@ To set up the service, follow these steps:
 
 2. Set up the database:
    ```bash
-   make drunpg # runs postgres server with 'auth' db in docker container
+   make dockerrunpg # runs postgres server with 'auth' db in docker container
    make migrate # applies all migrations to database
    ```
 
@@ -69,7 +69,7 @@ To set up the service, follow these steps:
    ```bash
    make run-worker
    ```
-   `make run-worker` overrides `APP_DEBUG_ADDRESS` to `localhost:6062` for the worker's debug server, so it can run alongside the API.
+   `make run-worker` overrides `APP_DEBUG_ADDRESS` to `localhost:6063` for the worker's debug server, so it can run alongside the API.
 
 Refer to the [List of Make Commands](#list-of-make-commands) for a complete list of commands.
 
@@ -78,7 +78,7 @@ Refer to the [List of Make Commands](#list-of-make-commands) for a complete list
 After installation, you can use the following Make commands to develop the service:
 
 - `make test`: Runs tests for the whole project.
-- `make generate`: Generates proto files, documentation for Swagger UI and mocks for testing.
+- `make generate`: Generates proto files, HTTP server code from the OpenAPI spec and mocks for testing.
 - `make lint`: Runs golangci-lint for code analysis.
 
 Refer to the [List of Make Commands](#list-of-make-commands) for a complete list of commands.
@@ -99,6 +99,7 @@ Refer to the [List of Make Commands](#list-of-make-commands) for a complete list
 - The service can be configured using `.env` or environment variables, described in [`settings.go`](./internal/appconf/settings.go)
 - CI/CD configs are in [`./github/workflows/`](./.github/workflows/)
 - k8s deployment configs are in [`./k8s`](./.k8s/)
+- Grafana dashboards are in [`./observability`](./observability/grafana/dashboards/)
 - k8s secrets in [`secrets.yaml`](./.k8s/secrets.yaml) are not applied by CI. Create them in the cluster before deploying
 
 Both the API and the worker serve operational endpoints on a separate debug server (`APP_DEBUG_ADDRESS`, port 6060 in k8s):
@@ -109,10 +110,18 @@ annotations, scraping only the declared TCP container port equal to the annotate
 
 ## Documentation
 
-API documentation is available via [Swagger UI](http://localhost:8001/swagger/index.html). To generate the documentation, run:
+The HTTP API is defined spec-first in [`api/http/openapi.yaml`](api/http/openapi.yaml) (OpenAPI 3).
+Request/response models, the `ServerInterface` and route registration in `internal/api/openapi/openapi.gen.go` are generated from it with
+[oapi-codegen](https://github.com/oapi-codegen/oapi-codegen) (fiber v3 server); handlers implement the generated `ServerInterface`.
+Request bodies are validated with go-playground/validator tags declared in the spec via `x-oapi-codegen-extra-tags`.
+After changing the spec, regenerate the code:
+
 ```bash
-make generate
+make generate-openapi
 ```
+
+API documentation is available via [Swagger UI](http://localhost:8001/swagger/index.html), which serves the embedded spec
+from `/swagger/openapi.yaml`.
 
 ### gRPC
 
@@ -146,12 +155,12 @@ Commit message and release rules are documented in [CONTRIBUTING.md](./CONTRIBUT
     build-mng  builds manage app
     run        runs app
     test       runs tests for the whole project
-    generate   generates docs for Swagger UI
+    generate   generates proto files, OpenAPI server code and mocks for testing
     lint       runs golangci-lint
     cover      outputs tests coverage
 
 #### Database Commands
-    drunpg     runs postgres server with 'auth' db in docker container
+    dockerrunpg runs postgres server with 'auth' db in docker container
     migrate    applies all migrations to database (reads from config file)
     rollback   roll backs one last migration of database (reads from config file)
 

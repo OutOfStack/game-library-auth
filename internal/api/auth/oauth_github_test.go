@@ -11,6 +11,7 @@ import (
 
 	"github.com/OutOfStack/game-library-auth/internal/api/auth"
 	mocks "github.com/OutOfStack/game-library-auth/internal/api/auth/mocks"
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/client/githubapi"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
@@ -37,7 +38,7 @@ func TestGitHubOAuthHandler_InvalidRequest(t *testing.T) {
 		})
 		require.NoError(t, err)
 		app := fiber.New()
-		app.Post("/oauth/github", authAPI.GitHubOAuthHandler)
+		app.Post("/oauth/github", authAPI.GitHubOAuth)
 
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader([]byte("invalid json")))
 		req.Header.Set("Content-Type", "application/json")
@@ -65,7 +66,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 	_, mockGitHubOAuthClient, authAPI, mockUserFacade, app, ctrl := setupTest(t, cfg)
 	defer ctrl.Finish()
 
-	app.Post("/oauth/github", authAPI.GitHubOAuthHandler)
+	app.Post("/oauth/github", authAPI.GitHubOAuth)
 
 	t.Run("successful new user creation", func(t *testing.T) {
 		mockGitHubOAuthClient.EXPECT().
@@ -84,7 +85,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 				RefreshToken: facade.RefreshToken{Token: "refresh-token"},
 			}, nil)
 
-		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
+		reqBody := openapi.GitHubOAuthRequest{Code: "mock-github-code"}
 		body, _ := json.Marshal(reqBody)
 
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
@@ -96,7 +97,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var response auth.TokenResp
+		var response openapi.TokenResp
 		responseBody, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
 
@@ -122,7 +123,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 				RefreshToken: facade.RefreshToken{Token: "refresh-token"},
 			}, nil)
 
-		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
+		reqBody := openapi.GitHubOAuthRequest{Code: "mock-github-code"}
 		body, _ := json.Marshal(reqBody)
 
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
@@ -134,7 +135,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var response auth.TokenResp
+		var response openapi.TokenResp
 		responseBody, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
 
@@ -152,7 +153,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 			GitHubOAuth(gomock.Any(), "99999", "conflict@example.com", "conflictuser", true).
 			Return(model.User{}, facade.ErrOAuthSignInConflict)
 
-		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
+		reqBody := openapi.GitHubOAuthRequest{Code: "mock-github-code"}
 		body, _ := json.Marshal(reqBody)
 
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
@@ -174,7 +175,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 			GitHubOAuth(gomock.Any(), "12345", "publisher@example.com", "ghuser", true).
 			Return(model.User{}, facade.ErrOAuthPublisherConflict)
 
-		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
+		reqBody := openapi.GitHubOAuthRequest{Code: "mock-github-code"}
 		body, _ := json.Marshal(reqBody)
 
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
@@ -202,7 +203,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 			ExchangeCodeForUser(gomock.Any(), "invalid-code").
 			Return(githubapi.UserInfo{}, errors.New("invalid code"))
 
-		reqBody := auth.GitHubOAuthRequest{Code: "invalid-code"}
+		reqBody := openapi.GitHubOAuthRequest{Code: "invalid-code"}
 		body, _ := json.Marshal(reqBody)
 
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
@@ -224,7 +225,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 			GitHubOAuth(gomock.Any(), "12345", "ghuser@example.com", "ghuser", true).
 			Return(model.User{}, errors.New("database connection failed"))
 
-		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
+		reqBody := openapi.GitHubOAuthRequest{Code: "mock-github-code"}
 		body, _ := json.Marshal(reqBody)
 
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
@@ -246,7 +247,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 			GitHubOAuth(gomock.Any(), "12345", "unverified@example.com", "ghuser", false).
 			Return(model.User{}, facade.ErrOAuthEmailUnverified)
 
-		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
+		reqBody := openapi.GitHubOAuthRequest{Code: "mock-github-code"}
 		body, _ := json.Marshal(reqBody)
 
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))
@@ -283,7 +284,7 @@ func TestGitHubOAuthHandler_Success(t *testing.T) {
 			CreateTokens(gomock.Any(), gomock.Any()).
 			Return(facade.TokenPair{}, errors.New("token generation failed"))
 
-		reqBody := auth.GitHubOAuthRequest{Code: "mock-github-code"}
+		reqBody := openapi.GitHubOAuthRequest{Code: "mock-github-code"}
 		body, _ := json.Marshal(reqBody)
 
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/github", bytes.NewReader(body))

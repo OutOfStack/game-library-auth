@@ -11,6 +11,7 @@ import (
 
 	"github.com/OutOfStack/game-library-auth/internal/api/auth"
 	mocks "github.com/OutOfStack/game-library-auth/internal/api/auth/mocks"
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	"github.com/OutOfStack/game-library-auth/internal/appconf"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/model"
@@ -37,7 +38,7 @@ func TestGoogleOAuthHandler_InvalidRequest(t *testing.T) {
 		})
 		require.NoError(t, err)
 		app := fiber.New()
-		app.Post("/oauth/google", authAPI.GoogleOAuthHandler)
+		app.Post("/oauth/google", authAPI.GoogleOAuth)
 
 		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/oauth/google", bytes.NewReader([]byte("invalid json")))
 		req.Header.Set("Content-Type", "application/json")
@@ -61,7 +62,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 	mockGoogleTokenValidator, _, authAPI, mockUserFacade, app, ctrl := setupTest(t, cfg)
 	defer ctrl.Finish()
 
-	app.Post("/oauth/google", authAPI.GoogleOAuthHandler)
+	app.Post("/oauth/google", authAPI.GoogleOAuth)
 
 	t.Run("successful new user creation", func(t *testing.T) {
 		// Mock Google token validation
@@ -91,7 +92,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 				RefreshToken: facade.RefreshToken{Token: "refresh-token"},
 			}, nil)
 
-		reqBody := auth.GoogleOAuthRequest{
+		reqBody := openapi.GoogleOAuthRequest{
 			IDToken: "mock-google-id-token",
 		}
 		body, _ := json.Marshal(reqBody)
@@ -105,7 +106,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var response auth.TokenResp
+		var response openapi.TokenResp
 		responseBody, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
 
@@ -143,7 +144,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 				RefreshToken: facade.RefreshToken{Token: "refresh-token"},
 			}, nil)
 
-		reqBody := auth.GoogleOAuthRequest{
+		reqBody := openapi.GoogleOAuthRequest{
 			IDToken: "mock-google-id-token",
 		}
 		body, _ := json.Marshal(reqBody)
@@ -157,7 +158,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var response auth.TokenResp
+		var response openapi.TokenResp
 		responseBody, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
 
@@ -186,7 +187,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			GoogleOAuth(gomock.Any(), "new-google-sub-id", "conflict@example.com", true).
 			Return(model.User{}, facade.ErrOAuthSignInConflict)
 
-		reqBody := auth.GoogleOAuthRequest{
+		reqBody := openapi.GoogleOAuthRequest{
 			IDToken: "mock-google-id-token",
 		}
 		body, _ := json.Marshal(reqBody)
@@ -229,7 +230,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			GoogleOAuth(gomock.Any(), "google-sub-id", "publisher@example.com", true).
 			Return(model.User{}, facade.ErrOAuthPublisherConflict)
 
-		reqBody := auth.GoogleOAuthRequest{
+		reqBody := openapi.GoogleOAuthRequest{
 			IDToken: "mock-google-id-token",
 		}
 		body, _ := json.Marshal(reqBody)
@@ -260,7 +261,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			ValidateIDToken(gomock.Any(), "invalid-token").
 			Return(nil, errors.New("invalid token"))
 
-		reqBody := auth.GoogleOAuthRequest{
+		reqBody := openapi.GoogleOAuthRequest{
 			IDToken: "invalid-token",
 		}
 		body, _ := json.Marshal(reqBody)
@@ -295,7 +296,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			GoogleOAuth(gomock.Any(), "google-sub-id", "invalid-email", true).
 			Return(model.User{}, facade.ErrInvalidEmail)
 
-		reqBody := auth.GoogleOAuthRequest{
+		reqBody := openapi.GoogleOAuthRequest{
 			IDToken: "mock-google-id-token",
 		}
 		body, _ := json.Marshal(reqBody)
@@ -340,7 +341,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			GoogleOAuth(gomock.Any(), "google-sub-id", "test@example.com", true).
 			Return(model.User{}, errors.New("database connection failed"))
 
-		reqBody := auth.GoogleOAuthRequest{
+		reqBody := openapi.GoogleOAuthRequest{
 			IDToken: "mock-google-id-token",
 		}
 		body, _ := json.Marshal(reqBody)
@@ -381,7 +382,7 @@ func TestGoogleOAuthHandler_Success(t *testing.T) {
 			CreateTokens(gomock.Any(), gomock.Any()).
 			Return(facade.TokenPair{}, errors.New("token generation failed"))
 
-		reqBody := auth.GoogleOAuthRequest{
+		reqBody := openapi.GoogleOAuthRequest{
 			IDToken: "mock-google-id-token",
 		}
 		body, _ := json.Marshal(reqBody)

@@ -1,59 +1,7 @@
-# Project Guidelines
+# Claude Instructions
 
-## Understanding the Codebase
-- Read README.md to understand what this service is about
+@AGENTS.md
 
-## Code Documentation
-- Write comments for all exported functions and structs
-- Do NOT use periods (`.`) at the end of comments unless there are several sentences
-- Start comments with a lower-case letter inside funcs/methods
-- Write proper openapi-style specs for handlers.
+Follow the shared repository guidelines imported above. Keep project-wide guidance in `AGENTS.md`; this file contains only Claude-specific workflow constraints.
 
-# Code practices:
-- For introducing config params, add new params to @.example.env, then to @internal/appconf/settings.go and then to @.k8s/config.yaml
-- After adding new package, run `go mod tidy`
-
-## gRPC
-- Protocol buffer definitions are in @api/proto/*api/v*/*.proto for serviced (server)
-- Protocol buffer definitions for external services (clients) are in @api/proto/*api/v*/*.proto
-- Generated code is placed in @pkg/proto/*api/v*/*.pb.go and should NOT be manually edited
-- Use `buf.yaml` and `buf.gen.yaml` for protocol buffer build configuration
-- After modifying .proto files, run `make generate-proto` to regenerate code
-- The service exposes gRPC on port 9001 (configurable via APP_GRPC_ADDRESS)
-
-## Testing Requirements
-- Write tests for all exported functions
-- Place tests in separate files using the `*package*_test` naming convention
-- Test files should be in the same directory as the code being tested
-- If test already uses mock or requires new or updated mock, use `make generate` or add new line into `generate` command in `Makefile` file
-- DO NOT write comments in tests unless they explain something that is not self-evident
-- Use `github.com/stretchr/testify` for assertions and requires checks
-- Use t.Context()
-
-## Build and Quality Checks
-- Run validation commands before completing work:
-  - `make build` - compile the project
-  - `go test -v -race ./... | grep -E "(FAIL:|RUN.*failed|panic:|error:)"` - run all tests, `go test -v ./...` if -race flags fails
-  - `make lint` - check code quality; for gci and format errors use `goimports`
-  - `make generate | grep -E "(error:|warning:|failed)"` - generate swagger files and mocks if there were updates in definitions
-- Fix any issues found by these commands
-- Do not finish task until build, test and lint commands ran successfully 
-
-## Documentation
-- If there are significant updates regarding what written in `README.md`, add it there
-
-## Git Workflow Restrictions
-- DO NOT run any modifying `git` commands (i.e. `git add`, `git commit`, `git push`), only read commands allowed (i.e. `git status`, `git diff`, `git log`)
-- DO NOT delete files - notify me if files become redundant
 - NEVER add `Co-Authored-By` or any other co-author trailer to git commit messages
-
-## File Ignoring Guidelines
-- DO NOT review or analyze files in the following directories:
-  - `docs/**` - documentation files
-  - `**/mocks/**` - generated mock files
-  - `vendor/**` - external dependencies
-- DO NOT review or analyze files matching these patterns:
-  - `**/*_mock.go` - mock files
-  - `**/*.gen.go` - generated files
-  - `*.pem`, `*.key`, `app.env` - data-sensitive files
-

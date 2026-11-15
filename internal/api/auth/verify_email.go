@@ -4,27 +4,15 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
-// VerifyEmailHandler godoc
-// @Summary      Verify email address using verification code
-// @Description  Verifies user email address using the code sent via email
-// @Tags         auth
-// @Security     Bearer
-// @Accept       json
-// @Produce      json
-// @Param        verification body VerifyEmailReq true "Email verification code"
-// @Success      200 {object} TokenResp
-// @Failure      400 {object} web.ErrResp "Invalid or expired verification code"
-// @Failure      401 {object} web.ErrResp "Invalid or missing authorization token"
-// @Failure      404 {object} web.ErrResp "Verification code is not found"
-// @Failure      500 {object} web.ErrResp "Internal server error"
-// @Router       /verify-email [post]
-func (a *API) VerifyEmailHandler(c fiber.Ctx) error {
+// VerifyEmail verifies user email with code sent via email, returns new access token and sets refresh token cookie
+func (a *API) VerifyEmail(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "verifyEmail")
 	defer span.End()
 
@@ -36,7 +24,7 @@ func (a *API) VerifyEmailHandler(c fiber.Ctx) error {
 		})
 	}
 
-	var req VerifyEmailReq
+	var req openapi.VerifyEmailReq
 	if err = c.Bind().Body(&req); err != nil {
 		a.log.Error("parsing data", zap.Error(err))
 		return c.Status(http.StatusBadRequest).JSON(web.ErrResp{
@@ -88,7 +76,7 @@ func (a *API) VerifyEmailHandler(c fiber.Ctx) error {
 	// set refresh token as a cookie
 	a.setRefreshTokenCookie(c, tokens.RefreshToken)
 
-	return c.JSON(TokenResp{
+	return c.JSON(openapi.TokenResp{
 		AccessToken: tokens.AccessToken,
 	})
 }

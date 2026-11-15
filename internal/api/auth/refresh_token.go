@@ -4,22 +4,15 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/OutOfStack/game-library-auth/internal/api/openapi"
 	"github.com/OutOfStack/game-library-auth/internal/facade"
 	"github.com/OutOfStack/game-library-auth/internal/web"
 	"github.com/gofiber/fiber/v3"
 	"go.uber.org/zap"
 )
 
-// RefreshTokenHandler godoc
-// @Summary      Refresh access and refresh tokens
-// @Description  Use a refresh token from httpOnly cookie to obtain new access and refresh tokens
-// @Tags         auth
-// @Produce      json
-// @Success      200 {object} TokenResp
-// @Failure      401 {object} web.ErrResp "Invalid or expired refresh token"
-// @Failure      500 {object} web.ErrResp
-// @Router       /refresh [post]
-func (a *API) RefreshTokenHandler(c fiber.Ctx) error {
+// RefreshToken exchanges refresh token cookie for new access token and rotates refresh token cookie
+func (a *API) RefreshToken(c fiber.Ctx) error {
 	ctx, span := tracer.Start(c.Context(), "refreshToken")
 	defer span.End()
 
@@ -57,7 +50,7 @@ func (a *API) RefreshTokenHandler(c fiber.Ctx) error {
 	// set new refresh token cookie
 	a.setRefreshTokenCookie(c, tokens.RefreshToken)
 
-	return c.JSON(TokenResp{
+	return c.JSON(openapi.TokenResp{
 		AccessToken: tokens.AccessToken,
 	})
 }
